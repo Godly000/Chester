@@ -44,7 +44,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_TOKEN = os.getenv("MTU0MzExMjk5MDQ2MTY2MTIwNA.G7kdC6.A9T9GSFTuL-VNAKuZ93dUPhLr0pcsgIVuFpWeo")
 DATA_DIR = Path(__file__).parent / "data"
 RARITIES_FILE = DATA_DIR / "rarities.csv"
 
