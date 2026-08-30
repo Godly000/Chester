@@ -24,7 +24,7 @@ The `extra` 4th column is optional. If present, it is either:
 Referenced sub-table CSVs (e.g. heroskin.csv) may optionally start with
 a header row like "Item,Image" -- it's detected and skipped automatically.
 
-On the /chest command (or !chest), the bot:
+On the /chest command, the bot:
   1. Picks a category using the weights in rarities.csv
   2. Picks an item from that category's CSV using the item weights
   3. Replies with an embed showing the category, item name, and image
@@ -420,6 +420,58 @@ async def build_loot_embed(category: Category, item: LootItem) -> discord.Embed:
 
 
 # ---------------------------------------------------------------------------
+# #chester channel restriction
+# ---------------------------------------------------------------------------
+#
+# Commands only respond inside a channel named "chester". Elsewhere:
+#   - if a #chester channel exists in the server, the user gets a private,
+#     dismissable notice telling them to use it there
+#   - if no #chester channel exists at all, they get a private notice
+#     telling an admin to create one
+
+CHESTER_CHANNEL_NAME = "chester"
+
+
+def _find_chester_channel(guild: Optional[discord.Guild]):
+    """Look for a channel literally named 'chester' (case-insensitive) in the guild."""
+    if guild is None:
+        return None
+    for ch in guild.channels:
+        if getattr(ch, "name", "").lower() == CHESTER_CHANNEL_NAME:
+            return ch
+    return None
+
+
+def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[str]:
+    """
+    Returns None if `channel` is the #chester channel (command allowed to
+    proceed). Otherwise returns the notice message that should be shown.
+    """
+    current_name = getattr(channel, "name", "").lower()
+    if current_name == CHESTER_CHANNEL_NAME:
+        return None
+    if _find_chester_channel(guild) is not None:
+        return "Please use Chester only in the #chester channel"
+    return "Ask an Admin to set up Chester by creating a #chester channel."
+
+
+async def enforce_chester_channel(interaction: discord.Interaction) -> bool:
+    """
+    For slash commands. Sends an ephemeral notice (private to the user,
+    with Discord's built-in dismiss button) and returns False if this
+    isn't the #chester channel.
+    """
+    message = _channel_gate_message(interaction.guild, interaction.channel)
+    if message is None:
+        return True
+    if interaction.response.is_done():
+        await interaction.followup.send(message, ephemeral=True)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Bot setup
 # ---------------------------------------------------------------------------
 
@@ -461,6 +513,8 @@ async def _do_loot_roll() -> discord.Embed:
 @bot.tree.command(name="chest", description="Open a chest and get a random item!")
 @app_commands.checks.cooldown(1, 2.0)  # 1 use per 2 seconds, per user
 async def chest_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
     try:
         # Defer immediately: the image pre-check below can take a couple of
         # seconds, and Discord requires an ack within 3 seconds of the
@@ -488,16 +542,6 @@ async def chest_slash_error(interaction: discord.Interaction, error: app_command
             await interaction.response.send_message(f"⚠️ Something went wrong: {error}", ephemeral=True)
 
 
-@bot.command(name="chest")
-async def chest_prefix(ctx: commands.Context):
-    try:
-        embed = await _do_loot_roll()
-        await ctx.send(embed=embed)
-    except Exception as e:
-        log.exception("Error rolling loot: %s", e)
-        await ctx.send(f"⚠️ Something went wrong: {e}")
-
-
 async def rarity_autocomplete(interaction: discord.Interaction, current: str):
     """Suggest rarity names currently loaded from rarities.csv."""
     current_lower = current.lower()
@@ -513,6 +557,8 @@ async def rarity_autocomplete(interaction: discord.Interaction, current: str):
 @app_commands.autocomplete(rarity=rarity_autocomplete)
 @app_commands.checks.has_permissions(administrator=True)
 async def test_slash(interaction: discord.Interaction, rarity: str):
+    if not await enforce_chester_channel(interaction):
+        return
     if not categories:
         await interaction.response.send_message(
             "⚠️ Loot tables are not loaded. Try `/reload_loot` first.", ephemeral=True
@@ -555,6 +601,8 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
 
 @bot.tree.command(name="reload_loot", description="Reload the loot tables from CSV without restarting the bot.")
 async def reload_loot(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
     global categories
     try:
         categories = load_categories()
