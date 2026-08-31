@@ -452,7 +452,7 @@ def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[s
         return None
     if _find_chester_channel(guild) is not None:
         return "Please use Chester only in the #chester channel"
-    return "Ask an Admin to set up Chester by creating a #chester channel."
+    return "As an Admin to set up Chester by creating a #chester channel."
 
 
 async def enforce_chester_channel(interaction: discord.Interaction) -> bool:
@@ -613,6 +613,58 @@ async def reload_loot(interaction: discord.Interaction):
     except Exception as e:
         log.exception("Error reloading loot tables: %s", e)
         await interaction.response.send_message(f"⚠️ Failed to reload: {e}", ephemeral=True)
+
+
+@bot.tree.command(name="support", description="Show donation/support info.")
+async def support_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    # Plain message content can't render "[text](url)" as a clickable link --
+    # only embeds can -- so this uses an embed description for a real
+    # masked hyperlink. Sent ephemeral so it's private to the user and
+    # shows Discord's built-in dismiss button.
+    embed = discord.Embed(
+        description=(
+            "I'm accepting donations on [KoFi](https://ko-fi.com/god_ly). "
+            "Your support helps fund hosting subscriptions to make me more powerful."
+        ),
+        color=discord.Color.pink(),
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="about", description="About Chester")
+async def about_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    embed = discord.Embed(
+        description=(
+            "Chester Alpha v0.0.1 created by __godly__ on August 30, 2026. "
+            "Please submit bugs through her direct messages and use the "
+            "/help command to see a list of all commands"
+        ),
+        color=discord.Color.blue(),
+    )
+    embed.set_image(url="https://media.ffycdn.net/eu/supercell/cE9WaY3WgjeuJ9ChgYkU.png?width=2400")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="help", description="Shows list of commands")
+async def help_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    embed = discord.Embed(
+        description=(
+            "/chest: Simulates opening one Treasure Chest from Clash of Clans.\n"
+            "/test: Admin only. Forces an opening of a Treasure Chest at a specific rarity.\n"
+            "/reload_loot: Admin only. Reloads the loot table, needed when the rewards "
+            "change or mistakes are found in the files.\n"
+            "/about: Shows bot version, version release date, and bot author information.\n"
+            "/support: Gives a donation link which helps support the bot."
+        ),
+        color=discord.Color.blue(),
+    )
+    await interaction.response.send_message(embed=embed)
 
 
 def main():
