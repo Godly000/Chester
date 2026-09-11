@@ -5,24 +5,25 @@ Loot Box Discord Bot
 Reads a two-tier weighted-random loot table from CSV files:
 
   data/rarities.csv       -> category,weight
-  data/<category>.csv     -> item_name,image_url,weight[,extra]  (one file per category)
+  data/<category>.csv     -> item_name,weight[,extra]  (one file per category)
+  data/images.csv         -> item_name,image_url (shared image lookup)
 
 Weight columns may be plain numbers ("638") or comma-grouped ("1,923") --
-both are accepted.
+both are accepted. Item rows no longer carry their own image column --
+every item's image comes from a case-sensitive lookup of its name in
+data/images.csv.
 
-The `extra` 4th column is optional. If present, it is either:
+The `extra` 3rd column is optional. If present, it is either:
   - a numeric range like "100-500": a random quantity is rolled from that
     range and shown in the output (e.g. "Gold x1,234"), or
   - text naming another CSV in data/ (without ".csv"), e.g. "heroskin":
-    a random row is picked from data/heroskin.csv (name, image) and the
-    ENTIRE entry is rerolled to that row -- both the name and the image
-    are replaced outright (not merged/appended). For example, an item
-    row "Hero Skin,placeholder.png,4211,heroskin" becomes whatever
-    specific skin was drawn from heroskin.csv, e.g. "Gladiator King"
-    with that skin's own image, not "Hero Skin: Gladiator King".
+    a random row is picked from data/heroskin.csv (name, image), that
+    row's image overrides this item's image, and ": <name>" is appended
+    to this item's name (e.g. "Hero Equipment: Spiky Ball").
 
-Referenced sub-table CSVs (e.g. heroskin.csv) may optionally start with
-a header row like "Item,Image" -- it's detected and skipped automatically.
+Referenced sub-table CSVs (e.g. heroskin.csv) and images.csv may
+optionally start with a header row like "Item,Image" -- it's detected
+and skipped automatically.
 
 On the /chest command, the bot:
   1. Picks a category using the weights in rarities.csv
@@ -34,9 +35,9 @@ Setup
 1. pip install -r requirements.txt
 2. Copy .env.example to .env and add your bot token:
        DISCORD_TOKEN=your-token-here
-3. Make sure the `data/` folder (with rarities.csv and the category CSVs)
-   sits next to bot.py.
-4. python bot.py
+3. Make sure the `data/` folder (rarities.csv, the category CSVs, and
+   images.csv) sits next to main.py.
+4. python main.py
 
 The bot needs the "applications.commands" and "bot" scopes when invited,
 with at least the "Send Messages" and "Embed Links" permissions.
@@ -116,6 +117,14 @@ if not any(os.getenv(k) for k in _TOKEN_ENV_KEYS):
     _manual_env_fallback(ENV_PATH)
 
 DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), None)
+
+# Optional: set this to a specific server's ID to sync commands there
+# instantly instead of globally. Global syncs (the default) are confirmed
+# by Discord's API right away but can take up to an hour to actually show
+# up in every client -- a guild-scoped sync appears immediately, which is
+# much faster for testing. Global sync still runs either way so the
+# commands eventually appear everywhere else too.
+DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 DATA_DIR = SCRIPT_DIR / "data"
 RARITIES_FILE = DATA_DIR / "rarities.csv"
@@ -208,6 +217,31 @@ def _find_data_csv(name: str) -> Optional[Path]:
     return None
 
 
+IMAGES_FILE = DATA_DIR / "images.csv"
+
+
+def load_images() -> Dict[str, str]:
+    """
+    Load the item_name -> image_url lookup from images.csv. Lookups by
+    item name are case-sensitive, matching the CSV exactly.
+    """
+    images: Dict[str, str] = {}
+    try:
+        rows = _strip_header_row(_read_weighted_csv_rows(IMAGES_FILE))
+    except FileNotFoundError:
+        log.warning(
+            "Image lookup file not found. Searched for '%s' in '%s'.",
+            IMAGES_FILE.name, DATA_DIR,
+        )
+        return images
+    for row in rows:
+        if len(row) < 2:
+            log.warning("Skipping malformed row in %s: %r", IMAGES_FILE.name, row)
+            continue
+        images[row[0]] = row[1]
+    return images
+
+
 # Matches a numeric range like "100-500", "1000 - 2000", or comma-grouped
 # numbers like "800,000-1,200,000".
 _QUANTITY_RANGE_RE = re.compile(r"^\s*([\d,]+)\s*-\s*([\d,]+)\s*$")
@@ -216,9 +250,11 @@ _QUANTITY_RANGE_RE = re.compile(r"^\s*([\d,]+)\s*-\s*([\d,]+)\s*$")
 def load_categories() -> Dict[str, Category]:
     """
     Load rarities.csv (category,weight) and, for every category, its
-    matching <category>.csv (item_name,image_url,weight).
+    matching <category>.csv (item_name,weight[,extra]). Images come from
+    the shared images.csv lookup, not from these files.
     """
     categories: Dict[str, Category] = {}
+    images = load_images()
 
     for row in _read_weighted_csv_rows(RARITIES_FILE):
         if len(row) < 2:
@@ -237,18 +273,36 @@ def load_categories() -> Dict[str, Category]:
         try:
             item_rows = _strip_header_row(_read_weighted_csv_rows(item_file))
             for item_row in item_rows:
-                if len(item_row) < 3:
+                if len(item_row) < 2:
                     log.warning("Skipping malformed item row in %s: %r", item_file.name, item_row)
                     continue
-                item_name, image_url, item_weight_str = item_row[0], item_row[1], item_row[2]
+                item_name, item_weight_str = item_row[0], item_row[1]
                 try:
                     item_weight = _parse_weight(item_weight_str)
                 except ValueError:
                     log.warning("Skipping item row with bad weight in %s: %r", item_file.name, item_row)
                     continue
-                # Optional 4th column. If it's not present, this is simply None
-                # and the item is used as-is (no quantity, no sub-roll).
-                extra_field = item_row[3] if len(item_row) >= 4 else None
+                # Optional 3rd column now (previously 4th, before the image
+                # column was removed). If it's not present, this is simply
+                # None and the item is used as-is (no quantity, no sub-roll).
+                extra_field = item_row[2] if len(item_row) >= 3 else None
+
+                image_url = images.get(item_name)
+                if image_url is None:
+                    # Note: this will always warn at startup for the 4
+                    # category-placeholder items (Capital House, Decoration,
+                    # Hero Skin, Hero Equipment), since their real image
+                    # always comes from a sub-table roll instead -- that's
+                    # expected and harmless. If a *roll* still ends up with
+                    # no image (e.g. the sub-table lookup also fails), the
+                    # embed itself will show an error, not just this log.
+                    log.warning(
+                        "No image found in images.csv for item '%s' (case-sensitive "
+                        "lookup); this item will have no image unless overridden.",
+                        item_name,
+                    )
+                    image_url = ""
+
                 items.append(
                     LootItem(
                         name=item_name,
@@ -400,21 +454,17 @@ async def build_loot_embed(category: Category, item: LootItem) -> discord.Embed:
         color=color,
     )
 
-    image_ok = True
-    if image_url:
-        image_ok = await check_image_loads(image_url)
-        embed.set_image(url=image_url)
-
-    if not image_ok:
+    if not image_url:
+        # No image at all -- the name wasn't found in images.csv (or in the
+        # sub-table it was rerolled into), rather than a slow/broken URL.
         embed.add_field(
-            name="⚠️ Heads up",
-            value=(
-                "This item's image couldn't be preloaded in time and may "
-                "load slowly or fail to display."
-            ),
+            name="❌ Image Error",
+            value=f"No image could be found for \"{display_name}\".",
             inline=False,
         )
-
+    else:
+        image_ok = await check_image_loads(image_url)
+        embed.set_image(url=image_url)
     embed.set_footer(text="Made by __godly__")
     return embed
 
@@ -496,9 +546,27 @@ async def on_ready():
 
     try:
         synced = await bot.tree.sync()
-        log.info("Synced %d slash command(s).", len(synced))
+        log.info(
+            "Synced %d global slash command(s) (can take up to 1 hour to "
+            "appear in every server's client).",
+            len(synced),
+        )
     except Exception as e:
-        log.exception("Failed to sync slash commands: %s", e)
+        log.exception("Failed to sync global slash commands: %s", e)
+
+    if DISCORD_GUILD_ID:
+        try:
+            guild_obj = discord.Object(id=int(DISCORD_GUILD_ID))
+            bot.tree.copy_global_to(guild=guild_obj)
+            guild_synced = await bot.tree.sync(guild=guild_obj)
+            log.info(
+                "Synced %d slash command(s) instantly to guild %s.",
+                len(guild_synced), DISCORD_GUILD_ID,
+            )
+        except ValueError:
+            log.warning("DISCORD_GUILD_ID='%s' is not a valid integer guild ID.", DISCORD_GUILD_ID)
+        except Exception as e:
+            log.exception("Failed to sync commands to guild %s: %s", DISCORD_GUILD_ID, e)
 
     log.info("Logged in as %s (id: %s)", bot.user, bot.user.id if bot.user else "?")
 
