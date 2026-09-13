@@ -7,6 +7,7 @@ Reads a two-tier weighted-random loot table from CSV files:
   data/rarities.csv       -> category,weight
   data/<category>.csv     -> item_name,weight[,extra]  (one file per category)
   data/images.csv         -> item_name,image_url (shared image lookup)
+  data/xp.csv             -> level,cumulative_xp_required (leveling curve)
 
 Weight columns may be plain numbers ("638") or comma-grouped ("1,923") --
 both are accepted. Item rows no longer carry their own image column --
@@ -28,7 +29,15 @@ and skipped automatically.
 On the /chest command, the bot:
   1. Picks a category using the weights in rarities.csv
   2. Picks an item from that category's CSV using the item weights
-  3. Replies with an embed showing the category, item name, and image
+  3. Awards the player XP based on that category's rarity, stored locally
+     in data/player_xp.db (SQLite, keyed by Discord user ID)
+  4. Replies with an embed showing the category, item name, image, and
+     XP gained -- with a separate follow-up message if this pushed the
+     player up a level (see data/xp.csv)
+
+The /profile command shows a player's level and XP progress bar (their
+own by default; anyone else's requires Moderate Members permission or
+higher).
 
 Setup
 -----
@@ -48,22 +57,61 @@ import logging
 import os
 import random
 import re
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
-import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
-# Configuration
+# Configuration / constants
 # ---------------------------------------------------------------------------
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("loot_bot")
 
 SCRIPT_DIR = Path(__file__).parent
 ENV_PATH = SCRIPT_DIR / ".env"
+DATA_DIR = SCRIPT_DIR / "data"
+RARITIES_FILE = DATA_DIR / "rarities.csv"
+IMAGES_FILE = DATA_DIR / "images.csv"
+XP_LEVELS_FILE = DATA_DIR / "xp.csv"
+XP_DB_FILE = DATA_DIR / "player_xp.db"
+
+# XP awarded to the player who rolled, per rarity of the item they got.
+XP_REWARDS = {
+    "legendary": 4640,
+    "epic": 1160,
+    "rare": 290,
+    "common": 160,
+}
+
+# Width (in segments) of the profile command's progress bar.
+PROGRESS_BAR_LENGTH = 10
+
+# Accept a couple of common alternate names in case the hosting panel's
+# environment variable was set up under a different key.
+_TOKEN_ENV_KEYS = ("DISCORD_TOKEN", "TOKEN", "BOT_TOKEN", "DISCORD_BOT_TOKEN")
+
+# Only a channel literally named this responds to commands.
+CHESTER_CHANNEL_NAME = "chester"
+
+# Matches a numeric range like "100-500", "1000 - 2000", or comma-grouped
+# numbers like "800,000-1,200,000".
+_QUANTITY_RANGE_RE = re.compile(r"^\s*([\d,]+)\s*-\s*([\d,]+)\s*$")
+
+# Rarity -> embed color, purely cosmetic. Falls back to a neutral color
+# if the category name isn't recognized.
+RARITY_COLORS = {
+    "common": discord.Color.light_gray(),
+    "rare": discord.Color.blue(),
+    "epic": discord.Color.purple(),
+    "legendary": discord.Color.gold(),
+}
 
 # Load .env from the same folder as this script, regardless of the
 # working directory the process was launched from (panels sometimes
@@ -109,10 +157,6 @@ def _manual_env_fallback(path: Path) -> None:
         log.warning("Manual .env fallback parse failed: %s", e)
 
 
-# Accept a couple of common alternate names in case the hosting panel's
-# environment variable was set up under a different key.
-_TOKEN_ENV_KEYS = ("DISCORD_TOKEN", "TOKEN", "BOT_TOKEN", "DISCORD_BOT_TOKEN")
-
 if not any(os.getenv(k) for k in _TOKEN_ENV_KEYS):
     _manual_env_fallback(ENV_PATH)
 
@@ -126,11 +170,8 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 # commands eventually appear everywhere else too.
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
-DATA_DIR = SCRIPT_DIR / "data"
-RARITIES_FILE = DATA_DIR / "rarities.csv"
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("loot_bot")
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 # ---------------------------------------------------------------------------
@@ -217,9 +258,6 @@ def _find_data_csv(name: str) -> Optional[Path]:
     return None
 
 
-IMAGES_FILE = DATA_DIR / "images.csv"
-
-
 def load_images() -> Dict[str, str]:
     """
     Load the item_name -> image_url lookup from images.csv. Lookups by
@@ -240,11 +278,6 @@ def load_images() -> Dict[str, str]:
             continue
         images[row[0]] = row[1]
     return images
-
-
-# Matches a numeric range like "100-500", "1000 - 2000", or comma-grouped
-# numbers like "800,000-1,200,000".
-_QUANTITY_RANGE_RE = re.compile(r"^\s*([\d,]+)\s*-\s*([\d,]+)\s*$")
 
 
 def load_categories() -> Dict[str, Category]:
@@ -409,43 +442,9 @@ def roll_loot(categories: Dict[str, Category]):
     return chosen_cat, chosen_item
 
 
-# Rarity -> embed color, purely cosmetic. Falls back to a neutral color
-# if the category name isn't recognized.
-RARITY_COLORS = {
-    "common": discord.Color.light_gray(),
-    "rare": discord.Color.blue(),
-    "epic": discord.Color.purple(),
-    "legendary": discord.Color.gold(),
-}
-
-# Shared HTTP session for pre-flight image checks, created once the bot
-# is ready. NOTE ON LIMITATIONS: Discord's own client fetches and renders
-# embed images itself once the message is delivered -- a bot has no way
-# to force that client-side render to finish before the message appears.
-# What we *can* do is verify the image URL is reachable and looks like an
-# image before we send the embed at all, and let the user know in the
-# reply if that check failed (likely a slow host or a dead link), rather
-# than silently sending an embed with an image that may never load.
-http_session: Optional[aiohttp.ClientSession] = None
-IMAGE_CHECK_TIMEOUT = 4.0  # seconds
-
-
-async def check_image_loads(url: str) -> bool:
-    """Best-effort check that `url` responds quickly with image content."""
-    if not url or http_session is None:
-        return False
-    try:
-        timeout = aiohttp.ClientTimeout(total=IMAGE_CHECK_TIMEOUT)
-        async with http_session.get(url, timeout=timeout) as resp:
-            if resp.status != 200:
-                return False
-            content_type = resp.headers.get("Content-Type", "")
-            return content_type.startswith("image/") or content_type == "application/octet-stream"
-    except Exception:
-        return False
-
-
-async def build_loot_embed(category: Category, item: LootItem) -> discord.Embed:
+async def build_loot_embed(
+    category: Category, item: LootItem, xp_reward: Optional[int] = None
+) -> discord.Embed:
     display_name, image_url = resolve_item_display(item)
     color = RARITY_COLORS.get(category.name.lower(), discord.Color.green())
     embed = discord.Embed(
@@ -463,10 +462,152 @@ async def build_loot_embed(category: Category, item: LootItem) -> discord.Embed:
             inline=False,
         )
     else:
-        image_ok = await check_image_loads(image_url)
         embed.set_image(url=image_url)
+
+    # xp_reward is only passed in for real /chest rolls, not /test (which is
+    # an admin debugging tool, not real gameplay, so it doesn't grant XP).
+    if xp_reward is not None:
+        embed.add_field(name="XP Gained", value=f"+{xp_reward:,} XP", inline=False)
+
     embed.set_footer(text="Made by __godly__")
     return embed
+
+
+# ---------------------------------------------------------------------------
+# XP / leveling system
+# ---------------------------------------------------------------------------
+#
+# Player XP is stored locally in a small SQLite database (data/player_xp.db)
+# keyed by Discord user ID -- no external service, no network calls, just a
+# single file on disk next to the rest of the bot's data.
+#
+# Level thresholds come from data/xp.csv: "level,cumulative_xp_required".
+# Row 1 is always level 1 at 0 XP; the last row is the max level.
+
+def init_xp_db() -> None:
+    """Create the player_xp table if it doesn't already exist."""
+    with sqlite3.connect(XP_DB_FILE) as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS player_xp ("
+            "user_id INTEGER PRIMARY KEY, "
+            "xp INTEGER NOT NULL DEFAULT 0"
+            ")"
+        )
+        conn.commit()
+
+
+def get_xp(user_id: int) -> int:
+    with sqlite3.connect(XP_DB_FILE) as conn:
+        row = conn.execute(
+            "SELECT xp FROM player_xp WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return row[0] if row else 0
+
+
+def add_xp(user_id: int, amount: int) -> int:
+    """Add `amount` XP to a player's total and return their new total."""
+    with sqlite3.connect(XP_DB_FILE) as conn:
+        conn.execute(
+            "INSERT INTO player_xp (user_id, xp) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET xp = xp + excluded.xp",
+            (user_id, amount),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT xp FROM player_xp WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return row[0]
+
+
+def load_xp_levels() -> List[int]:
+    """
+    Load data/xp.csv into a list where levels[i] is the cumulative XP
+    required to reach level (i + 1). Returns [] if the file is missing
+    or empty, in which case leveling is effectively disabled.
+    """
+    try:
+        rows = _strip_header_row(_read_weighted_csv_rows(XP_LEVELS_FILE))
+    except FileNotFoundError:
+        log.warning(
+            "XP level table not found. Searched for '%s' in '%s'.",
+            XP_LEVELS_FILE.name, DATA_DIR,
+        )
+        return []
+
+    parsed: List[Tuple[int, int]] = []
+    for row in rows:
+        if len(row) < 2:
+            log.warning("Skipping malformed row in %s: %r", XP_LEVELS_FILE.name, row)
+            continue
+        try:
+            level = int(row[0].strip())
+            threshold = int(row[1].strip().replace(",", ""))
+        except ValueError:
+            log.warning("Skipping non-numeric row in %s: %r", XP_LEVELS_FILE.name, row)
+            continue
+        parsed.append((level, threshold))
+
+    parsed.sort(key=lambda pair: pair[0])
+    return [threshold for _level, threshold in parsed]
+
+
+# Loaded once at startup; refreshed by /reload_loot alongside the loot tables.
+xp_levels: List[int] = []
+
+
+def xp_to_level(xp: int) -> int:
+    """Return the level (1-indexed) reached by a given amount of total XP."""
+    if not xp_levels:
+        return 1
+    level = 1
+    for i, threshold in enumerate(xp_levels):
+        if xp >= threshold:
+            level = i + 1
+        else:
+            break
+    return level
+
+
+def level_progress(xp: int) -> dict:
+    """
+    Return progress info for the profile command:
+      level, xp, current_threshold, next_threshold (None if max level),
+      xp_into_level, xp_needed_for_next (None if max level), is_max_level
+    """
+    level = xp_to_level(xp)
+    max_level = len(xp_levels)
+    current_threshold = xp_levels[level - 1] if xp_levels else 0
+
+    if not xp_levels or level >= max_level:
+        return {
+            "level": level,
+            "xp": xp,
+            "current_threshold": current_threshold,
+            "next_threshold": None,
+            "xp_into_level": xp - current_threshold,
+            "xp_needed_for_next": None,
+            "is_max_level": True,
+        }
+
+    next_threshold = xp_levels[level]
+    return {
+        "level": level,
+        "xp": xp,
+        "current_threshold": current_threshold,
+        "next_threshold": next_threshold,
+        "xp_into_level": xp - current_threshold,
+        "xp_needed_for_next": next_threshold - current_threshold,
+        "is_max_level": False,
+    }
+
+
+def make_progress_bar(current: int, total: int, length: int = PROGRESS_BAR_LENGTH) -> str:
+    """Render a simple block-character progress bar, e.g. '▰▰▰▰▱▱▱▱▱▱'."""
+    if total <= 0:
+        filled = length
+    else:
+        filled = round(length * min(max(current / total, 0), 1))
+    return "▰" * filled + "▱" * (length - filled)
 
 
 # ---------------------------------------------------------------------------
@@ -478,8 +619,6 @@ async def build_loot_embed(category: Category, item: LootItem) -> discord.Embed:
 #     dismissable notice telling them to use it there
 #   - if no #chester channel exists at all, they get a private notice
 #     telling an admin to create one
-
-CHESTER_CHANNEL_NAME = "chester"
 
 
 def _find_chester_channel(guild: Optional[discord.Guild]):
@@ -525,24 +664,26 @@ async def enforce_chester_channel(interaction: discord.Interaction) -> bool:
 # Bot setup
 # ---------------------------------------------------------------------------
 
-intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="!", intents=intents)
-
 # Loaded once at startup; use the reload command to refresh without restarting.
 categories: Dict[str, Category] = {}
 
 
 @bot.event
 async def on_ready():
-    global categories, http_session
-    if http_session is None:
-        http_session = aiohttp.ClientSession()
+    global categories, xp_levels
 
     try:
         categories = load_categories()
         log.info("Loaded categories: %s", ", ".join(categories.keys()))
     except Exception as e:
         log.exception("Failed to load loot tables: %s", e)
+
+    try:
+        init_xp_db()
+        xp_levels = load_xp_levels()
+        log.info("Loaded %d XP level thresholds.", len(xp_levels))
+    except Exception as e:
+        log.exception("Failed to set up XP system: %s", e)
 
     try:
         synced = await bot.tree.sync()
@@ -571,11 +712,24 @@ async def on_ready():
     log.info("Logged in as %s (id: %s)", bot.user, bot.user.id if bot.user else "?")
 
 
-async def _do_loot_roll() -> discord.Embed:
+async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
+    """
+    Perform a real /chest roll: pick loot, award XP for it, and return
+    (embed, new_level_if_leveled_up_else_None).
+    """
     if not categories:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
     category, item = roll_loot(categories)
-    return await build_loot_embed(category, item)
+
+    xp_reward = XP_REWARDS.get(category.name.lower(), 0)
+    old_xp = get_xp(user_id)
+    new_xp = add_xp(user_id, xp_reward)
+    old_level = xp_to_level(old_xp)
+    new_level = xp_to_level(new_xp)
+
+    embed = await build_loot_embed(category, item, xp_reward=xp_reward)
+    leveled_up_to = new_level if new_level > old_level else None
+    return embed, leveled_up_to
 
 
 @bot.tree.command(name="chest", description="Open a chest and get a random item!")
@@ -584,15 +738,17 @@ async def chest_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        # Defer immediately: the image pre-check below can take a couple of
-        # seconds, and Discord requires an ack within 3 seconds of the
-        # interaction arriving.
-        await interaction.response.defer()
-        embed = await _do_loot_roll()
-        await interaction.followup.send(embed=embed)
+        embed, leveled_up_to = await _do_loot_roll(interaction.user.id)
+        await interaction.response.send_message(embed=embed)
+        if leveled_up_to is not None:
+            level_up_embed = discord.Embed(
+                description=f"🎉 {interaction.user.mention} leveled up to **Level {leveled_up_to}**!",
+                color=discord.Color.gold(),
+            )
+            await interaction.followup.send(embed=level_up_embed)
     except Exception as e:
         log.exception("Error rolling loot: %s", e)
-        await interaction.followup.send(f"⚠️ Something went wrong: {e}", ephemeral=True)
+        await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
 
 
 @chest_slash.error
@@ -644,10 +800,9 @@ async def test_slash(interaction: discord.Interaction, rarity: str):
 
     chosen_cat = categories[match]
     try:
-        await interaction.response.defer()
         chosen_item = roll_item_from_category(chosen_cat)
         embed = await build_loot_embed(chosen_cat, chosen_item)
-        await interaction.followup.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     except Exception as e:
         log.exception("Error forcing roll for rarity '%s': %s", match, e)
         if interaction.response.is_done():
@@ -671,11 +826,13 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
 async def reload_loot(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
-    global categories
+    global categories, xp_levels
     try:
         categories = load_categories()
+        xp_levels = load_xp_levels()
         await interaction.response.send_message(
-            f"✅ Reloaded {len(categories)} categories: {', '.join(categories.keys())}",
+            f"✅ Reloaded {len(categories)} categories: {', '.join(categories.keys())} "
+            f"(and {len(xp_levels)} XP level thresholds)",
             ephemeral=True,
         )
     except Exception as e:
@@ -728,10 +885,56 @@ async def help_slash(interaction: discord.Interaction):
             "/reload_loot: Admin only. Reloads the loot table, needed when the rewards "
             "change or mistakes are found in the files.\n"
             "/about: Shows bot version, version release date, and bot author information.\n"
-            "/support: Gives a donation link which helps support the bot."
+            "/support: Gives a donation link which helps support the bot.\n"
+            "/profile: Shows a player's level and XP progress. Moderators and above can "
+            "check anyone's profile by providing them as an argument."
         ),
         color=discord.Color.blue(),
     )
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="profile", description="Show a player's level and XP progress.")
+@app_commands.describe(
+    member="View someone else's profile instead of your own (Moderator permission or higher required)."
+)
+async def profile_slash(interaction: discord.Interaction, member: Optional[discord.Member] = None):
+    if not await enforce_chester_channel(interaction):
+        return
+
+    target = member or interaction.user
+
+    if member is not None and member.id != interaction.user.id:
+        if not interaction.permissions.moderate_members:
+            await interaction.response.send_message(
+                "⚠️ You need Moderator permissions (Moderate Members) or higher to "
+                "view someone else's profile.",
+                ephemeral=True,
+            )
+            return
+
+    xp = get_xp(target.id)
+    progress = level_progress(xp)
+
+    if progress["is_max_level"]:
+        progress_line = f"**MAX LEVEL** — {xp:,} total XP"
+        bar = make_progress_bar(1, 1)
+    else:
+        bar = make_progress_bar(progress["xp_into_level"], progress["xp_needed_for_next"])
+        progress_line = (
+            f"{progress['xp_into_level']:,} / {progress['xp_needed_for_next']:,} XP "
+            f"to Level {progress['level'] + 1}"
+        )
+
+    embed = discord.Embed(
+        title=f"{target.display_name}'s Profile",
+        description=f"**Level {progress['level']}**\n{bar}\n{progress_line}",
+        color=discord.Color.blue(),
+    )
+    embed.add_field(name="Total XP", value=f"{xp:,}", inline=True)
+    embed.set_thumbnail(url=target.display_avatar.url)
+    embed.set_footer(text="Made by __godly__")
+
     await interaction.response.send_message(embed=embed)
 
 
@@ -759,5 +962,7 @@ def main():
             "     startup command string, not into os.environ)."
         )
     bot.run(DISCORD_TOKEN)
+
+
 if __name__ == "__main__":
     main()
