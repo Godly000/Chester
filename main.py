@@ -57,7 +57,16 @@ import logging
 import os
 import random
 import re
-import sqlite3
+try:
+    import sqlite3
+except ImportError:
+    # Some minimal/slim Python builds (certain Docker images, some hosting
+    # panels) are compiled without SQLite support at all, which makes even
+    # `import sqlite3` fail with ModuleNotFoundError: No module named
+    # '_sqlite3'. That would otherwise crash the whole bot before a single
+    # line of bot logic runs. Defer that failure until the XP system
+    # actually tries to use it, with a clear diagnostic instead.
+    sqlite3 = None
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -486,6 +495,14 @@ async def build_loot_embed(
 
 def init_xp_db() -> None:
     """Create the player_xp table if it doesn't already exist."""
+    if sqlite3 is None:
+        raise RuntimeError(
+            "Python's sqlite3 module isn't available in this environment "
+            "(the SQLite C extension wasn't compiled in). The XP/leveling "
+            "system needs it. On most hosts this means your Python build "
+            "or Docker image is missing SQLite support -- try a different "
+            "Python image/version, or ask your host to enable it."
+        )
     with sqlite3.connect(XP_DB_FILE) as conn:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS player_xp ("
@@ -962,7 +979,5 @@ def main():
             "     startup command string, not into os.environ)."
         )
     bot.run(DISCORD_TOKEN)
-
-
 if __name__ == "__main__":
     main()
