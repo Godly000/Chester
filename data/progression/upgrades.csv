@@ -1,0 +1,1723 @@
+Name,Time,Cost,Resource
+Town Hall 2,10,1000,Gold
+Town Hall 3,1800,4000,Gold
+Town Hall 4,10800,25000,Gold
+Town Hall 5,21600,150000,Gold
+Town Hall 6,43200,500000,Gold
+Town Hall 7,64800,1000000,Gold
+Town Hall 8,86400,2000000,Gold
+Town Hall 9,172800,2500000,Gold
+Town Hall 10,259200,3500000,Gold
+Town Hall 11,432000,4000000,Gold
+TH12 Giga Tesla 1,518400,6000000,Gold
+TH12 Giga Tesla 2,0,0,Gold
+TH12 Giga Tesla 3,0,0,Gold
+TH12 Giga Tesla 4,0,0,Gold
+TH12 Giga Tesla 5,0,0,Gold
+TH13 Giga Inferno 1,604800,9000000,Gold
+TH13 Giga Inferno 2,0,0,Gold
+TH13 Giga Inferno 3,0,0,Gold
+TH13 Giga Inferno 4,0,0,Gold
+TH13 Giga Inferno 5,0,0,Gold
+TH14 Giga Inferno 1,648000,12000000,Gold
+TH14 Giga Inferno 2,0,0,Gold
+TH14 Giga Inferno 3,0,0,Gold
+TH14 Giga Inferno 4,0,0,Gold
+TH14 Giga Inferno 5,0,0,Gold
+TH15 Giga Inferno 1,691200,13000000,Gold
+TH15 Giga Inferno 2,0,0,Gold
+TH15 Giga Inferno 3,0,0,Gold
+TH15 Giga Inferno 4,0,0,Gold
+TH15 Giga Inferno 5,0,0,Gold
+TH16 Giga Inferno 1,777600,15000000,Gold
+TH17 Inferno Artillery 1,864000,16000000,Gold
+TH17 Inferno Artillery 2,518400,10000000,Gold
+TH17 Inferno Artillery 3,604800,12000000,Gold
+TH17 Inferno Artillery 4,691200,14000000,Gold
+TH17 Inferno Artillery 5,864000,18000000,Gold
+Town Hall 18,1036800,25000000,Gold
+Smasher 2,604800,18000000,Elixir
+Smasher 3,777600,22000000,Elixir
+Smasher 4,950400,26000000,Elixir
+Smasher 5,1123200,28000000,Elixir
+Longshot 2,604800,18000000,Elixir
+Longshot 3,777600,22000000,Elixir
+Longshot 4,950400,26000000,Elixir
+Longshot 5,1123200,28000000,Elixir
+Logger 2,604800,18000000,Elixir
+Logger 3,777600,22000000,Elixir
+Logger 4,950400,26000000,Elixir
+Logger 5,1123200,28000000,Elixir
+Cannon 1,5,250,Gold
+Cannon 2,60,1000,Gold
+Cannon 3,120,4000,Gold
+Cannon 4,1200,16000,Gold
+Cannon 5,1800,50000,Gold
+Cannon 6,3600,60000,Gold
+Cannon 7,7200,100000,Gold
+Cannon 8,10800,160000,Gold
+Cannon 9,12600,250000,Gold
+Cannon 10,14400,330000,Gold
+Cannon 11,16200,500000,Gold
+Cannon 12,18000,600000,Gold
+Cannon 13,21600,660000,Gold
+Cannon 14,28800,1000000,Gold
+Cannon 15,36000,1200000,Gold
+Cannon 16,39600,1300000,Gold
+Cannon 17,43200,1500000,Gold
+Cannon 18,57600,1800000,Gold
+Cannon 19,72000,2000000,Gold
+Cannon 20,86400,2600000,Gold
+Cannon 21,129600,3000000,Gold
+Archer Tower 1,15,1000,Gold
+Archer Tower 2,120,2000,Gold
+Archer Tower 3,1200,5000,Gold
+Archer Tower 4,3600,20000,Gold
+Archer Tower 5,5400,70000,Gold
+Archer Tower 6,7200,80000,Gold
+Archer Tower 7,10800,150000,Gold
+Archer Tower 8,14400,200000,Gold
+Archer Tower 9,18000,400000,Gold
+Archer Tower 10,21600,460000,Gold
+Archer Tower 11,25200,600000,Gold
+Archer Tower 12,28800,700000,Gold
+Archer Tower 13,36000,1000000,Gold
+Archer Tower 14,39600,1100000,Gold
+Archer Tower 15,43200,1300000,Gold
+Archer Tower 16,57600,1600000,Gold
+Archer Tower 17,72000,1800000,Gold
+Archer Tower 18,86400,2000000,Gold
+Archer Tower 19,108000,2200000,Gold
+Archer Tower 20,129600,3000000,Gold
+Archer Tower 21,172800,4000000,Gold
+Mortar 1,1800,5000,Gold
+Mortar 2,3600,25000,Gold
+Mortar 3,7200,90000,Gold
+Mortar 4,10800,180000,Gold
+Mortar 5,21600,300000,Gold
+Mortar 6,28800,500000,Gold
+Mortar 7,43200,900000,Gold
+Mortar 8,64800,1200000,Gold
+Mortar 9,72000,1600000,Gold
+Mortar 10,86400,1800000,Gold
+Mortar 11,108000,2300000,Gold
+Mortar 12,129600,2400000,Gold
+Mortar 13,172800,2800000,Gold
+Mortar 14,216000,4300000,Gold
+Mortar 15,259200,5000000,Gold
+Mortar 16,345600,7000000,Gold
+Mortar 17,432000,13000000,Gold
+Mortar 18,1080000,21000000,Gold
+Mortar 18.1,345600,9000000,Gold
+Mortar 18.2,518400,7000000,Gold
+Air Defense 1,3600,22000,Gold
+Air Defense 2,7200,90000,Gold
+Air Defense 3,21600,210000,Gold
+Air Defense 4,57600,500000,Gold
+Air Defense 5,64800,800000,Gold
+Air Defense 6,86400,1000000,Gold
+Air Defense 7,172800,1750000,Gold
+Air Defense 8,216000,2300000,Gold
+Air Defense 9,259200,3400000,Gold
+Air Defense 10,345600,5000000,Gold
+Air Defense 11,388800,5600000,Gold
+Air Defense 12,432000,6500000,Gold
+Air Defense 13,518400,8000000,Gold
+Air Defense 14,561600,9000000,Gold
+Air Defense 15,604800,15000000,Gold
+Air Defense 16,1144800,26000000,Gold
+Air Defense 16.1,237600,6000000,Gold
+Air Defense 16.2,367200,3000000,Gold
+Wizard Tower 1,3600,100000,Gold
+Wizard Tower 2,5400,150000,Gold
+Wizard Tower 3,14400,250000,Gold
+Wizard Tower 4,28800,400000,Gold
+Wizard Tower 5,36000,550000,Gold
+Wizard Tower 6,43200,660000,Gold
+Wizard Tower 7,64800,1000000,Gold
+Wizard Tower 8,72000,1100000,Gold
+Wizard Tower 9,86400,1300000,Gold
+Wizard Tower 10,108000,2000000,Gold
+Wizard Tower 11,129600,2500000,Gold
+Wizard Tower 12,151200,2600000,Gold
+Wizard Tower 13,172800,3000000,Gold
+Wizard Tower 14,259200,4500000,Gold
+Wizard Tower 15,345600,5500000,Gold
+Wizard Tower 16,388800,8000000,Gold
+Wizard Tower 17,475200,14000000,Gold
+Wizard Tower 17.1,0,0,Gold
+Wizard Tower 17.2,0,0,Gold
+Air Sweeper 1,14400,200000,Gold
+Air Sweeper 2,21600,300000,Gold
+Air Sweeper 3,28800,450000,Gold
+Air Sweeper 4,43200,800000,Gold
+Air Sweeper 5,86400,1200000,Gold
+Air Sweeper 6,172800,1900000,Gold
+Air Sweeper 7,259200,3400000,Gold
+Hidden Tesla 1,7200,250000,Gold
+Hidden Tesla 2,10800,350000,Gold
+Hidden Tesla 3,14400,500000,Gold
+Hidden Tesla 4,21600,600000,Gold
+Hidden Tesla 5,43200,800000,Gold
+Hidden Tesla 6,86400,1200000,Gold
+Hidden Tesla 7,108000,1400000,Gold
+Hidden Tesla 8,129600,1600000,Gold
+Hidden Tesla 9,151200,2100000,Gold
+Hidden Tesla 10,172800,3000000,Gold
+Hidden Tesla 11,216000,3100000,Gold
+Hidden Tesla 12,259200,3700000,Gold
+Hidden Tesla 13,302400,5100000,Gold
+Hidden Tesla 14,345600,6500000,Gold
+Hidden Tesla 15,432000,8200000,Gold
+Hidden Tesla 16,604800,15000000,Gold
+Hidden Tesla 17,1123200,25000000,Gold
+Hidden Tesla 17.1,388800,12000000,Gold
+Hidden Tesla 17.2,561600,8000000,Gold
+Bomb Tower 1,43200,700000,Gold
+Bomb Tower 2,64800,1000000,Gold
+Bomb Tower 3,86400,1600000,Gold
+Bomb Tower 4,129600,1800000,Gold
+Bomb Tower 5,151200,1900000,Gold
+Bomb Tower 6,172800,2000000,Gold
+Bomb Tower 7,259200,4000000,Gold
+Bomb Tower 8,302400,5000000,Gold
+Bomb Tower 9,345600,6000000,Gold
+Bomb Tower 10,388800,7000000,Gold
+Bomb Tower 11,604800,8500000,Gold
+Bomb Tower 12,777600,14500000,Gold
+Bomb Tower 13,1123200,25000000,Gold
+Bomb Tower 13.1,216000,6000000,Gold
+Bomb Tower 13.2,345600,3000000,Gold
+X-Bow 1,86400,1000000,Gold
+X-Bow 2,108000,1200000,Gold
+X-Bow 3,172800,2400000,Gold
+X-Bow 4,216000,2500000,Gold
+X-Bow 5,259200,3900000,Gold
+X-Bow 6,302400,5000000,Gold
+X-Bow 7,345600,6000000,Gold
+X-Bow 8,388800,7000000,Gold
+X-Bow 9,432000,9000000,Gold
+X-Bow 10,475200,9500000,Gold
+X-Bow 11,518400,10000000,Gold
+X-Bow 12,691200,16000000,Gold
+X-Bow 13,1166400,26500000,Gold
+X-Bow 13.1,475200,14000000,Gold
+X-Bow 13.2,648000,9000000,Gold
+Inferno Tower 1,43200,1000000,Gold
+Inferno Tower 2,86400,1200000,Gold
+Inferno Tower 3,172800,2400000,Gold
+Inferno Tower 4,216000,3400000,Gold
+Inferno Tower 5,259200,4000000,Gold
+Inferno Tower 6,345600,6000000,Gold
+Inferno Tower 7,432000,8000000,Gold
+Inferno Tower 8,518400,9500000,Gold
+Inferno Tower 9,561600,10000000,Gold
+Inferno Tower 10,604800,11000000,Gold
+Inferno Tower 11,691200,16000000,Gold
+Inferno Tower 12,1166400,26000000,Gold
+Inferno Tower 12.1,432000,13000000,Gold
+Inferno Tower 12.2,604800,8500000,Gold
+Eagle Artillery 1,345600,5000000,Gold
+Eagle Artillery 2,432000,6000000,Gold
+Eagle Artillery 3,604800,9000000,Gold
+Eagle Artillery 4,648000,10000000,Gold
+Eagle Artillery 5,691200,12000000,Gold
+Eagle Artillery 6,777600,13000000,Gold
+Eagle Artillery 7,820800,14000000,Gold
+Scattershot 1,432000,8000000,Gold
+Scattershot 2,604800,9000000,Gold
+Scattershot 3,648000,11000000,Gold
+Scattershot 4,691200,11500000,Gold
+Scattershot 5,734400,12000000,Gold
+Scattershot 6,777600,16500000,Gold
+Scattershot 7,1296000,26500000,Gold
+Scattershot 7.1,432000,14500000,Gold
+Scattershot 7.2,604800,7000000,Gold
+Builder's Hut 2,172800,3000000,Gold
+Builder's Hut 3,259200,4000000,Gold
+Builder's Hut 4,345600,6000000,Gold
+Builder's Hut 5,432000,7000000,Gold
+Builder's Hut 6,475200,8000000,Gold
+Builder's Hut 7,604800,15500000,Gold
+Builder's Hut 8,1123200,24000000,Gold
+Builder's Hut 8.1,345600,10000000,Gold
+Builder's Hut 8.2,518400,8000000,Gold
+Monolith 1,604800,200000,DE
+Monolith 2,691200,250000,DE
+Monolith 3,777600,260000,DE
+Monolith 4,950400,300000,DE
+Monolith 5,1296000,470000,DE
+Monolith 5.1,432000,220000,DE
+Monolith 5.2,604800,200000,DE
+Spell Tower 1,604800,9000000,Gold
+Spell Tower 2,691200,11000000,Gold
+Spell Tower 3,734400,12000000,Gold
+Spell Tower 4,864000,27000000,Gold
+Ricochet Cannon 1,604800,12000000,Gold
+Ricochet Cannon 2,691200,13000000,Gold
+Ricochet Cannon 3,777600,17500000,Gold
+Ricochet Cannon 4,1166400,26500000,Gold
+Ricochet Cannon 4.1,518400,12000000,Gold
+Ricochet Cannon 4.2,604800,10000000,Gold
+Multi-Archer Tower 1,604800,12000000,Gold
+Multi-Archer Tower 2,691200,13000000,Gold
+Multi-Archer Tower 3,777600,17500000,Gold
+Multi-Archer Tower 4,1209600,27000000,Gold
+Multi-Archer Tower 4.1,518400,12000000,Gold
+Multi-Archer Tower 4.2,604800,10000000,Gold
+Firespitter 1,734400,17000000,Gold
+Firespitter 2,864000,18000000,Gold
+Firespitter 3,1296000,29000000,Gold
+Firespitter 3.1,561600,14000000,Gold
+Firespitter 3.2,648000,12000000,Gold
+Multi-Gear Tower 1,864000,17000000,Gold
+Multi-Gear Tower 2,928800,18000000,Gold
+Multi-Gear Tower 3,1209600,28000000,Gold
+Multi-Gear Tower 3.1,518400,12000000,Gold
+Multi-Gear Tower 3.2,604800,10000000,Gold
+Revenge Tower 1,1123200,430000,DE
+Revenge Tower 2,1209600,460000,DE
+Revenge Tower 2.1,604800,220000,DE
+Revenge Tower 2.2,691200,200000,DE
+Super Wizard Tower 1,1123200,29000000,Gold
+Super Wizard Tower 2,1209600,30000000,Gold
+Super Wizard Tower 2.1,518400,12000000,Gold
+Super Wizard Tower 2.2,604800,14000000,Gold
+Crafted Defense 11,21600,3500000,Elixir
+Crafted Defense 12,28800,4500000,Elixir
+Crafted Defense 13,36000,5500000,Elixir
+Crafted Defense 14,43200,6500000,Elixir
+Crafted Defense 15,64800,7500000,Elixir
+Crafted Defense 16,154800,8500000,Elixir
+Crafted Defense 17,288000,10000000,Elixir
+Crafted Defense 18,496800,11500000,Elixir
+Crafted Defense 19,734400,13000000,Elixir
+Crafted Defense 21,28800,4000000,Gold
+Crafted Defense 22,36000,5000000,Gold
+Crafted Defense 23,39600,6000000,Gold
+Crafted Defense 24,46800,7500000,Gold
+Crafted Defense 25,68400,9000000,Gold
+Crafted Defense 26,165600,10500000,Gold
+Crafted Defense 27,298800,12000000,Gold
+Crafted Defense 28,532800,13500000,Gold
+Crafted Defense 29,864000,15000000,Gold
+Crafted Defense 31,14400,30000,DE
+Crafted Defense 32,21600,40000,DE
+Crafted Defense 33,28800,50000,DE
+Crafted Defense 34,36000,60000,DE
+Crafted Defense 35,57600,70000,DE
+Crafted Defense 36,144000,80000,DE
+Crafted Defense 37,266400,90000,DE
+Crafted Defense 38,453600,100000,DE
+Crafted Defense 39,777600,110000,DE
+Crafted Defense 41,14400,3000000,Gold
+Crafted Defense 42,21600,4000000,Gold
+Crafted Defense 43,28800,5000000,Gold
+Crafted Defense 44,36000,6000000,Gold
+Crafted Defense 45,57600,7000000,Gold
+Crafted Defense 46,144000,8000000,Gold
+Crafted Defense 47,266400,9000000,Gold
+Crafted Defense 48,453600,10000000,Gold
+Crafted Defense 49,777600,11000000,Gold
+Crafted Defense 51,21600,35000,DE
+Crafted Defense 52,28800,45000,DE
+Crafted Defense 53,36000,55000,DE
+Crafted Defense 54,43200,65000,DE
+Crafted Defense 55,64800,75000,DE
+Crafted Defense 56,154800,85000,DE
+Crafted Defense 57,288000,95000,DE
+Crafted Defense 58,496800,105000,DE
+Crafted Defense 59,820800,115000,DE
+Crafted Defense 61,28800,4000000,Elixir
+Crafted Defense 62,36000,5000000,Elixir
+Crafted Defense 63,39600,6000000,Elixir
+Crafted Defense 64,46800,7500000,Elixir
+Crafted Defense 65,68400,9000000,Elixir
+Crafted Defense 66,165600,10500000,Elixir
+Crafted Defense 67,298800,12000000,Elixir
+Crafted Defense 68,532800,13500000,Elixir
+Crafted Defense 69,864000,15000000,Elixir
+Crafted Defense 71,28800,40000,DE
+Crafted Defense 72,36000,50000,DE
+Crafted Defense 73,39600,60000,DE
+Crafted Defense 74,46800,70000,DE
+Crafted Defense 75,68400,80000,DE
+Crafted Defense 76,165600,90000,DE
+Crafted Defense 77,298800,100000,DE
+Crafted Defense 78,532800,110000,DE
+Crafted Defense 79,864000,120000,DE
+Crafted Defense 81,14400,3000000,Elixir
+Crafted Defense 82,21600,4000000,Elixir
+Crafted Defense 83,28800,5000000,Elixir
+Crafted Defense 84,36000,6000000,Elixir
+Crafted Defense 85,57600,7000000,Elixir
+Crafted Defense 86,144000,8000000,Elixir
+Crafted Defense 87,266400,9000000,Elixir
+Crafted Defense 88,453600,10000000,Elixir
+Crafted Defense 89,777600,11000000,Elixir
+Crafted Defense 91,21600,3500000,Gold
+Crafted Defense 92,28800,4500000,Gold
+Crafted Defense 93,36000,5500000,Gold
+Crafted Defense 94,43200,6500000,Gold
+Crafted Defense 95,64800,7500000,Gold
+Crafted Defense 96,154800,8500000,Gold
+Crafted Defense 97,288000,10000000,Gold
+Crafted Defense 98,496800,11500000,Gold
+Crafted Defense 99,820800,13000000,Gold
+Wall 1,0,0,Gold
+Wall 2,0,1000,Gold
+Wall 3,0,5000,Gold
+Wall 4,0,10000,Gold
+Wall 5,0,20000,Both
+Wall 6,0,30000,Both
+Wall 7,0,50000,Both
+Wall 8,0,75000,Both
+Wall 9,0,100000,Both
+Wall 10,0,200000,Both
+Wall 11,0,500000,Both
+Wall 12,0,1000000,Both
+Wall 13,0,1500000,Both
+Wall 14,0,2000000,Both
+Wall 15,0,3000000,Both
+Wall 16,0,4000000,Both
+Wall 17,0,5000000,Both
+Wall 18,0,7000000,Both
+Wall 19,0,10000000,Both
+Bomb 1,0,400,Gold
+Bomb 2,60,1000,Gold
+Bomb 3,300,10000,Gold
+Bomb 4,1800,40000,Gold
+Bomb 5,3600,100000,Gold
+Bomb 6,7200,230000,Gold
+Bomb 7,10800,330000,Gold
+Bomb 8,14400,500000,Gold
+Bomb 9,21600,750000,Gold
+Bomb 10,43200,1300000,Gold
+Bomb 11,64800,2500000,Gold
+Bomb 12,86400,4000000,Gold
+Bomb 13,172800,8500000,Gold
+Bomb 14,691200,14000000,Gold
+Spring Trap 1,0,2000,Gold
+Spring Trap 2,3600,130000,Gold
+Spring Trap 3,7200,240000,Gold
+Spring Trap 4,10800,350000,Gold
+Spring Trap 5,14400,800000,Gold
+Spring Trap 6,21600,1000000,Gold
+Spring Trap 7,28800,1700000,Gold
+Spring Trap 8,43200,2000000,Gold
+Spring Trap 9,64800,3000000,Gold
+Spring Trap 10,86400,4000000,Gold
+Spring Trap 11,172800,6000000,Gold
+Spring Trap 12,259200,13000000,Gold
+Spring Trap 13,950400,16000000,Gold
+Air Bomb 1,0,4000,Gold
+Air Bomb 2,1800,20000,Gold
+Air Bomb 3,3600,75000,Gold
+Air Bomb 4,14400,300000,Gold
+Air Bomb 5,28800,550000,Gold
+Air Bomb 6,43200,800000,Gold
+Air Bomb 7,50400,1000000,Gold
+Air Bomb 8,57600,1200000,Gold
+Air Bomb 9,86400,2000000,Gold
+Air Bomb 10,129600,3000000,Gold
+Air Bomb 11,172800,5000000,Gold
+Air Bomb 12,259200,9500000,Gold
+Air Bomb 13,777600,15000000,Gold
+Giant Bomb 1,0,12500,Gold
+Giant Bomb 2,3600,75000,Gold
+Giant Bomb 3,10800,220000,Gold
+Giant Bomb 4,14400,750000,Gold
+Giant Bomb 5,36000,900000,Gold
+Giant Bomb 6,39600,1300000,Gold
+Giant Bomb 7,43200,1500000,Gold
+Giant Bomb 8,86400,2000000,Gold
+Giant Bomb 9,172800,3200000,Gold
+Giant Bomb 10,216000,5500000,Gold
+Giant Bomb 11,345600,10000000,Gold
+Giant Bomb 12,907200,17000000,Gold
+Seeking Air Mine 1,0,12000,Gold
+Seeking Air Mine 2,21600,600000,Gold
+Seeking Air Mine 3,86400,1200000,Gold
+Seeking Air Mine 4,129600,2500000,Gold
+Seeking Air Mine 5,172800,5000000,Gold
+Seeking Air Mine 6,259200,6500000,Gold
+Seeking Air Mine 7,432000,12000000,Gold
+Seeking Air Mine 8,993600,19000000,Gold
+Skeleton Trap 1,0,6000,Gold
+Skeleton Trap 2,18000,250000,Gold
+Skeleton Trap 3,28800,400000,Gold
+Skeleton Trap 4,43200,1000000,Gold
+Skeleton Trap 5,604800,18000000,Gold
+Tornado Trap 1,0,1000000,Gold
+Tornado Trap 2,86400,2000000,Gold
+Tornado Trap 3,172800,2500000,Gold
+Giga Bomb 1,0,5000000,Gold
+Giga Bomb 2,345600,8500000,Gold
+Giga Bomb 3,432000,12500000,Gold
+Giga Bomb 4,1123200,20000000,Gold
+Elixir Storage 1,10,300,Gold
+Elixir Storage 2,120,750,Gold
+Elixir Storage 3,300,1500,Gold
+Elixir Storage 4,900,3000,Gold
+Elixir Storage 5,1800,6000,Gold
+Elixir Storage 6,3600,12000,Gold
+Elixir Storage 7,7200,25000,Gold
+Elixir Storage 8,10800,50000,Gold
+Elixir Storage 9,14400,100000,Gold
+Elixir Storage 10,18000,250000,Gold
+Elixir Storage 11,21600,500000,Gold
+Elixir Storage 12,43200,1000000,Gold
+Elixir Storage 13,64800,1800000,Gold
+Elixir Storage 14,86400,2800000,Gold
+Elixir Storage 15,172800,3000000,Gold
+Elixir Storage 16,259200,4000000,Gold
+Elixir Storage 17,345600,5500000,Gold
+Elixir Storage 18,432000,10000000,Gold
+Elixir Storage 19,1080000,18000000,Gold
+Gold Storage 1,10,300,Elixir
+Gold Storage 2,120,750,Elixir
+Gold Storage 3,300,1500,Elixir
+Gold Storage 4,900,3000,Elixir
+Gold Storage 5,1800,6000,Elixir
+Gold Storage 6,3600,12000,Elixir
+Gold Storage 7,7200,25000,Elixir
+Gold Storage 8,10800,50000,Elixir
+Gold Storage 9,14400,100000,Elixir
+Gold Storage 10,18000,250000,Elixir
+Gold Storage 11,21600,500000,Elixir
+Gold Storage 12,43200,1000000,Elixir
+Gold Storage 13,64800,1800000,Elixir
+Gold Storage 14,86400,2800000,Elixir
+Gold Storage 15,172800,3000000,Elixir
+Gold Storage 16,259200,4000000,Elixir
+Gold Storage 17,345600,5500000,Elixir
+Gold Storage 18,432000,10000000,Elixir
+Gold Storage 19,1080000,18000000,Elixir
+Dark Elixir Storage 1,28800,250000,Elixir
+Dark Elixir Storage 2,57600,500000,Elixir
+Dark Elixir Storage 3,86400,1000000,Elixir
+Dark Elixir Storage 4,129600,1500000,Elixir
+Dark Elixir Storage 5,144000,2000000,Elixir
+Dark Elixir Storage 6,172800,2400000,Elixir
+Dark Elixir Storage 7,259200,3800000,Elixir
+Dark Elixir Storage 8,259200,5400000,Elixir
+Dark Elixir Storage 9,345600,6600000,Elixir
+Dark Elixir Storage 10,388800,8000000,Elixir
+Dark Elixir Storage 11,432000,10000000,Elixir
+Dark Elixir Storage 12,604800,16000000,Elixir
+Dark Elixir Storage 13,1123200,25000000,Elixir
+Elixir Collector 1,5,150,Gold
+Elixir Collector 2,15,300,Gold
+Elixir Collector 3,60,700,Gold
+Elixir Collector 4,120,1400,Gold
+Elixir Collector 5,300,3500,Gold
+Elixir Collector 6,900,7000,Gold
+Elixir Collector 7,1800,14000,Gold
+Elixir Collector 8,3600,28000,Gold
+Elixir Collector 9,5400,56000,Gold
+Elixir Collector 10,7200,75000,Gold
+Elixir Collector 11,10800,85000,Gold
+Elixir Collector 12,14400,170000,Gold
+Elixir Collector 13,18000,400000,Gold
+Elixir Collector 14,21600,800000,Gold
+Elixir Collector 15,36000,1200000,Gold
+Elixir Collector 16,86400,2000000,Gold
+Elixir Collector 17,172800,8000000,Gold
+Elixir Collector 17.1,172800,1700000,Gold
+Elixir Collector 17.2,259200,1500000,Gold
+Elixir Collector 17.3,345600,1300000,Gold
+Gold Mine 1,5,150,Elixir
+Gold Mine 2,15,300,Elixir
+Gold Mine 3,60,700,Elixir
+Gold Mine 4,120,1400,Elixir
+Gold Mine 5,300,3500,Elixir
+Gold Mine 6,900,7000,Elixir
+Gold Mine 7,1800,14000,Elixir
+Gold Mine 8,3600,28000,Elixir
+Gold Mine 9,5400,56000,Elixir
+Gold Mine 10,7200,75000,Elixir
+Gold Mine 11,10800,100000,Elixir
+Gold Mine 12,14400,200000,Elixir
+Gold Mine 13,18000,400000,Elixir
+Gold Mine 14,21600,800000,Elixir
+Gold Mine 15,36000,1200000,Elixir
+Gold Mine 16,86400,2000000,Elixir
+Gold Mine 17,172800,8000000,Elixir
+Gold Mine 17.1,172800,1700000,Elixir
+Gold Mine 17.2,259200,1500000,Elixir
+Gold Mine 17.3,345600,1300000,Elixir
+Dark Elixir Drill 1,14400,180000,Elixir
+Dark Elixir Drill 2,21600,270000,Elixir
+Dark Elixir Drill 3,43200,540000,Elixir
+Dark Elixir Drill 4,64800,900000,Elixir
+Dark Elixir Drill 5,86400,1200000,Elixir
+Dark Elixir Drill 6,129600,1800000,Elixir
+Dark Elixir Drill 7,151200,2100000,Elixir
+Dark Elixir Drill 8,172800,2400000,Elixir
+Dark Elixir Drill 9,216000,3700000,Elixir
+Dark Elixir Drill 10,259200,5300000,Elixir
+Dark Elixir Drill 11,518400,12000000,Elixir
+Dark Elixir Drill 11.1,259200,5100000,Elixir
+Dark Elixir Drill 11.2,345600,4500000,Elixir
+Dark Elixir Drill 11.3,432000,3900000,Elixir
+Helper Hut 1,0,1000000,Elixir
+Army Camp 1,60,200,Elixir
+Army Camp 2,300,2000,Elixir
+Army Camp 3,1800,10000,Elixir
+Army Camp 4,7200,100000,Elixir
+Army Camp 5,21600,250000,Elixir
+Army Camp 6,43200,500000,Elixir
+Army Camp 7,172800,1500000,Elixir
+Army Camp 8,259200,2500000,Elixir
+Army Camp 9,302400,4200000,Elixir
+Army Camp 10,345600,4500000,Elixir
+Army Camp 11,432000,7500000,Elixir
+Army Camp 12,518400,10000000,Elixir
+Army Camp 13,648000,17000000,Elixir
+Army Camp 14,1296000,26000000,Elixir
+Barracks 1,10,100,Elixir
+Barracks 2,15,500,Elixir
+Barracks 3,120,2500,Elixir
+Barracks 4,1800,5000,Elixir
+Barracks 5,7200,20000,Elixir
+Barracks 6,14400,120000,Elixir
+Barracks 7,21600,270000,Elixir
+Barracks 8,43200,600000,Elixir
+Barracks 9,86400,1000000,Elixir
+Barracks 10,129600,1400000,Elixir
+Barracks 11,172800,2600000,Elixir
+Barracks 12,345600,3700000,Elixir
+Barracks 13,432000,6000000,Elixir
+Barracks 14,518400,7000000,Elixir
+Barracks 15,604800,9000000,Elixir
+Barracks 16,648000,11000000,Elixir
+Barracks 17,691200,12600000,Elixir
+Barracks 18,777600,15000000,Elixir
+Barracks 19,907200,26000000,Elixir
+Clan Castle 1,0,10000,Elixir
+Clan Castle 2,7200,50000,Elixir
+Clan Castle 3,43200,600000,Elixir
+Clan Castle 4,86400,1200000,Elixir
+Clan Castle 5,129600,2000000,Elixir
+Clan Castle 6,172800,3000000,Elixir
+Clan Castle 7,259200,5000000,Elixir
+Clan Castle 8,345600,5000000,Elixir
+Clan Castle 9,518400,8000000,Elixir
+Clan Castle 10,604800,10000000,Elixir
+Clan Castle 11,691200,12000000,Elixir
+Clan Castle 12,777600,14500000,Elixir
+Clan Castle 13,864000,19000000,Elixir
+Clan Castle 14,1209600,28000000,Elixir
+Laboratory 1,60,5000,Elixir
+Laboratory 2,1800,25000,Elixir
+Laboratory 3,7200,50000,Elixir
+Laboratory 4,14400,100000,Elixir
+Laboratory 5,28800,200000,Elixir
+Laboratory 6,57600,400000,Elixir
+Laboratory 7,86400,800000,Elixir
+Laboratory 8,151200,1300000,Elixir
+Laboratory 9,237600,2100000,Elixir
+Laboratory 10,345600,3800000,Elixir
+Laboratory 11,518400,5500000,Elixir
+Laboratory 12,604800,8100000,Elixir
+Laboratory 13,691200,10800000,Elixir
+Laboratory 14,777600,13000000,Elixir
+Laboratory 15,864000,18000000,Elixir
+Laboratory 16,1382400,27000000,Elixir
+Hero Hall 1,3600,30000,Elixir
+Hero Hall 2,172800,1600000,Elixir
+Hero Hall 3,259200,2300000,Elixir
+Hero Hall 4,345600,2500000,Elixir
+Hero Hall 5,388800,4500000,Elixir
+Hero Hall 6,432000,5500000,Elixir
+Hero Hall 7,518400,8500000,Elixir
+Hero Hall 8,561600,9500000,Elixir
+Hero Hall 9,604800,11000000,Elixir
+Hero Hall 10,691200,13000000,Elixir
+Hero Hall 11,777600,17000000,Elixir
+Hero Hall 12,1166400,26000000,Elixir
+Dark Barracks 1,28800,170000,Elixir
+Dark Barracks 2,86400,500000,Elixir
+Dark Barracks 3,129600,800000,Elixir
+Dark Barracks 4,172800,1200000,Elixir
+Dark Barracks 5,216000,2200000,Elixir
+Dark Barracks 6,259200,2900000,Elixir
+Dark Barracks 7,432000,4000000,Elixir
+Dark Barracks 8,518400,7000000,Elixir
+Dark Barracks 9,604800,7200000,Elixir
+Dark Barracks 10,648000,10000000,Elixir
+Dark Barracks 11,691200,12000000,Elixir
+Dark Barracks 12,777600,20000000,Elixir
+Dark Barracks 13,864000,23000000,Elixir
+Spell Factory 1,21600,150000,Elixir
+Spell Factory 2,43200,300000,Elixir
+Spell Factory 3,86400,600000,Elixir
+Spell Factory 4,172800,1200000,Elixir
+Spell Factory 5,259200,2000000,Elixir
+Spell Factory 6,432000,3500000,Elixir
+Spell Factory 7,604800,9000000,Elixir
+Spell Factory 8,691200,14000000,Elixir
+Spell Factory 9,777600,24000000,Elixir
+Dark Spell Factory 1,21600,130000,Elixir
+Dark Spell Factory 2,43200,260000,Elixir
+Dark Spell Factory 3,172800,600000,Elixir
+Dark Spell Factory 4,259200,1200000,Elixir
+Dark Spell Factory 5,432000,2500000,Elixir
+Dark Spell Factory 6,518400,4000000,Elixir
+Dark Spell Factory 7,604800,11000000,Elixir
+Dark Spell Factory 8,864000,18000000,Elixir
+Blacksmith 1,43200,600000,Elixir
+Blacksmith 2,86400,1200000,Elixir
+Blacksmith 3,172800,2300000,Elixir
+Blacksmith 4,259200,3000000,Elixir
+Blacksmith 5,345600,5000000,Elixir
+Blacksmith 6,388800,6200000,Elixir
+Blacksmith 7,432000,9200000,Elixir
+Blacksmith 8,518400,10000000,Elixir
+Blacksmith 9,604800,11000000,Elixir
+Blacksmith 10,864000,18000000,Elixir
+Workshop 1,172800,2400000,Elixir
+Workshop 2,259200,3700000,Elixir
+Workshop 3,302400,5000000,Elixir
+Workshop 4,345600,8700000,Elixir
+Workshop 5,432000,9000000,Elixir
+Workshop 6,475200,10000000,Elixir
+Workshop 7,518400,11000000,Elixir
+Workshop 8,604800,13000000,Elixir
+Workshop 9,1166400,26000000,Elixir
+Pet House 1,86400,3000000,Elixir
+Pet House 2,172800,4000000,Elixir
+Pet House 3,259200,5000000,Elixir
+Pet House 4,302400,6000000,Elixir
+Pet House 5,345600,7000000,Elixir
+Pet House 6,388800,8000000,Elixir
+Pet House 7,432000,9000000,Elixir
+Pet House 8,475200,10000000,Elixir
+Pet House 9,518400,11000000,Elixir
+Pet House 10,604800,12000000,Elixir
+Pet House 11,691200,16500000,Elixir
+Pet House 12,1166400,25500000,Elixir
+Barbarian King 1,0,0,DE
+Barbarian King 2,7200,5000,DE
+Barbarian King 3,14400,5500,DE
+Barbarian King 4,28800,6000,DE
+Barbarian King 5,36000,6500,DE
+Barbarian King 6,43200,7000,DE
+Barbarian King 7,50400,7500,DE
+Barbarian King 8,57600,8000,DE
+Barbarian King 9,64800,8500,DE
+Barbarian King 10,72000,10000,DE
+Barbarian King 11,79200,10500,DE
+Barbarian King 12,86400,11000,DE
+Barbarian King 13,86400,11500,DE
+Barbarian King 14,86400,12000,DE
+Barbarian King 15,86400,12500,DE
+Barbarian King 16,86400,13000,DE
+Barbarian King 17,86400,13500,DE
+Barbarian King 18,86400,14000,DE
+Barbarian King 19,86400,14500,DE
+Barbarian King 20,86400,15000,DE
+Barbarian King 21,86400,17000,DE
+Barbarian King 22,86400,19000,DE
+Barbarian King 23,86400,21000,DE
+Barbarian King 24,86400,23000,DE
+Barbarian King 25,86400,25000,DE
+Barbarian King 26,172800,27000,DE
+Barbarian King 27,172800,29000,DE
+Barbarian King 28,172800,31000,DE
+Barbarian King 29,172800,33000,DE
+Barbarian King 30,172800,35000,DE
+Barbarian King 31,194400,37000,DE
+Barbarian King 32,194400,39000,DE
+Barbarian King 33,194400,41000,DE
+Barbarian King 34,194400,43000,DE
+Barbarian King 35,194400,45000,DE
+Barbarian King 36,194400,47000,DE
+Barbarian King 37,194400,49000,DE
+Barbarian King 38,194400,51000,DE
+Barbarian King 39,194400,53000,DE
+Barbarian King 40,194400,55000,DE
+Barbarian King 41,259200,58000,DE
+Barbarian King 42,259200,61000,DE
+Barbarian King 43,259200,64000,DE
+Barbarian King 44,259200,67000,DE
+Barbarian King 45,259200,70000,DE
+Barbarian King 46,259200,73000,DE
+Barbarian King 47,259200,76000,DE
+Barbarian King 48,259200,79000,DE
+Barbarian King 49,259200,82000,DE
+Barbarian King 50,259200,85000,DE
+Barbarian King 51,259200,86000,DE
+Barbarian King 52,259200,87000,DE
+Barbarian King 53,259200,88000,DE
+Barbarian King 54,259200,89000,DE
+Barbarian King 55,259200,90000,DE
+Barbarian King 56,259200,93000,DE
+Barbarian King 57,259200,96000,DE
+Barbarian King 58,259200,99000,DE
+Barbarian King 59,259200,102000,DE
+Barbarian King 60,259200,105000,DE
+Barbarian King 61,345600,107000,DE
+Barbarian King 62,345600,109000,DE
+Barbarian King 63,345600,111000,DE
+Barbarian King 64,345600,113000,DE
+Barbarian King 65,345600,115000,DE
+Barbarian King 66,345600,117000,DE
+Barbarian King 67,345600,119000,DE
+Barbarian King 68,345600,121000,DE
+Barbarian King 69,345600,123000,DE
+Barbarian King 70,345600,125000,DE
+Barbarian King 71,345600,130000,DE
+Barbarian King 72,345600,135000,DE
+Barbarian King 73,345600,140000,DE
+Barbarian King 74,345600,145000,DE
+Barbarian King 75,345600,150000,DE
+Barbarian King 76,345600,155000,DE
+Barbarian King 77,345600,160000,DE
+Barbarian King 78,345600,165000,DE
+Barbarian King 79,345600,170000,DE
+Barbarian King 80,345600,175000,DE
+Barbarian King 81,432000,180000,DE
+Barbarian King 82,432000,185000,DE
+Barbarian King 83,432000,195000,DE
+Barbarian King 84,432000,205000,DE
+Barbarian King 85,432000,215000,DE
+Barbarian King 86,518400,220000,DE
+Barbarian King 87,518400,230000,DE
+Barbarian King 88,518400,240000,DE
+Barbarian King 89,518400,250000,DE
+Barbarian King 90,518400,255000,DE
+Barbarian King 91,604800,280000,DE
+Barbarian King 92,604800,290000,DE
+Barbarian King 93,604800,300000,DE
+Barbarian King 94,604800,310000,DE
+Barbarian King 95,604800,320000,DE
+Barbarian King 96,691200,340000,DE
+Barbarian King 97,691200,350000,DE
+Barbarian King 98,691200,360000,DE
+Barbarian King 99,691200,370000,DE
+Barbarian King 100,691200,380000,DE
+Barbarian King 101,691200,400000,DE
+Barbarian King 102,691200,410000,DE
+Barbarian King 103,691200,420000,DE
+Barbarian King 104,691200,430000,DE
+Barbarian King 105,691200,450000,DE
+Barbarian King 106,691200,460000,DE
+Barbarian King 107,691200,470000,DE
+Barbarian King 108,691200,475000,DE
+Barbarian King 109,691200,485000,DE
+Barbarian King 110,691200,490000,DE
+Archer Queen 1,0,0,DE
+Archer Queen 2,7200,5000,DE
+Archer Queen 3,14400,5500,DE
+Archer Queen 4,28800,6000,DE
+Archer Queen 5,36000,6500,DE
+Archer Queen 6,43200,7000,DE
+Archer Queen 7,50400,7500,DE
+Archer Queen 8,57600,8000,DE
+Archer Queen 9,64800,8500,DE
+Archer Queen 10,72000,10000,DE
+Archer Queen 11,79200,10500,DE
+Archer Queen 12,86400,11000,DE
+Archer Queen 13,86400,11500,DE
+Archer Queen 14,86400,12000,DE
+Archer Queen 15,86400,12500,DE
+Archer Queen 16,86400,13000,DE
+Archer Queen 17,86400,13500,DE
+Archer Queen 18,86400,14000,DE
+Archer Queen 19,86400,14500,DE
+Archer Queen 20,86400,15000,DE
+Archer Queen 21,86400,17000,DE
+Archer Queen 22,86400,19000,DE
+Archer Queen 23,86400,21000,DE
+Archer Queen 24,86400,23000,DE
+Archer Queen 25,86400,25000,DE
+Archer Queen 26,172800,27000,DE
+Archer Queen 27,172800,29000,DE
+Archer Queen 28,172800,31000,DE
+Archer Queen 29,172800,33000,DE
+Archer Queen 30,172800,35000,DE
+Archer Queen 31,194400,37000,DE
+Archer Queen 32,194400,39000,DE
+Archer Queen 33,194400,41000,DE
+Archer Queen 34,194400,43000,DE
+Archer Queen 35,194400,45000,DE
+Archer Queen 36,194400,47000,DE
+Archer Queen 37,194400,49000,DE
+Archer Queen 38,194400,51000,DE
+Archer Queen 39,194400,53000,DE
+Archer Queen 40,194400,55000,DE
+Archer Queen 41,259200,58000,DE
+Archer Queen 42,259200,61000,DE
+Archer Queen 43,259200,64000,DE
+Archer Queen 44,259200,67000,DE
+Archer Queen 45,259200,70000,DE
+Archer Queen 46,259200,73000,DE
+Archer Queen 47,259200,76000,DE
+Archer Queen 48,259200,79000,DE
+Archer Queen 49,259200,82000,DE
+Archer Queen 50,259200,85000,DE
+Archer Queen 51,259200,86000,DE
+Archer Queen 52,259200,87000,DE
+Archer Queen 53,259200,88000,DE
+Archer Queen 54,259200,89000,DE
+Archer Queen 55,259200,90000,DE
+Archer Queen 56,259200,93000,DE
+Archer Queen 57,259200,96000,DE
+Archer Queen 58,259200,99000,DE
+Archer Queen 59,259200,102000,DE
+Archer Queen 60,259200,105000,DE
+Archer Queen 61,345600,107000,DE
+Archer Queen 62,345600,109000,DE
+Archer Queen 63,345600,111000,DE
+Archer Queen 64,345600,113000,DE
+Archer Queen 65,345600,115000,DE
+Archer Queen 66,345600,117000,DE
+Archer Queen 67,345600,119000,DE
+Archer Queen 68,345600,121000,DE
+Archer Queen 69,345600,123000,DE
+Archer Queen 70,345600,125000,DE
+Archer Queen 71,345600,130000,DE
+Archer Queen 72,345600,135000,DE
+Archer Queen 73,345600,140000,DE
+Archer Queen 74,345600,145000,DE
+Archer Queen 75,345600,150000,DE
+Archer Queen 76,345600,155000,DE
+Archer Queen 77,345600,160000,DE
+Archer Queen 78,345600,165000,DE
+Archer Queen 79,345600,170000,DE
+Archer Queen 80,345600,175000,DE
+Archer Queen 81,432000,180000,DE
+Archer Queen 82,432000,185000,DE
+Archer Queen 83,432000,195000,DE
+Archer Queen 84,432000,205000,DE
+Archer Queen 85,432000,215000,DE
+Archer Queen 86,518400,220000,DE
+Archer Queen 87,518400,230000,DE
+Archer Queen 88,518400,240000,DE
+Archer Queen 89,518400,250000,DE
+Archer Queen 90,518400,255000,DE
+Archer Queen 91,604800,280000,DE
+Archer Queen 92,604800,290000,DE
+Archer Queen 93,604800,300000,DE
+Archer Queen 94,604800,310000,DE
+Archer Queen 95,604800,320000,DE
+Archer Queen 96,691200,340000,DE
+Archer Queen 97,691200,350000,DE
+Archer Queen 98,691200,360000,DE
+Archer Queen 99,691200,370000,DE
+Archer Queen 100,691200,380000,DE
+Archer Queen 101,691200,400000,DE
+Archer Queen 102,691200,410000,DE
+Archer Queen 103,691200,420000,DE
+Archer Queen 104,691200,430000,DE
+Archer Queen 105,691200,450000,DE
+Archer Queen 106,691200,460000,DE
+Archer Queen 107,691200,470000,DE
+Archer Queen 108,691200,475000,DE
+Archer Queen 109,691200,485000,DE
+Archer Queen 110,691200,490000,DE
+Minion Prince 2,7200,5000,DE
+Minion Prince 3,14400,5500,DE
+Minion Prince 4,28800,6000,DE
+Minion Prince 5,36000,6500,DE
+Minion Prince 6,43200,7000,DE
+Minion Prince 7,50400,7500,DE
+Minion Prince 8,57600,8000,DE
+Minion Prince 9,64800,8500,DE
+Minion Prince 10,72000,10000,DE
+Minion Prince 11,79200,10500,DE
+Minion Prince 12,86400,11000,DE
+Minion Prince 13,86400,11500,DE
+Minion Prince 14,86400,12000,DE
+Minion Prince 15,86400,12500,DE
+Minion Prince 16,86400,13000,DE
+Minion Prince 17,86400,13500,DE
+Minion Prince 18,86400,14000,DE
+Minion Prince 19,86400,14500,DE
+Minion Prince 20,86400,15000,DE
+Minion Prince 21,86400,17000,DE
+Minion Prince 22,86400,19000,DE
+Minion Prince 23,86400,21000,DE
+Minion Prince 24,86400,23000,DE
+Minion Prince 25,86400,25000,DE
+Minion Prince 26,129600,27000,DE
+Minion Prince 27,129600,29000,DE
+Minion Prince 28,129600,31000,DE
+Minion Prince 29,129600,33000,DE
+Minion Prince 30,129600,35000,DE
+Minion Prince 31,172800,36000,DE
+Minion Prince 32,172800,37000,DE
+Minion Prince 33,172800,38000,DE
+Minion Prince 34,172800,39000,DE
+Minion Prince 35,172800,40000,DE
+Minion Prince 36,172800,41000,DE
+Minion Prince 37,172800,42000,DE
+Minion Prince 38,172800,43000,DE
+Minion Prince 39,172800,44000,DE
+Minion Prince 40,172800,45000,DE
+Minion Prince 41,194400,50000,DE
+Minion Prince 42,194400,55000,DE
+Minion Prince 43,194400,60000,DE
+Minion Prince 44,194400,65000,DE
+Minion Prince 45,194400,70000,DE
+Minion Prince 46,259200,75000,DE
+Minion Prince 47,259200,80000,DE
+Minion Prince 48,259200,85000,DE
+Minion Prince 49,259200,90000,DE
+Minion Prince 50,259200,95000,DE
+Minion Prince 51,345600,100000,DE
+Minion Prince 52,345600,105000,DE
+Minion Prince 53,345600,110000,DE
+Minion Prince 54,345600,115000,DE
+Minion Prince 55,345600,120000,DE
+Minion Prince 56,345600,125000,DE
+Minion Prince 57,345600,130000,DE
+Minion Prince 58,345600,135000,DE
+Minion Prince 59,345600,140000,DE
+Minion Prince 60,345600,145000,DE
+Minion Prince 61,432000,150000,DE
+Minion Prince 62,432000,155000,DE
+Minion Prince 63,432000,160000,DE
+Minion Prince 64,432000,165000,DE
+Minion Prince 65,432000,170000,DE
+Minion Prince 66,518400,175000,DE
+Minion Prince 67,518400,180000,DE
+Minion Prince 68,518400,185000,DE
+Minion Prince 69,518400,190000,DE
+Minion Prince 70,518400,195000,DE
+Minion Prince 71,604800,200000,DE
+Minion Prince 72,604800,205000,DE
+Minion Prince 73,604800,210000,DE
+Minion Prince 74,604800,220000,DE
+Minion Prince 75,604800,230000,DE
+Minion Prince 76,648000,240000,DE
+Minion Prince 77,648000,250000,DE
+Minion Prince 78,648000,260000,DE
+Minion Prince 79,648000,270000,DE
+Minion Prince 80,648000,280000,DE
+Minion Prince 81,691200,290000,DE
+Minion Prince 82,691200,300000,DE
+Minion Prince 83,691200,310000,DE
+Minion Prince 84,691200,320000,DE
+Minion Prince 85,691200,330000,DE
+Minion Prince 86,691200,340000,DE
+Minion Prince 87,691200,350000,DE
+Minion Prince 88,691200,360000,DE
+Minion Prince 89,691200,370000,DE
+Minion Prince 90,691200,380000,DE
+Minion Prince 91,691200,400000,DE
+Minion Prince 92,691200,410000,DE
+Minion Prince 93,691200,420000,DE
+Minion Prince 94,691200,430000,DE
+Minion Prince 95,691200,450000,DE
+Grand Warden 1,0,0,Elixir
+Grand Warden 2,7200,1000000,Elixir
+Grand Warden 3,14400,1100000,Elixir
+Grand Warden 4,28800,1200000,Elixir
+Grand Warden 5,36000,1400000,Elixir
+Grand Warden 6,43200,1500000,Elixir
+Grand Warden 7,50400,1700000,Elixir
+Grand Warden 8,57600,1800000,Elixir
+Grand Warden 9,64800,2000000,Elixir
+Grand Warden 10,86400,2300000,Elixir
+Grand Warden 11,86400,2700000,Elixir
+Grand Warden 12,86400,3000000,Elixir
+Grand Warden 13,86400,3400000,Elixir
+Grand Warden 14,86400,3700000,Elixir
+Grand Warden 15,86400,4100000,Elixir
+Grand Warden 16,86400,4400000,Elixir
+Grand Warden 17,86400,4800000,Elixir
+Grand Warden 18,86400,5100000,Elixir
+Grand Warden 19,86400,5500000,Elixir
+Grand Warden 20,86400,5600000,Elixir
+Grand Warden 21,86400,5700000,Elixir
+Grand Warden 22,86400,5800000,Elixir
+Grand Warden 23,86400,5900000,Elixir
+Grand Warden 24,86400,6000000,Elixir
+Grand Warden 25,86400,6100000,Elixir
+Grand Warden 26,129600,6600000,Elixir
+Grand Warden 27,129600,6700000,Elixir
+Grand Warden 28,129600,6800000,Elixir
+Grand Warden 29,129600,6900000,Elixir
+Grand Warden 30,129600,7000000,Elixir
+Grand Warden 31,172800,7100000,Elixir
+Grand Warden 32,172800,7200000,Elixir
+Grand Warden 33,172800,7300000,Elixir
+Grand Warden 34,172800,7400000,Elixir
+Grand Warden 35,172800,7500000,Elixir
+Grand Warden 36,172800,7600000,Elixir
+Grand Warden 37,172800,7700000,Elixir
+Grand Warden 38,172800,7800000,Elixir
+Grand Warden 39,172800,7900000,Elixir
+Grand Warden 40,172800,8000000,Elixir
+Grand Warden 41,259200,8300000,Elixir
+Grand Warden 42,259200,8600000,Elixir
+Grand Warden 43,259200,8900000,Elixir
+Grand Warden 44,259200,9200000,Elixir
+Grand Warden 45,259200,9500000,Elixir
+Grand Warden 46,259200,9800000,Elixir
+Grand Warden 47,259200,10100000,Elixir
+Grand Warden 48,259200,10400000,Elixir
+Grand Warden 49,259200,10700000,Elixir
+Grand Warden 50,259200,11000000,Elixir
+Grand Warden 51,345600,11400000,Elixir
+Grand Warden 52,345600,11800000,Elixir
+Grand Warden 53,345600,12200000,Elixir
+Grand Warden 54,345600,12600000,Elixir
+Grand Warden 55,345600,13000000,Elixir
+Grand Warden 56,345600,13400000,Elixir
+Grand Warden 57,345600,13800000,Elixir
+Grand Warden 58,345600,14200000,Elixir
+Grand Warden 59,345600,14600000,Elixir
+Grand Warden 60,345600,15000000,Elixir
+Grand Warden 61,518400,15500000,Elixir
+Grand Warden 62,518400,16000000,Elixir
+Grand Warden 63,518400,16500000,Elixir
+Grand Warden 64,518400,17000000,Elixir
+Grand Warden 65,518400,17500000,Elixir
+Grand Warden 66,604800,18000000,Elixir
+Grand Warden 67,604800,18500000,Elixir
+Grand Warden 68,604800,19000000,Elixir
+Grand Warden 69,604800,19500000,Elixir
+Grand Warden 70,604800,20000000,Elixir
+Grand Warden 71,691200,20500000,Elixir
+Grand Warden 72,691200,21000000,Elixir
+Grand Warden 73,691200,21500000,Elixir
+Grand Warden 74,691200,22000000,Elixir
+Grand Warden 75,691200,22500000,Elixir
+Grand Warden 76,691200,23500000,Elixir
+Grand Warden 77,691200,24500000,Elixir
+Grand Warden 78,691200,25500000,Elixir
+Grand Warden 79,691200,26500000,Elixir
+Grand Warden 80,691200,27500000,Elixir
+Grand Warden 81,691200,28500000,Elixir
+Grand Warden 82,691200,29000000,Elixir
+Grand Warden 83,691200,29500000,Elixir
+Grand Warden 84,691200,30000000,Elixir
+Grand Warden 85,691200,30500000,Elixir
+Royal Champion 1,0,0,DE
+Royal Champion 2,14400,10000,DE
+Royal Champion 3,36000,15000,DE
+Royal Champion 4,43200,20000,DE
+Royal Champion 5,86400,25000,DE
+Royal Champion 6,86400,30000,DE
+Royal Champion 7,86400,35000,DE
+Royal Champion 8,86400,40000,DE
+Royal Champion 9,86400,45000,DE
+Royal Champion 10,86400,50000,DE
+Royal Champion 11,86400,53000,DE
+Royal Champion 12,86400,56000,DE
+Royal Champion 13,86400,59000,DE
+Royal Champion 14,86400,62000,DE
+Royal Champion 15,86400,65000,DE
+Royal Champion 16,129600,70000,DE
+Royal Champion 17,129600,75000,DE
+Royal Champion 18,129600,80000,DE
+Royal Champion 19,129600,85000,DE
+Royal Champion 20,129600,90000,DE
+Royal Champion 21,172800,95000,DE
+Royal Champion 22,172800,100000,DE
+Royal Champion 23,172800,105000,DE
+Royal Champion 24,172800,110000,DE
+Royal Champion 25,172800,115000,DE
+Royal Champion 26,259200,120000,DE
+Royal Champion 27,259200,125000,DE
+Royal Champion 28,259200,130000,DE
+Royal Champion 29,259200,135000,DE
+Royal Champion 30,259200,140000,DE
+Royal Champion 31,345600,145000,DE
+Royal Champion 32,345600,150000,DE
+Royal Champion 33,345600,155000,DE
+Royal Champion 34,345600,160000,DE
+Royal Champion 35,345600,165000,DE
+Royal Champion 36,432000,170000,DE
+Royal Champion 37,432000,175000,DE
+Royal Champion 38,432000,180000,DE
+Royal Champion 39,432000,200000,DE
+Royal Champion 40,432000,220000,DE
+Royal Champion 41,432000,240000,DE
+Royal Champion 42,518400,260000,DE
+Royal Champion 43,561600,280000,DE
+Royal Champion 44,604800,300000,DE
+Royal Champion 45,648000,320000,DE
+Royal Champion 46,691200,340000,DE
+Royal Champion 47,691200,350000,DE
+Royal Champion 48,691200,360000,DE
+Royal Champion 49,691200,370000,DE
+Royal Champion 50,691200,380000,DE
+Royal Champion 51,691200,400000,DE
+Royal Champion 52,691200,410000,DE
+Royal Champion 53,691200,420000,DE
+Royal Champion 54,691200,430000,DE
+Royal Champion 55,691200,450000,DE
+Barbarian 2,1800,10000,Elixir
+Barbarian 3,3600,50000,Elixir
+Barbarian 4,7200,130000,Elixir
+Barbarian 5,14400,300000,Elixir
+Barbarian 6,28800,800000,Elixir
+Barbarian 7,43200,1000000,Elixir
+Barbarian 8,86400,1500000,Elixir
+Barbarian 9,129600,2500000,Elixir
+Barbarian 10,172800,4300000,Elixir
+Barbarian 11,259200,6000000,Elixir
+Barbarian 12,345600,8000000,Elixir
+Barbarian 13,1080000,24000000,Elixir
+Archer 2,3600,20000,Elixir
+Archer 3,7200,80000,Elixir
+Archer 4,10800,200000,Elixir
+Archer 5,28800,500000,Elixir
+Archer 6,43200,1000000,Elixir
+Archer 7,86400,1500000,Elixir
+Archer 8,129600,2300000,Elixir
+Archer 9,172800,3000000,Elixir
+Archer 10,259200,4500000,Elixir
+Archer 11,345600,6500000,Elixir
+Archer 12,388800,9000000,Elixir
+Archer 13,777600,14000000,Elixir
+Archer 14,1166400,25000000,Elixir
+Giant 2,7200,40000,Elixir
+Giant 3,14400,150000,Elixir
+Giant 4,21600,400000,Elixir
+Giant 5,43200,800000,Elixir
+Giant 6,86400,1500000,Elixir
+Giant 7,129600,2300000,Elixir
+Giant 8,172800,2600000,Elixir
+Giant 9,194400,3400000,Elixir
+Giant 10,259200,5000000,Elixir
+Giant 11,345600,7500000,Elixir
+Giant 12,432000,10000000,Elixir
+Giant 13,820800,15000000,Elixir
+Giant 14,1166400,25000000,Elixir
+Goblin 2,7200,45000,Elixir
+Goblin 3,10800,100000,Elixir
+Goblin 4,21600,500000,Elixir
+Goblin 5,43200,700000,Elixir
+Goblin 6,86400,1600000,Elixir
+Goblin 7,129600,2200000,Elixir
+Goblin 8,194400,3700000,Elixir
+Goblin 9,432000,8000000,Elixir
+Goblin 10,1209600,26000000,Elixir
+Wall Breaker 2,10800,80000,Elixir
+Wall Breaker 3,14400,200000,Elixir
+Wall Breaker 4,43200,450000,Elixir
+Wall Breaker 5,57600,1000000,Elixir
+Wall Breaker 6,86400,2400000,Elixir
+Wall Breaker 7,129600,2800000,Elixir
+Wall Breaker 8,216000,3800000,Elixir
+Wall Breaker 9,259200,5200000,Elixir
+Wall Breaker 10,432000,6500000,Elixir
+Wall Breaker 11,475200,9500000,Elixir
+Wall Breaker 12,518400,11000000,Elixir
+Wall Breaker 13,864000,15500000,Elixir
+Wall Breaker 14,1209600,26000000,Elixir
+Balloon 2,14400,100000,Elixir
+Balloon 3,21600,400000,Elixir
+Balloon 4,64800,720000,Elixir
+Balloon 5,86400,1300000,Elixir
+Balloon 6,259200,2750000,Elixir
+Balloon 7,280800,4400000,Elixir
+Balloon 8,302400,5000000,Elixir
+Balloon 9,388800,7000000,Elixir
+Balloon 10,604800,10000000,Elixir
+Balloon 11,734400,14000000,Elixir
+Balloon 12,950400,17500000,Elixir
+Balloon 13,1274400,28000000,Elixir
+Wizard 2,14400,120000,Elixir
+Wizard 3,18000,300000,Elixir
+Wizard 4,43200,600000,Elixir
+Wizard 5,64800,1200000,Elixir
+Wizard 6,129600,2000000,Elixir
+Wizard 7,172800,2500000,Elixir
+Wizard 8,194400,3100000,Elixir
+Wizard 9,216000,4000000,Elixir
+Wizard 10,302400,5500000,Elixir
+Wizard 11,475200,10000000,Elixir
+Wizard 12,604800,11500000,Elixir
+Wizard 13,907200,16000000,Elixir
+Wizard 14,1209600,27000000,Elixir
+Healer 2,43200,450000,Elixir
+Healer 3,86400,900000,Elixir
+Healer 4,172800,2500000,Elixir
+Healer 5,259200,4000000,Elixir
+Healer 6,388800,6000000,Elixir
+Healer 7,561600,9500000,Elixir
+Healer 8,604800,11000000,Elixir
+Healer 9,626400,13000000,Elixir
+Healer 10,950400,17000000,Elixir
+Healer 11,1296000,28500000,Elixir
+Dragon 2,64800,1000000,Elixir
+Dragon 3,129600,2000000,Elixir
+Dragon 4,172800,3000000,Elixir
+Dragon 5,259200,3800000,Elixir
+Dragon 6,345600,4900000,Elixir
+Dragon 7,388800,5000000,Elixir
+Dragon 8,432000,7500000,Elixir
+Dragon 9,648000,10500000,Elixir
+Dragon 10,691200,12000000,Elixir
+Dragon 11,734400,14000000,Elixir
+Dragon 12,864000,18500000,Elixir
+Dragon 13,1296000,28500000,Elixir
+P.E.K.K.A. 2,43200,600000,Elixir
+P.E.K.K.A. 3,64800,1300000,Elixir
+P.E.K.K.A. 4,86400,2000000,Elixir
+P.E.K.K.A. 5,129600,2100000,Elixir
+P.E.K.K.A. 6,172800,2500000,Elixir
+P.E.K.K.A. 7,259200,4500000,Elixir
+P.E.K.K.A. 8,302400,5000000,Elixir
+P.E.K.K.A. 9,345600,5800000,Elixir
+P.E.K.K.A. 10,475200,10500000,Elixir
+P.E.K.K.A. 11,604800,12000000,Elixir
+P.E.K.K.A. 12,864000,16000000,Elixir
+P.E.K.K.A. 13,1252800,28000000,Elixir
+Baby Dragon 2,86400,2000000,Elixir
+Baby Dragon 3,129600,2000000,Elixir
+Baby Dragon 4,172800,2800000,Elixir
+Baby Dragon 5,237600,3700000,Elixir
+Baby Dragon 6,259200,4800000,Elixir
+Baby Dragon 7,345600,6200000,Elixir
+Baby Dragon 8,518400,9500000,Elixir
+Baby Dragon 9,604800,11000000,Elixir
+Baby Dragon 10,626400,13500000,Elixir
+Baby Dragon 11,864000,16500000,Elixir
+Baby Dragon 12,1317600,29000000,Elixir
+Miner 2,86400,1500000,Elixir
+Miner 3,172800,2600000,Elixir
+Miner 4,194400,3000000,Elixir
+Miner 5,216000,4000000,Elixir
+Miner 6,259200,4800000,Elixir
+Miner 7,345600,6000000,Elixir
+Miner 8,518400,8600000,Elixir
+Miner 9,561600,10500000,Elixir
+Miner 10,604800,12500000,Elixir
+Miner 11,820800,16500000,Elixir
+Miner 12,1252800,28000000,Elixir
+Electro Dragon 2,345600,6000000,Elixir
+Electro Dragon 3,388800,7000000,Elixir
+Electro Dragon 4,604800,9000000,Elixir
+Electro Dragon 5,691200,11000000,Elixir
+Electro Dragon 6,734400,14000000,Elixir
+Electro Dragon 7,777600,16000000,Elixir
+Electro Dragon 8,864000,20000000,Elixir
+Electro Dragon 9,1382400,30000000,Elixir
+Yeti 2,259200,5000000,Elixir
+Yeti 3,388800,6500000,Elixir
+Yeti 4,604800,10000000,Elixir
+Yeti 5,648000,12000000,Elixir
+Yeti 6,712800,14500000,Elixir
+Yeti 7,864000,17000000,Elixir
+Yeti 8,1339200,27500000,Elixir
+Dragon Rider 2,518400,7500000,Elixir
+Dragon Rider 3,691200,12000000,Elixir
+Dragon Rider 4,820800,14500000,Elixir
+Dragon Rider 5,950400,22500000,Elixir
+Dragon Rider 6,1339200,29500000,Elixir
+Electro Titan 2,691200,14000000,Elixir
+Electro Titan 3,777600,16000000,Elixir
+Electro Titan 4,1036800,18500000,Elixir
+Electro Titan 5,1382400,30000000,Elixir
+Root Rider 2,691200,15000000,Elixir
+Root Rider 3,864000,17600000,Elixir
+Root Rider 4,1382400,30000000,Elixir
+Thrower 2,820800,16000000,Elixir
+Thrower 3,907200,18000000,Elixir
+Thrower 4,1296000,27000000,Elixir
+Meteor Golem 2,1209600,28000000,Elixir
+Meteor Golem 3,1382400,30000000,Elixir
+Minion 2,21600,1000,DE
+Minion 3,28800,2500,DE
+Minion 4,43200,5000,DE
+Minion 5,86400,10000,DE
+Minion 6,129600,15000,DE
+Minion 7,151200,31500,DE
+Minion 8,172800,47500,DE
+Minion 9,259200,75000,DE
+Minion 10,345600,100000,DE
+Minion 11,388800,115000,DE
+Minion 12,432000,160000,DE
+Minion 13,777600,220000,DE
+Minion 14,1209600,335000,DE
+Hog Rider 2,36000,2000,DE
+Hog Rider 3,64800,3500,DE
+Hog Rider 4,86400,5000,DE
+Hog Rider 5,172800,10000,DE
+Hog Rider 6,194400,18500,DE
+Hog Rider 7,216000,35000,DE
+Hog Rider 8,259200,47500,DE
+Hog Rider 9,302400,50000,DE
+Hog Rider 10,345600,85000,DE
+Hog Rider 11,432000,107500,DE
+Hog Rider 12,475200,125000,DE
+Hog Rider 13,561600,175000,DE
+Hog Rider 14,864000,240000,DE
+Hog Rider 15,1252800,340000,DE
+Valkyrie 2,28800,3000,DE
+Valkyrie 3,86400,5000,DE
+Valkyrie 4,129600,10000,DE
+Valkyrie 5,151200,16000,DE
+Valkyrie 6,172800,31500,DE
+Valkyrie 7,194400,55000,DE
+Valkyrie 8,259200,77500,DE
+Valkyrie 9,388800,105000,DE
+Valkyrie 10,432000,120000,DE
+Valkyrie 11,518400,170000,DE
+Valkyrie 12,1209600,340000,DE
+Golem 2,57600,4000,DE
+Golem 3,129600,6000,DE
+Golem 4,172800,10000,DE
+Golem 5,194400,18500,DE
+Golem 6,216000,26500,DE
+Golem 7,237600,38500,DE
+Golem 8,259200,50000,DE
+Golem 9,302400,62500,DE
+Golem 10,345600,80000,DE
+Golem 11,432000,105000,DE
+Golem 12,475200,122500,DE
+Golem 13,518400,175000,DE
+Golem 14,864000,230000,DE
+Golem 15,1252800,350000,DE
+Witch 2,172800,20000,DE
+Witch 3,259200,29000,DE
+Witch 4,302400,45000,DE
+Witch 5,345600,62500,DE
+Witch 6,475200,150000,DE
+Witch 7,626400,180000,DE
+Witch 8,1339200,335000,DE
+Lava Hound 2,172800,14000,DE
+Lava Hound 3,216000,21500,DE
+Lava Hound 4,259200,42500,DE
+Lava Hound 5,345600,60000,DE
+Lava Hound 6,604800,80000,DE
+Lava Hound 7,691200,200000,DE
+Lava Hound 8,1317600,345000,DE
+Bowler 2,172800,32500,DE
+Bowler 3,216000,44000,DE
+Bowler 4,259200,62500,DE
+Bowler 5,345600,85000,DE
+Bowler 6,518400,110000,DE
+Bowler 7,604800,145000,DE
+Bowler 8,648000,175000,DE
+Bowler 9,864000,260000,DE
+Bowler 10,1296000,360000,DE
+Ice Golem 2,172800,27500,DE
+Ice Golem 3,216000,42500,DE
+Ice Golem 4,280800,50000,DE
+Ice Golem 5,345600,62500,DE
+Ice Golem 6,561600,110000,DE
+Ice Golem 7,648000,140000,DE
+Ice Golem 8,691200,180000,DE
+Ice Golem 9,914400,280000,DE
+Headhunter 2,432000,57500,DE
+Headhunter 3,604800,90000,DE
+Headhunter 4,1339200,370000,DE
+Apprentice Warden 2,518400,90000,DE
+Apprentice Warden 3,648000,135000,DE
+Apprentice Warden 4,691200,160000,DE
+Druid 2,691200,125000,DE
+Druid 3,777600,175000,DE
+Druid 4,950400,187500,DE
+Druid 5,1036800,300000,DE
+Druid 6,1339200,380000,DE
+Furnace 2,777600,200000,DE
+Furnace 3,950400,260000,DE
+Furnace 4,1296000,320000,DE
+Ruin Witch 2,950400,220000,DE
+Ruin Witch 3,1036800,300000,DE
+Ruin Witch 4,1339200,380000,DE
+Lightning Spell 2,7200,50000,Elixir
+Lightning Spell 3,14400,100000,Elixir
+Lightning Spell 4,21600,200000,Elixir
+Lightning Spell 5,86400,600000,Elixir
+Lightning Spell 6,129600,1500000,Elixir
+Lightning Spell 7,259200,2500000,Elixir
+Lightning Spell 8,302400,4200000,Elixir
+Lightning Spell 9,432000,6300000,Elixir
+Lightning Spell 10,518400,10000000,Elixir
+Lightning Spell 11,604800,13500000,Elixir
+Lightning Spell 12,864000,18500000,Elixir
+Lightning Spell 13,1209600,27000000,Elixir
+Healing Spell 2,10800,75000,Elixir
+Healing Spell 3,21600,150000,Elixir
+Healing Spell 4,43200,300000,Elixir
+Healing Spell 5,86400,900000,Elixir
+Healing Spell 6,129600,1800000,Elixir
+Healing Spell 7,259200,3000000,Elixir
+Healing Spell 8,432000,6000000,Elixir
+Healing Spell 9,561600,11000000,Elixir
+Healing Spell 10,604800,14000000,Elixir
+Healing Spell 11,907200,19000000,Elixir
+Healing Spell 12,1296000,29000000,Elixir
+Rage Spell 2,21600,400000,Elixir
+Rage Spell 3,43200,800000,Elixir
+Rage Spell 4,86400,1000000,Elixir
+Rage Spell 5,172800,2000000,Elixir
+Rage Spell 6,345600,5000000,Elixir
+Rage Spell 7,1209600,26000000,Elixir
+Jump Spell 2,86400,1000000,Elixir
+Jump Spell 3,172800,2000000,Elixir
+Jump Spell 4,345600,5000000,Elixir
+Jump Spell 5,432000,8000000,Elixir
+Freeze Spell 2,86400,1200000,Elixir
+Freeze Spell 3,129600,1700000,Elixir
+Freeze Spell 4,172800,3000000,Elixir
+Freeze Spell 5,216000,4200000,Elixir
+Freeze Spell 6,302400,6000000,Elixir
+Freeze Spell 7,432000,7000000,Elixir
+Freeze Spell 8,1339200,28000000,Elixir
+Clone Spell 2,86400,1500000,Elixir
+Clone Spell 3,172800,2500000,Elixir
+Clone Spell 4,194400,3000000,Elixir
+Clone Spell 5,216000,4000000,Elixir
+Clone Spell 6,345600,5000000,Elixir
+Clone Spell 7,432000,8000000,Elixir
+Clone Spell 8,604800,9000000,Elixir
+Clone Spell 9,1166400,26000000,Elixir
+Invisibility Spell 2,259200,5000000,Elixir
+Invisibility Spell 3,345600,6000000,Elixir
+Invisibility Spell 4,432000,7000000,Elixir
+Recall Spell 2,604800,7500000,Elixir
+Recall Spell 3,648000,8000000,Elixir
+Recall Spell 4,691200,9000000,Elixir
+Recall Spell 5,777600,13000000,Elixir
+Recall Spell 6,950400,19000000,Elixir
+Recall Spell 7,1382400,29000000,Elixir
+Revive Spell 2,604800,18000000,Elixir
+Revive Spell 3,691200,19000000,Elixir
+Revive Spell 4,993600,20000000,Elixir
+Revive Spell 5,1382400,29500000,Elixir
+Totem Spell 2,1036800,21000000,Elixir
+Totem Spell 3,1209600,22000000,Elixir
+Totem Spell 4,1382400,23000000,Elixir
+Poison Spell 2,21600,5000,DE
+Poison Spell 3,64800,10000,DE
+Poison Spell 4,172800,21500,DE
+Poison Spell 5,259200,35000,DE
+Poison Spell 6,345600,55000,DE
+Poison Spell 7,432000,77500,DE
+Poison Spell 8,561600,100000,DE
+Poison Spell 9,604800,135000,DE
+Poison Spell 10,691200,175000,DE
+Poison Spell 11,835200,230000,DE
+Poison Spell 12,1252800,350000,DE
+Earthquake Spell 2,43200,6000,DE
+Earthquake Spell 3,86400,12000,DE
+Earthquake Spell 4,259200,25500,DE
+Earthquake Spell 5,302400,42000,DE
+Earthquake Spell 6,691200,120000,DE
+Earthquake Spell 7,777600,200000,DE
+Earthquake Spell 8,1166400,330000,DE
+Haste Spell 2,86400,8000,DE
+Haste Spell 3,172800,17000,DE
+Haste Spell 4,259200,30000,DE
+Haste Spell 5,345600,38500,DE
+Haste Spell 6,777600,200000,DE
+Haste Spell 7,1080000,320000,DE
+Skeleton Spell 2,43200,11000,DE
+Skeleton Spell 3,86400,17000,DE
+Skeleton Spell 4,172800,25000,DE
+Skeleton Spell 5,216000,40000,DE
+Skeleton Spell 6,259200,50000,DE
+Skeleton Spell 7,345600,75000,DE
+Skeleton Spell 8,518400,135000,DE
+Bat Spell 2,64800,13000,DE
+Bat Spell 3,129600,25500,DE
+Bat Spell 4,194400,35000,DE
+Bat Spell 5,345600,47500,DE
+Bat Spell 6,604800,140000,DE
+Bat Spell 7,734400,220000,DE
+Bat Spell 8,1123200,300000,DE
+Overgrowth Spell 2,432000,62500,DE
+Overgrowth Spell 3,734400,125000,DE
+Overgrowth Spell 4,864000,175000,DE
+Overgrowth Spell 5,1382400,360000,DE
+Ice Block Spell 2,864000,140000,DE
+Ice Block Spell 3,950400,200000,DE
+Ice Block Spell 4,1036800,280000,DE
+Ice Block Spell 5,1209600,320000,DE
+Ice Block Spell 6,1382400,380000,DE
+Angry Spell 2,806400,150000,DE
+Angry Spell 3,1036800,250000,DE
+Angry Spell 4,1296000,400000,DE
+Wall Wrecker 2,172800,2500000,Elixir
+Wall Wrecker 3,259200,3500000,Elixir
+Wall Wrecker 4,604800,6500000,Elixir
+Wall Wrecker 5,777600,10000000,Elixir
+Wall Wrecker 6,1166400,26000000,Elixir
+Battle Blimp 2,172800,2500000,Elixir
+Battle Blimp 3,259200,3500000,Elixir
+Battle Blimp 4,604800,6500000,Elixir
+Battle Blimp 5,777600,10000000,Elixir
+Battle Blimp 6,1166400,26000000,Elixir
+Stone Slammer 2,172800,2500000,Elixir
+Stone Slammer 3,259200,3500000,Elixir
+Stone Slammer 4,604800,6500000,Elixir
+Stone Slammer 5,777600,10000000,Elixir
+Stone Slammer 6,1166400,26000000,Elixir
+Siege Barracks 2,259200,3500000,Elixir
+Siege Barracks 3,345600,5000000,Elixir
+Siege Barracks 4,604800,8000000,Elixir
+Siege Barracks 5,1036800,18000000,Elixir
+Siege Barracks 6,1296000,27000000,Elixir
+Log Launcher 2,259200,3200000,Elixir
+Log Launcher 3,345600,4500000,Elixir
+Log Launcher 4,604800,7500000,Elixir
+Log Launcher 5,1036800,18000000,Elixir
+Log Launcher 6,1296000,27000000,Elixir
+Flame Flinger 2,259200,5500000,Elixir
+Flame Flinger 3,345600,8000000,Elixir
+Flame Flinger 4,604800,10000000,Elixir
+Flame Flinger 5,1036800,18000000,Elixir
+Battle Drill 2,345600,6000000,Elixir
+Battle Drill 3,432000,8500000,Elixir
+Battle Drill 4,691200,10000000,Elixir
+Battle Drill 5,777600,17000000,Elixir
+Battle Drill 6,1339200,28000000,Elixir
+Troop Launcher 2,518400,8500000,Elixir
+Troop Launcher 3,777600,10000000,Elixir
+Troop Launcher 4,777600,17000000,Elixir
+Sky Wagon 2,864000,22000000,Elixir
+Sky Wagon 3,1166400,26000000,Elixir
+Sky Wagon 4,1382400,29000000,Elixir
+L.A.S.S.I. 2,86400,20000,DE
+L.A.S.S.I. 3,129600,30000,DE
+L.A.S.S.I. 4,172800,40000,DE
+L.A.S.S.I. 5,216000,50000,DE
+L.A.S.S.I. 6,259200,60000,DE
+L.A.S.S.I. 7,302400,70000,DE
+L.A.S.S.I. 8,345600,80000,DE
+L.A.S.S.I. 9,388800,90000,DE
+L.A.S.S.I. 10,432000,100000,DE
+L.A.S.S.I. 11,475200,110000,DE
+L.A.S.S.I. 12,518400,120000,DE
+L.A.S.S.I. 13,561600,130000,DE
+L.A.S.S.I. 14,604800,140000,DE
+L.A.S.S.I. 15,648000,150000,DE
+Electric Owl 2,129600,30000,DE
+Electric Owl 3,172800,45000,DE
+Electric Owl 4,259200,60000,DE
+Electric Owl 5,345600,75000,DE
+Electric Owl 6,388800,90000,DE
+Electric Owl 7,432000,105000,DE
+Electric Owl 8,475200,120000,DE
+Electric Owl 9,518400,135000,DE
+Electric Owl 10,561600,150000,DE
+Electric Owl 11,604800,165000,DE
+Electric Owl 12,691200,180000,DE
+Electric Owl 13,691200,195000,DE
+Electric Owl 14,691200,210000,DE
+Electric Owl 15,691200,225000,DE
+Yak 2,86400,40000,DE
+Yak 3,129600,50000,DE
+Yak 4,172800,60000,DE
+Yak 5,216000,70000,DE
+Yak 6,259200,80000,DE
+Yak 7,302400,90000,DE
+Yak 8,345600,100000,DE
+Yak 9,388800,110000,DE
+Yak 10,432000,120000,DE
+Yak 11,475200,130000,DE
+Yak 12,518400,140000,DE
+Yak 13,561600,150000,DE
+Yak 14,604800,160000,DE
+Yak 15,648000,170000,DE
+Unicorn 2,129600,50000,DE
+Unicorn 3,172800,65000,DE
+Unicorn 4,259200,80000,DE
+Unicorn 5,345600,95000,DE
+Unicorn 6,388800,110000,DE
+Unicorn 7,432000,125000,DE
+Unicorn 8,475200,140000,DE
+Unicorn 9,518400,155000,DE
+Unicorn 10,561600,170000,DE
+Unicorn 11,604800,200000,DE
+Unicorn 12,691200,230000,DE
+Unicorn 13,691200,260000,DE
+Unicorn 14,691200,290000,DE
+Unicorn 15,691200,320000,DE
+Frosty 2,129600,70000,DE
+Frosty 3,172800,85000,DE
+Frosty 4,259200,100000,DE
+Frosty 5,345600,115000,DE
+Frosty 6,388800,130000,DE
+Frosty 7,432000,145000,DE
+Frosty 8,475200,160000,DE
+Frosty 9,518400,170000,DE
+Frosty 10,561600,180000,DE
+Frosty 11,604800,200000,DE
+Frosty 12,691200,230000,DE
+Frosty 13,691200,260000,DE
+Frosty 14,691200,290000,DE
+Frosty 15,691200,320000,DE
+Diggy 2,129600,90000,DE
+Diggy 3,172800,105000,DE
+Diggy 4,259200,120000,DE
+Diggy 5,345600,130000,DE
+Diggy 6,388800,140000,DE
+Diggy 7,432000,150000,DE
+Diggy 8,475200,160000,DE
+Diggy 9,518400,170000,DE
+Diggy 10,561600,180000,DE
+Diggy 11,604800,220000,DE
+Diggy 12,648000,250000,DE
+Diggy 13,691200,280000,DE
+Diggy 14,691200,310000,DE
+Diggy 15,691200,350000,DE
+Poison Lizard 2,86400,60000,DE
+Poison Lizard 3,129600,75000,DE
+Poison Lizard 4,172800,90000,DE
+Poison Lizard 5,216000,100000,DE
+Poison Lizard 6,259200,110000,DE
+Poison Lizard 7,302400,120000,DE
+Poison Lizard 8,345600,130000,DE
+Poison Lizard 9,388800,140000,DE
+Poison Lizard 10,432000,150000,DE
+Poison Lizard 11,518400,180000,DE
+Poison Lizard 12,604800,200000,DE
+Poison Lizard 13,691200,220000,DE
+Poison Lizard 14,691200,240000,DE
+Poison Lizard 15,691200,260000,DE
+Phoenix 2,129600,80000,DE
+Phoenix 3,172800,95000,DE
+Phoenix 4,259200,110000,DE
+Phoenix 5,345600,125000,DE
+Phoenix 6,388800,140000,DE
+Phoenix 7,432000,155000,DE
+Phoenix 8,475200,170000,DE
+Phoenix 9,518400,180000,DE
+Phoenix 10,561600,190000,DE
+Spirit Fox 2,259200,150000,DE
+Spirit Fox 3,345600,160000,DE
+Spirit Fox 4,432000,170000,DE
+Spirit Fox 5,475200,180000,DE
+Spirit Fox 6,518400,190000,DE
+Spirit Fox 7,561600,200000,DE
+Spirit Fox 8,604800,210000,DE
+Spirit Fox 9,648000,220000,DE
+Spirit Fox 10,691200,230000,DE
+Angry Jelly 2,259200,150000,DE
+Angry Jelly 3,345600,160000,DE
+Angry Jelly 4,432000,170000,DE
+Angry Jelly 5,518400,180000,DE
+Angry Jelly 6,604800,190000,DE
+Angry Jelly 7,691200,200000,DE
+Angry Jelly 8,691200,210000,DE
+Angry Jelly 9,691200,220000,DE
+Angry Jelly 10,691200,230000,DE
+Sneezy 2,691200,200000,DE
+Sneezy 3,691200,220000,DE
+Sneezy 4,691200,240000,DE
+Sneezy 5,691200,260000,DE
+Sneezy 6,691200,280000,DE
+Sneezy 7,691200,300000,DE
+Sneezy 8,691200,320000,DE
+Sneezy 9,691200,340000,DE
+Sneezy 10,691200,360000,DE
+Greedy Raven 2,691200,260000,DE
+Greedy Raven 3,691200,280000,DE
+Greedy Raven 4,691200,300000,DE
+Greedy Raven 5,691200,320000,DE
+Greedy Raven 6,691200,340000,DE
+Greedy Raven 7,691200,360000,DE
+Greedy Raven 8,691200,380000,DE
+Greedy Raven 9,691200,400000,DE
+Greedy Raven 10,691200,420000,DE

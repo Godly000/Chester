@@ -1,0 +1,187 @@
+Name,Requirement,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+Town Hall,Town Hall,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Town Hall 12 Weapon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
+Town Hall 13 Weapon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1
+Town Hall 14 Weapon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1
+Town Hall 15 Weapon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+Town Hall 17 Weapon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1
+Smasher,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+Longshot,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+Logger,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+Cannon,Town Hall,2,2,2,2,3,3,5,5,5,6,7,7,7,7,7,7,7,7,7
+Archer Tower,Town Hall,0,1,1,2,3,3,4,5,6,7,8,8,8,8,8,8,9,9,9
+Mortar,Town Hall,0,0,1,1,1,2,3,4,4,4,4,4,4,4,4,4,4,4,4
+Air Defense,Town Hall,0,0,0,1,1,2,3,3,4,4,4,4,4,4,4,4,4,4,4
+Wizard Tower,Town Hall,0,0,0,0,1,2,2,3,4,4,5,5,5,5,5,5,5,6,6
+Air Sweeper,Town Hall,0,0,0,0,0,1,1,1,2,2,2,2,2,2,2,2,2,2,2
+Hidden Tesla,Town Hall,0,0,0,0,0,0,2,3,4,4,4,5,5,5,5,5,5,5,5
+Bomb Tower,Town Hall,0,0,0,0,0,0,0,1,1,2,2,2,2,2,2,2,2,2,2
+X-Bow,Town Hall,0,0,0,0,0,0,0,0,2,3,4,4,4,4,4,4,4,4,4
+Inferno Tower,Town Hall,0,0,0,0,0,0,0,0,0,2,2,3,3,3,3,3,3,3,3
+Eagle Artillery,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Scattershot,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,2,2
+Builder's Hut,Town Hall,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
+Monolith,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+Spell Tower,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2
+Ricochet Cannon,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,3,3
+Multi-Archer Tower,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,3,3
+Firespitter,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2
+Multi-Gear Tower,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1
+Revenge Tower,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+Super Wizard Tower,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2
+Crafted Defense AA,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense AB,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense AC,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense BA,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense BB,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense BC,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense CA,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense CB,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Crafted Defense CC,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Wall,Town Hall,0,25,50,75,100,125,175,225,250,275,300,300,300,325,325,325,325,325,325
+Bomb,Town Hall,0,0,2,2,4,4,6,6,6,6,6,6,7,8,8,8,8,8,8
+Spring Trap,Town Hall,0,0,0,2,2,4,4,6,6,6,6,8,9,9,9,9,9,9,9
+Air Bomb,Town Hall,0,0,0,0,2,2,2,4,4,5,5,6,6,7,7,7,7,8,8
+Giant Bomb,Town Hall,0,0,0,0,0,1,2,3,4,5,5,6,6,7,7,7,8,8,8
+Seeking Air Mine,Town Hall,0,0,0,0,0,0,1,2,4,5,5,6,7,8,8,8,8,8,8
+Skeleton Trap,Town Hall,0,0,0,0,0,0,0,2,2,3,3,3,3,4,4,4,4,4,4
+Tornado Trap,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Giga Bomb,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1
+Elixir Storage,Town Hall,1,1,2,2,2,2,2,3,4,4,4,4,4,4,4,4,4,4,4
+Gold Storage,Town Hall,1,1,2,2,2,2,2,3,4,4,4,4,4,4,4,4,4,4,4
+Dark Elixir Storage,Town Hall,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Elixir Collector,Town Hall,1,2,3,4,5,6,6,6,7,7,7,7,7,7,7,7,7,7,7
+Gold Mine,Town Hall,1,2,3,4,5,6,6,6,7,7,7,7,7,7,7,7,7,7,7
+Dark Elixir Drill,Town Hall,0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,3,3,3
+Helper Hut,Town Hall,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Army Camp,Town Hall,1,1,2,2,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4
+Barracks,Town Hall,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Clan Castle,Town Hall,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Laboratory,Town Hall,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Hero Hall,Town Hall,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Dark Barracks,Town Hall,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Spell Factory,Town Hall,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Dark Spell Factory,Town Hall,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Blacksmith,Town Hall,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Workshop,Town Hall,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
+Pet House,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1
+Barbarian King,Town Hall,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Archer Queen,Town Hall,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Minion Prince,Town Hall,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Grand Warden,Town Hall,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Royal Champion,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1
+Dragon Duke,Town Hall,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+Barbarian,Barracks,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Archer,Barracks,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Giant,Barracks,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Goblin,Barracks,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Wall Breaker,Barracks,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Balloon,Barracks,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Wizard,Barracks,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Healer,Barracks,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Dragon,Barracks,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+P.E.K.K.A.,Barracks,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1
+Baby Dragon,Barracks,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Miner,Barracks,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
+Electro Dragon,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1
+Yeti,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1
+Dragon Rider,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+Electro Titan,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1
+Root Rider,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1
+Thrower,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1
+Meteor Golem,Barracks,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+Minion,Dark Barracks,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Hog Rider,Dark Barracks,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Valkyrie,Dark Barracks,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Golem,Dark Barracks,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Witch,Dark Barracks,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Lava Hound,Dark Barracks,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Bowler,Dark Barracks,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Ice Golem,Dark Barracks,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Headhunter,Dark Barracks,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Apprentice Warden,Dark Barracks,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1
+Druid,Dark Barracks,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Furnace,Dark Barracks,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
+Ruin Witch,Dark Barracks,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1
+Lightning Spell,Spell Factory,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Healing Spell,Spell Factory,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Rage Spell,Spell Factory,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Jump Spell,Spell Factory,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Freeze Spell,Spell Factory,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Clone Spell,Spell Factory,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Invisibility Spell,Spell Factory,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Recall Spell,Spell Factory,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Revive Spell,Spell Factory,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Totem Spell,Spell Factory,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1
+Poison Spell,Dark Spell Factory,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Earthquake Spell,Dark Spell Factory,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Haste Spell,Dark Spell Factory,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Skeleton Spell,Dark Spell Factory,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Bat Spell,Dark Spell Factory,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Overgrowth Spell,Dark Spell Factory,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Ice Block Spell,Dark Spell Factory,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Angry Spell,Dark Spell Factory,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Wall Wrecker,Workshop,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Battle Blimp,Workshop,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Stone Slammer,Workshop,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Siege Barracks,Workshop,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Log Launcher,Workshop,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Flame Flinger,Workshop,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Battle Drill,Workshop,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Troop Launcher,Workshop,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Sky Wagon,Workshop,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+L.A.S.S.I.,Pet House,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Electric Owl,Pet House,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Yak,Pet House,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Unicorn,Pet House,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Frosty,Pet House,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Diggy,Pet House,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Poison Lizard,Pet House,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Phoenix,Pet House,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Spirit Fox,Pet House,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Angry Jelly,Pet House,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1
+Sneezy,Pet House,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1
+Greedy Raven,Pet House,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1
+Barbarian Puppet,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Rage Vial,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Earthquake Boots,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Vampstache,Blacksmith,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Giant Gauntlet,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Spiky Ball,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Snake Bracelet,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Stick Horse,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Archer Puppet,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Invisibility Vial,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Giant Arrow,Blacksmith,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Healer Puppet,Blacksmith,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Frozen Arrow,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Magic Mirror,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Action Figure,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Monolith Arrow,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Henchmen Puppet,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Dark Orb,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Metal Pants,Blacksmith,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Noble Iron,Blacksmith,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Dark Crown,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Meteor Staff,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Portal Pendant,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Eternal Tome,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Life Gem,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Rage Gem,Blacksmith,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Healing Tome,Blacksmith,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Fireball,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Lavaloon Puppet,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Heroic Torch,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Royal Gem,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Seeking Shield,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Hog Puppet,Blacksmith,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1
+Haste Vial,Blacksmith,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1
+Rocket Spear,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Electro Boots,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Frost Flake,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Fire Heart,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Flame Blower,Blacksmith,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Stun Blaster,Blacksmith,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1
+Electro Fangs,Blacksmith,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1
+Rocket Backpack,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+Revenge Deck,Collection,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
