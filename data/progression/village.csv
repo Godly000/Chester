@@ -25,6 +25,30 @@ Total Starry Ore,Statistic,integer
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
+Builder #1 Time,Upgrade,integer
+Builder #2 Time,Upgrade,integer
+Builder #3 Time,Upgrade,integer
+Builder #4 Time,Upgrade,integer
+Builder #5 Time,Upgrade,integer
+Builder #6 Time,Upgrade,integer
+Builder #7 Time,Upgrade,integer
+Builder #8 Time,Upgrade,integer
+Builder #9 Time,Upgrade,integer
+Researcher #1 Time,Upgrade,integer
+Researcher #2 Time,Upgrade,integer
+Researcher #3 Time,Upgrade,integer
+Builder #1 Upgrade,Upgrade,short
+Builder #2 Upgrade,Upgrade,short
+Builder #3 Upgrade,Upgrade,short
+Builder #4 Upgrade,Upgrade,short
+Builder #5 Upgrade,Upgrade,short
+Builder #6 Upgrade,Upgrade,short
+Builder #7 Upgrade,Upgrade,short
+Builder #8 Upgrade,Upgrade,short
+Builder #9 Upgrade,Upgrade,short
+Researcher #1 Upgrade,Upgrade,short
+Researcher #2 Upgrade,Upgrade,short
+Researcher #3 Upgrade,Upgrade,short
 Town Hall,Structure Level,byte
 Town Hall 12 Weapon,Structure Level,byte
 Town Hall 13 Weapon,Structure Level,byte
