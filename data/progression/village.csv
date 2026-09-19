@@ -25,6 +25,36 @@ Total Starry Ore,Statistic,integer
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
+Builder Bite,Magic Item,byte
+Clan Castle Cake,Magic Item,byte
+Study Soup,Magic Item,byte
+Power Pancakes,Magic Item,byte
+Mighty Morsel,Magic Item,byte
+Hero Potion,Magic Item,byte
+Research Potion,Magic Item,byte
+Power Potion,Magic Item,byte
+Resource Potion,Magic Item,byte
+Wall Rings,Magic Item,byte
+Builder Potion,Magic Item,byte
+Pet Potion,Magic Item,byte
+Super Potion,Magic Item,byte
+Builder Star Jar,Magic Item,byte
+Clock Tower Potion,Magic Item,byte
+Shovel of Obstacles,Magic Item,byte
+Book of Building,Magic Item,byte
+Book of Heroes,Magic Item,byte
+Book of Fighting,Magic Item,byte
+Book of Spells,Magic Item,byte
+Book of Everything,Magic Item,byte
+Rune of Builder Gold,Magic Item,byte
+Rune of Builder Elixir,Magic Item,byte
+Hammer of Building,Magic Item,byte
+Hammer of Heroes,Magic Item,byte
+Hammer of Fighting,Magic Item,byte
+Hammer of Spells,Magic Item,byte
+Rune of Gold,Magic Item,byte
+Rune of Elixir,Magic Item,byte
+Rune of Dark Elixir,Magic Item,byte
 Builder #1 Time,Upgrade,integer
 Builder #2 Time,Upgrade,integer
 Builder #3 Time,Upgrade,integer
