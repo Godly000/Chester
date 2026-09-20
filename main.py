@@ -43,7 +43,7 @@ Setup
 1. pip install -r requirements.txt
 2. Copy .env.example to .env and add your bot token:
        DISCORD_TOKEN=your-token-here
-3. Keep `data/` and `Town Hall Loot Tables/` next to main.py.
+3. Keep data next to this script and put the Town Hall loot folder beside it or inside data.
 4. python main.py
 
 The bot needs the "applications.commands" and "bot" scopes when invited,
@@ -262,24 +262,29 @@ def _parse_weight(weight_str: str) -> float:
     return float(weight_str.replace(",", "").strip())
 
 
-def _find_data_csv(name: str, data_dir: Path = DATA_DIR) -> Optional[Path]:
+def _find_data_csv(
+    name: str,
+    data_dir: Path = DATA_DIR,
+    warn_missing: bool = True,
+) -> Optional[Path]:
     """
     Look up data/<name>.csv, case-insensitively, since CSV text fields
     might not exactly match a file's on-disk casing.
     """
     search_filename = f"{name}.csv"
     exact = data_dir / search_filename
-    if exact.exists():
+    if exact.is_file():
         return exact
     target = search_filename.lower()
-    if data_dir.exists():
+    if data_dir.is_dir():
         for candidate in data_dir.iterdir():
-            if candidate.name.lower() == target:
+            if candidate.is_file() and candidate.name.lower() == target:
                 return candidate
-    log.warning(
-        "Loot table file not found. Searched for '%s' (case-insensitive) in '%s'.",
-        search_filename, data_dir,
-    )
+    if warn_missing:
+        log.warning(
+            "Loot table file not found. Searched for '%s' (case-insensitive) in '%s'.",
+            search_filename, data_dir,
+        )
     return None
 
 
@@ -335,7 +340,9 @@ def load_categories(
             log.warning("Skipping rarities row with non-positive weight: %r", row)
             continue
 
-        item_file = loot_dir / f"{name}.csv"
+        item_file = _find_data_csv(name, loot_dir, warn_missing=False)
+        if item_file is None:
+            item_file = loot_dir / f"{name}.csv"
         items: List[LootItem] = []
         try:
             item_rows = _strip_header_row(_read_weighted_csv_rows(item_file))
@@ -375,12 +382,21 @@ def load_categories(
                         )
                     image_url = ""
 
+                item_reference_dir = reference_dir
+                if extra_field and not _QUANTITY_RANGE_RE.match(extra_field.strip()):
+                    subtable_name = extra_field.strip()
+                    if (
+                        _find_data_csv(subtable_name, reference_dir, warn_missing=False) is None
+                        and _find_data_csv(subtable_name, DATA_DIR, warn_missing=False) is not None
+                    ):
+                        item_reference_dir = DATA_DIR
+
                 items.append(
                     LootItem(
                         name=item_name,
                         image_url=image_url,
                         weight=item_weight,
-                        data_dir=reference_dir,
+                        data_dir=item_reference_dir,
                         extra_field=extra_field,
                     )
                 )
@@ -402,21 +418,79 @@ def load_categories(
     return categories
 
 
+def _find_directory(name: str, parent: Path) -> Optional[Path]:
+    exact = parent / name
+    if exact.is_dir():
+        return exact
+    if parent.is_dir():
+        for candidate in parent.iterdir():
+            if candidate.is_dir() and candidate.name.casefold() == name.casefold():
+                return candidate
+    return None
+
+
+def _resolve_town_hall_loot_root(
+    expected_categories: List[str],
+) -> Tuple[Path, Dict[int, Path]]:
+    configured = os.getenv("TOWN_HALL_LOOT_DIR", "").strip()
+    if configured:
+        configured_path = Path(configured).expanduser()
+        if not configured_path.is_absolute():
+            configured_path = SCRIPT_DIR / configured_path
+        candidates = [configured_path]
+    else:
+        candidates = [TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"]
+
+    attempts: List[Tuple[Path, List[Path]]] = []
+    for candidate in dict.fromkeys(candidates):
+        root = _find_directory(candidate.name, candidate.parent) or candidate
+        folders = {
+            town_hall: _find_directory(f"Town Hall {town_hall}", root)
+            or root / f"Town Hall {town_hall}"
+            for town_hall in range(1, 19)
+        }
+        missing = [
+            folder / f"{name}.csv"
+            for folder in folders.values()
+            for name in expected_categories
+            if _find_data_csv(name, folder, warn_missing=False) is None
+        ]
+        if root.is_dir() and not missing:
+            return root, folders
+        attempts.append((root, missing))
+
+    searched = "; ".join(str(root) for root, _ in attempts)
+    best_root, missing = min(attempts, key=lambda attempt: len(attempt[1]))
+    examples = ", ".join(str(path.relative_to(best_root)) for path in missing[:4])
+    raise FileNotFoundError(
+        f"Town Hall loot tables are missing or incomplete. Searched: {searched}. "
+        f"Missing {len(missing)} required CSV files in {best_root}; examples: {examples}. "
+        "Upload the complete 'Town Hall Loot Tables' folder beside main.py or inside data/. "
+        "It must contain Town Hall 1 through Town Hall 18 with a CSV for each rarity. "
+        "For a different location, set TOWN_HALL_LOOT_DIR to that folder."
+    )
+
+
 def load_town_hall_loot_tables() -> Dict[int, Dict[str, Category]]:
     loot_tables: Dict[int, Dict[str, Category]] = {}
-    images_file = TOWN_HALL_LOOT_DIR / "images.csv"
     expected_categories = {
         row[0]
         for row in _read_weighted_csv_rows(RARITIES_FILE)
         if len(row) >= 2
     }
-    for town_hall in range(1, 19):
-        loot_dir = TOWN_HALL_LOOT_DIR / f"Town Hall {town_hall}"
+    loot_root, town_hall_folders = _resolve_town_hall_loot_root(sorted(expected_categories))
+    images_file = (
+        _find_data_csv("images", loot_root, warn_missing=False)
+        or _find_data_csv("images", DATA_DIR, warn_missing=False)
+        or loot_root / "images.csv"
+    )
+    log.info("Loading Town Hall loot tables from %s", loot_root)
+    for town_hall, loot_dir in town_hall_folders.items():
         categories = load_categories(
             loot_dir=loot_dir,
             images_file=images_file,
             rarities_file=RARITIES_FILE,
-            reference_dir=TOWN_HALL_LOOT_DIR,
+            reference_dir=loot_root,
         )
         missing = expected_categories - categories.keys()
         if missing:
