@@ -1,0 +1,622 @@
+Serial,Name,Category
+0,Town Hall,Structure Level
+1,Town Hall 12 Weapon,Structure Level
+2,Town Hall 13 Weapon,Structure Level
+3,Town Hall 14 Weapon,Structure Level
+4,Town Hall 15 Weapon,Structure Level
+5,Town Hall 17 Weapon,Structure Level
+6,Smasher,Structure Level
+7,Longshot,Structure Level
+8,Logger,Structure Level
+10,Cannon #1,Structure Level
+11,Cannon #2,Structure Level
+12,Cannon #3,Structure Level
+13,Cannon #4,Structure Level
+14,Cannon #5,Structure Level
+15,Cannon #6,Structure Level
+16,Cannon #7,Structure Level
+20,Archer Tower #1,Structure Level
+21,Archer Tower #2,Structure Level
+22,Archer Tower #3,Structure Level
+23,Archer Tower #4,Structure Level
+24,Archer Tower #5,Structure Level
+25,Archer Tower #6,Structure Level
+26,Archer Tower #7,Structure Level
+27,Archer Tower #8,Structure Level
+28,Archer Tower #9,Structure Level
+30,Mortar #1,Structure Level
+31,Mortar #2,Structure Level
+32,Mortar #3,Structure Level
+33,Mortar #4,Structure Level
+40,Air Defense #1,Structure Level
+41,Air Defense #2,Structure Level
+42,Air Defense #3,Structure Level
+43,Air Defense #4,Structure Level
+50,Wizard Tower #1,Structure Level
+51,Wizard Tower #2,Structure Level
+52,Wizard Tower #3,Structure Level
+53,Wizard Tower #4,Structure Level
+54,Wizard Tower #5,Structure Level
+60,Air Sweeper #1,Structure Level
+61,Air Sweeper #2,Structure Level
+70,Hidden Tesla #1,Structure Level
+71,Hidden Tesla #2,Structure Level
+72,Hidden Tesla #3,Structure Level
+73,Hidden Tesla #4,Structure Level
+74,Hidden Tesla #5,Structure Level
+80,Bomb Tower #1,Structure Level
+81,Bomb Tower #2,Structure Level
+90,X-Bow #1,Structure Level
+91,X-Bow #2,Structure Level
+92,X-Bow #3,Structure Level
+93,X-Bow #4,Structure Level
+100,Inferno Tower #1,Structure Level
+101,Inferno Tower #2,Structure Level
+102,Inferno Tower #3,Structure Level
+110,Eagle Artillery,Structure Level
+120,Scattershot #1,Structure Level
+121,Scattershot #2,Structure Level
+130,Builder's Hut #1,Structure Level
+131,Builder's Hut #2,Structure Level
+132,Builder's Hut #3,Structure Level
+133,Builder's Hut #4,Structure Level
+134,Builder's Hut #5,Structure Level
+140,Monolith,Structure Level
+150,Spell Tower #1,Structure Level
+151,Spell Tower #2,Structure Level
+160,Ricochet Cannon #1,Structure Level
+161,Ricochet Cannon #2,Structure Level
+162,Ricochet Cannon #3,Structure Level
+170,Multi-Archer Tower #1,Structure Level
+171,Multi-Archer Tower #2,Structure Level
+172,Multi-Archer Tower #3,Structure Level
+173,Multi-Archer Tower #4,Structure Level
+180,Firespitter #1,Structure Level
+181,Firespitter #2,Structure Level
+190,Multi-Gear Tower,Structure Level
+200,Revenge Tower,Structure Level
+210,Super Wizard Tower #1,Structure Level
+211,Super Wizard Tower #2,Structure Level
+220,Crafted Defense AA,Structure Level
+230,Crafted Defense AB,Structure Level
+240,Crafted Defense AC,Structure Level
+221,Crafted Defense BA,Structure Level
+231,Crafted Defense BB,Structure Level
+241,Crafted Defense BC,Structure Level
+222,Crafted Defense CA,Structure Level
+232,Crafted Defense CB,Structure Level
+242,Crafted Defense CC,Structure Level
+300,Wall #1,Structure Level
+301,Wall #2,Structure Level
+302,Wall #3,Structure Level
+303,Wall #4,Structure Level
+304,Wall #5,Structure Level
+305,Wall #6,Structure Level
+306,Wall #7,Structure Level
+307,Wall #8,Structure Level
+308,Wall #9,Structure Level
+309,Wall #10,Structure Level
+310,Wall #11,Structure Level
+311,Wall #12,Structure Level
+312,Wall #13,Structure Level
+313,Wall #14,Structure Level
+314,Wall #15,Structure Level
+315,Wall #16,Structure Level
+316,Wall #17,Structure Level
+317,Wall #18,Structure Level
+318,Wall #19,Structure Level
+319,Wall #20,Structure Level
+320,Wall #21,Structure Level
+321,Wall #22,Structure Level
+322,Wall #23,Structure Level
+323,Wall #24,Structure Level
+324,Wall #25,Structure Level
+325,Wall #26,Structure Level
+326,Wall #27,Structure Level
+327,Wall #28,Structure Level
+328,Wall #29,Structure Level
+329,Wall #30,Structure Level
+330,Wall #31,Structure Level
+331,Wall #32,Structure Level
+332,Wall #33,Structure Level
+333,Wall #34,Structure Level
+334,Wall #35,Structure Level
+335,Wall #36,Structure Level
+336,Wall #37,Structure Level
+337,Wall #38,Structure Level
+338,Wall #39,Structure Level
+339,Wall #40,Structure Level
+340,Wall #41,Structure Level
+341,Wall #42,Structure Level
+342,Wall #43,Structure Level
+343,Wall #44,Structure Level
+344,Wall #45,Structure Level
+345,Wall #46,Structure Level
+346,Wall #47,Structure Level
+347,Wall #48,Structure Level
+348,Wall #49,Structure Level
+349,Wall #50,Structure Level
+350,Wall #51,Structure Level
+351,Wall #52,Structure Level
+352,Wall #53,Structure Level
+353,Wall #54,Structure Level
+354,Wall #55,Structure Level
+355,Wall #56,Structure Level
+356,Wall #57,Structure Level
+357,Wall #58,Structure Level
+358,Wall #59,Structure Level
+359,Wall #60,Structure Level
+360,Wall #61,Structure Level
+361,Wall #62,Structure Level
+362,Wall #63,Structure Level
+363,Wall #64,Structure Level
+364,Wall #65,Structure Level
+365,Wall #66,Structure Level
+366,Wall #67,Structure Level
+367,Wall #68,Structure Level
+368,Wall #69,Structure Level
+369,Wall #70,Structure Level
+370,Wall #71,Structure Level
+371,Wall #72,Structure Level
+372,Wall #73,Structure Level
+373,Wall #74,Structure Level
+374,Wall #75,Structure Level
+375,Wall #76,Structure Level
+376,Wall #77,Structure Level
+377,Wall #78,Structure Level
+378,Wall #79,Structure Level
+379,Wall #80,Structure Level
+380,Wall #81,Structure Level
+381,Wall #82,Structure Level
+382,Wall #83,Structure Level
+383,Wall #84,Structure Level
+384,Wall #85,Structure Level
+385,Wall #86,Structure Level
+386,Wall #87,Structure Level
+387,Wall #88,Structure Level
+388,Wall #89,Structure Level
+389,Wall #90,Structure Level
+390,Wall #91,Structure Level
+391,Wall #92,Structure Level
+392,Wall #93,Structure Level
+393,Wall #94,Structure Level
+394,Wall #95,Structure Level
+395,Wall #96,Structure Level
+396,Wall #97,Structure Level
+397,Wall #98,Structure Level
+398,Wall #99,Structure Level
+399,Wall #100,Structure Level
+400,Wall #101,Structure Level
+401,Wall #102,Structure Level
+402,Wall #103,Structure Level
+403,Wall #104,Structure Level
+404,Wall #105,Structure Level
+405,Wall #106,Structure Level
+406,Wall #107,Structure Level
+407,Wall #108,Structure Level
+408,Wall #109,Structure Level
+409,Wall #110,Structure Level
+410,Wall #111,Structure Level
+411,Wall #112,Structure Level
+412,Wall #113,Structure Level
+413,Wall #114,Structure Level
+414,Wall #115,Structure Level
+415,Wall #116,Structure Level
+416,Wall #117,Structure Level
+417,Wall #118,Structure Level
+418,Wall #119,Structure Level
+419,Wall #120,Structure Level
+420,Wall #121,Structure Level
+421,Wall #122,Structure Level
+422,Wall #123,Structure Level
+423,Wall #124,Structure Level
+424,Wall #125,Structure Level
+425,Wall #126,Structure Level
+426,Wall #127,Structure Level
+427,Wall #128,Structure Level
+428,Wall #129,Structure Level
+429,Wall #130,Structure Level
+430,Wall #131,Structure Level
+431,Wall #132,Structure Level
+432,Wall #133,Structure Level
+433,Wall #134,Structure Level
+434,Wall #135,Structure Level
+435,Wall #136,Structure Level
+436,Wall #137,Structure Level
+437,Wall #138,Structure Level
+438,Wall #139,Structure Level
+439,Wall #140,Structure Level
+440,Wall #141,Structure Level
+441,Wall #142,Structure Level
+442,Wall #143,Structure Level
+443,Wall #144,Structure Level
+444,Wall #145,Structure Level
+445,Wall #146,Structure Level
+446,Wall #147,Structure Level
+447,Wall #148,Structure Level
+448,Wall #149,Structure Level
+449,Wall #150,Structure Level
+450,Wall #151,Structure Level
+451,Wall #152,Structure Level
+452,Wall #153,Structure Level
+453,Wall #154,Structure Level
+454,Wall #155,Structure Level
+455,Wall #156,Structure Level
+456,Wall #157,Structure Level
+457,Wall #158,Structure Level
+458,Wall #159,Structure Level
+459,Wall #160,Structure Level
+460,Wall #161,Structure Level
+461,Wall #162,Structure Level
+462,Wall #163,Structure Level
+463,Wall #164,Structure Level
+464,Wall #165,Structure Level
+465,Wall #166,Structure Level
+466,Wall #167,Structure Level
+467,Wall #168,Structure Level
+468,Wall #169,Structure Level
+469,Wall #170,Structure Level
+470,Wall #171,Structure Level
+471,Wall #172,Structure Level
+472,Wall #173,Structure Level
+473,Wall #174,Structure Level
+474,Wall #175,Structure Level
+475,Wall #176,Structure Level
+476,Wall #177,Structure Level
+477,Wall #178,Structure Level
+478,Wall #179,Structure Level
+479,Wall #180,Structure Level
+480,Wall #181,Structure Level
+481,Wall #182,Structure Level
+482,Wall #183,Structure Level
+483,Wall #184,Structure Level
+484,Wall #185,Structure Level
+485,Wall #186,Structure Level
+486,Wall #187,Structure Level
+487,Wall #188,Structure Level
+488,Wall #189,Structure Level
+489,Wall #190,Structure Level
+490,Wall #191,Structure Level
+491,Wall #192,Structure Level
+492,Wall #193,Structure Level
+493,Wall #194,Structure Level
+494,Wall #195,Structure Level
+495,Wall #196,Structure Level
+496,Wall #197,Structure Level
+497,Wall #198,Structure Level
+498,Wall #199,Structure Level
+499,Wall #200,Structure Level
+500,Wall #201,Structure Level
+501,Wall #202,Structure Level
+502,Wall #203,Structure Level
+503,Wall #204,Structure Level
+504,Wall #205,Structure Level
+505,Wall #206,Structure Level
+506,Wall #207,Structure Level
+507,Wall #208,Structure Level
+508,Wall #209,Structure Level
+509,Wall #210,Structure Level
+510,Wall #211,Structure Level
+511,Wall #212,Structure Level
+512,Wall #213,Structure Level
+513,Wall #214,Structure Level
+514,Wall #215,Structure Level
+515,Wall #216,Structure Level
+516,Wall #217,Structure Level
+517,Wall #218,Structure Level
+518,Wall #219,Structure Level
+519,Wall #220,Structure Level
+520,Wall #221,Structure Level
+521,Wall #222,Structure Level
+522,Wall #223,Structure Level
+523,Wall #224,Structure Level
+524,Wall #225,Structure Level
+525,Wall #226,Structure Level
+526,Wall #227,Structure Level
+527,Wall #228,Structure Level
+528,Wall #229,Structure Level
+529,Wall #230,Structure Level
+530,Wall #231,Structure Level
+531,Wall #232,Structure Level
+532,Wall #233,Structure Level
+533,Wall #234,Structure Level
+534,Wall #235,Structure Level
+535,Wall #236,Structure Level
+536,Wall #237,Structure Level
+537,Wall #238,Structure Level
+538,Wall #239,Structure Level
+539,Wall #240,Structure Level
+540,Wall #241,Structure Level
+541,Wall #242,Structure Level
+542,Wall #243,Structure Level
+543,Wall #244,Structure Level
+544,Wall #245,Structure Level
+545,Wall #246,Structure Level
+546,Wall #247,Structure Level
+547,Wall #248,Structure Level
+548,Wall #249,Structure Level
+549,Wall #250,Structure Level
+550,Wall #251,Structure Level
+551,Wall #252,Structure Level
+552,Wall #253,Structure Level
+553,Wall #254,Structure Level
+554,Wall #255,Structure Level
+555,Wall #256,Structure Level
+556,Wall #257,Structure Level
+557,Wall #258,Structure Level
+558,Wall #259,Structure Level
+559,Wall #260,Structure Level
+560,Wall #261,Structure Level
+561,Wall #262,Structure Level
+562,Wall #263,Structure Level
+563,Wall #264,Structure Level
+564,Wall #265,Structure Level
+565,Wall #266,Structure Level
+566,Wall #267,Structure Level
+567,Wall #268,Structure Level
+568,Wall #269,Structure Level
+569,Wall #270,Structure Level
+570,Wall #271,Structure Level
+571,Wall #272,Structure Level
+572,Wall #273,Structure Level
+573,Wall #274,Structure Level
+574,Wall #275,Structure Level
+575,Wall #276,Structure Level
+576,Wall #277,Structure Level
+577,Wall #278,Structure Level
+578,Wall #279,Structure Level
+579,Wall #280,Structure Level
+580,Wall #281,Structure Level
+581,Wall #282,Structure Level
+582,Wall #283,Structure Level
+583,Wall #284,Structure Level
+584,Wall #285,Structure Level
+585,Wall #286,Structure Level
+586,Wall #287,Structure Level
+587,Wall #288,Structure Level
+588,Wall #289,Structure Level
+589,Wall #290,Structure Level
+590,Wall #291,Structure Level
+591,Wall #292,Structure Level
+592,Wall #293,Structure Level
+593,Wall #294,Structure Level
+594,Wall #295,Structure Level
+595,Wall #296,Structure Level
+596,Wall #297,Structure Level
+597,Wall #298,Structure Level
+598,Wall #299,Structure Level
+599,Wall #300,Structure Level
+600,Wall #301,Structure Level
+601,Wall #302,Structure Level
+602,Wall #303,Structure Level
+603,Wall #304,Structure Level
+604,Wall #305,Structure Level
+605,Wall #306,Structure Level
+606,Wall #307,Structure Level
+607,Wall #308,Structure Level
+608,Wall #309,Structure Level
+609,Wall #310,Structure Level
+610,Wall #311,Structure Level
+611,Wall #312,Structure Level
+612,Wall #313,Structure Level
+613,Wall #314,Structure Level
+614,Wall #315,Structure Level
+615,Wall #316,Structure Level
+616,Wall #317,Structure Level
+617,Wall #318,Structure Level
+618,Wall #319,Structure Level
+619,Wall #320,Structure Level
+620,Wall #321,Structure Level
+621,Wall #322,Structure Level
+622,Wall #323,Structure Level
+623,Wall #324,Structure Level
+624,Wall #325,Structure Level
+700,Bomb #1,Structure Level
+701,Bomb #2,Structure Level
+702,Bomb #3,Structure Level
+703,Bomb #4,Structure Level
+704,Bomb #5,Structure Level
+705,Bomb #6,Structure Level
+706,Bomb #7,Structure Level
+707,Bomb #8,Structure Level
+710,Spring Trap #1,Structure Level
+711,Spring Trap #2,Structure Level
+712,Spring Trap #3,Structure Level
+713,Spring Trap #4,Structure Level
+714,Spring Trap #5,Structure Level
+715,Spring Trap #6,Structure Level
+716,Spring Trap #7,Structure Level
+717,Spring Trap #8,Structure Level
+718,Spring Trap #9,Structure Level
+720,Air Bomb #1,Structure Level
+721,Air Bomb #2,Structure Level
+722,Air Bomb #3,Structure Level
+723,Air Bomb #4,Structure Level
+724,Air Bomb #5,Structure Level
+725,Air Bomb #6,Structure Level
+726,Air Bomb #7,Structure Level
+727,Air Bomb #8,Structure Level
+730,Giant Bomb #1,Structure Level
+731,Giant Bomb #2,Structure Level
+732,Giant Bomb #3,Structure Level
+733,Giant Bomb #4,Structure Level
+734,Giant Bomb #5,Structure Level
+735,Giant Bomb #6,Structure Level
+736,Giant Bomb #7,Structure Level
+737,Giant Bomb #8,Structure Level
+740,Seeking Air Mine #1,Structure Level
+741,Seeking Air Mine #2,Structure Level
+742,Seeking Air Mine #3,Structure Level
+743,Seeking Air Mine #4,Structure Level
+744,Seeking Air Mine #5,Structure Level
+745,Seeking Air Mine #6,Structure Level
+746,Seeking Air Mine #7,Structure Level
+747,Seeking Air Mine #8,Structure Level
+748,Seeking Air Mine #9,Structure Level
+750,Skeleton Trap #1,Structure Level
+751,Skeleton Trap #2,Structure Level
+752,Skeleton Trap #3,Structure Level
+753,Skeleton Trap #4,Structure Level
+760,Tornado Trap,Structure Level
+770,Giga Bomb,Structure Level
+780,Elixir Storage #1,Structure Level
+781,Elixir Storage #2,Structure Level
+782,Elixir Storage #3,Structure Level
+783,Elixir Storage #4,Structure Level
+790,Gold Storage #1,Structure Level
+791,Gold Storage #2,Structure Level
+792,Gold Storage #3,Structure Level
+793,Gold Storage #4,Structure Level
+800,Dark Elixir Storage,Structure Level
+810,Elixir Collector #1,Structure Level
+811,Elixir Collector #2,Structure Level
+812,Elixir Collector #3,Structure Level
+813,Elixir Collector #4,Structure Level
+814,Elixir Collector #5,Structure Level
+815,Elixir Collector #6,Structure Level
+816,Elixir Collector #7,Structure Level
+820,Gold Mine #1,Structure Level
+821,Gold Mine #2,Structure Level
+822,Gold Mine #3,Structure Level
+823,Gold Mine #4,Structure Level
+824,Gold Mine #5,Structure Level
+825,Gold Mine #6,Structure Level
+826,Gold Mine #7,Structure Level
+830,Dark Elixir Drill #1,Structure Level
+831,Dark Elixir Drill #2,Structure Level
+832,Dark Elixir Drill #3,Structure Level
+840,Helper Hut,Structure Level
+850,Army Camp #1,Structure Level
+851,Army Camp #2,Structure Level
+852,Army Camp #3,Structure Level
+853,Army Camp #4,Structure Level
+860,Barracks,Structure Level
+861,Clan Castle,Structure Level
+862,Laboratory,Structure Level
+863,Hero Hall,Structure Level
+864,Dark Barracks,Structure Level
+865,Spell Factory,Structure Level
+866,Dark Spell Factory,Structure Level
+867,Blacksmith,Structure Level
+868,Workshop,Structure Level
+869,Pet House,Structure Level
+900,Barbarian King,Hero Level
+901,Archer Queen,Hero Level
+902,Minion Prince,Hero Level
+903,Grand Warden,Hero Level
+904,Royal Champion,Hero Level
+905,Dragon Duke,Hero Level
+1000,Barbarian,Troop Level
+1001,Archer,Troop Level
+1002,Giant,Troop Level
+1003,Goblin,Troop Level
+1004,Wall Breaker,Troop Level
+1005,Balloon,Troop Level
+1006,Wizard,Troop Level
+1007,Healer,Troop Level
+1008,Dragon,Troop Level
+1009,P.E.K.K.A.,Troop Level
+1010,Baby Dragon,Troop Level
+1011,Miner,Troop Level
+1012,Electro Dragon,Troop Level
+1013,Yeti,Troop Level
+1014,Dragon Rider,Troop Level
+1015,Electro Titan,Troop Level
+1016,Root Rider,Troop Level
+1017,Thrower,Troop Level
+1018,Meteor Golem,Troop Level
+1019,Minion,Troop Level
+1020,Hog Rider,Troop Level
+1021,Valkyrie,Troop Level
+1022,Golem,Troop Level
+1023,Witch,Troop Level
+1024,Lava Hound,Troop Level
+1025,Bowler,Troop Level
+1026,Ice Golem,Troop Level
+1027,Headhunter,Troop Level
+1028,Apprentice Warden,Troop Level
+1029,Druid,Troop Level
+1030,Furnace,Troop Level
+1031,Ruin Witch,Troop Level
+1100,Lightning Spell,Spell Level
+1101,Healing Spell,Spell Level
+1102,Rage Spell,Spell Level
+1103,Jump Spell,Spell Level
+1104,Freeze Spell,Spell Level
+1105,Clone Spell,Spell Level
+1106,Invisibility Spell,Spell Level
+1107,Recall Spell,Spell Level
+1108,Revive Spell,Spell Level
+1109,Totem Spell,Spell Level
+1110,Poison Spell,Spell Level
+1111,Earthquake Spell,Spell Level
+1112,Haste Spell,Spell Level
+1113,Skeleton Spell,Spell Level
+1114,Bat Spell,Spell Level
+1115,Overgrowth Spell,Spell Level
+1116,Ice Block Spell,Spell Level
+1117,Angry Spell,Spell Level
+1200,Wall Wrecker,Siege Level
+1201,Battle Blimp,Siege Level
+1202,Stone Slammer,Siege Level
+1203,Siege Barracks,Siege Level
+1204,Log Launcher,Siege Level
+1205,Flame Flinger,Siege Level
+1206,Battle Drill,Siege Level
+1207,Troop Launcher,Siege Level
+1208,Sky Wagon,Siege Level
+1300,L.A.S.S.I.,Pet Level
+1301,Electric Owl,Pet Level
+1302,Yak,Pet Level
+1303,Unicorn,Pet Level
+1304,Frosty,Pet Level
+1305,Diggy,Pet Level
+1306,Poison Lizard,Pet Level
+1307,Phoenix,Pet Level
+1308,Spirit Fox,Pet Level
+1309,Angry Jelly,Pet Level
+1310,Sneezy,Pet Level
+1311,Greedy Raven,Pet Level
+1400,Barbarian Puppet,Equipment Level
+1401,Rage Vial,Equipment Level
+1402,Earthquake Boots,Equipment Level
+1403,Vampstache,Equipment Level
+1404,Giant Gauntlet,Equipment Level
+1405,Spiky Ball,Equipment Level
+1406,Snake Bracelet,Equipment Level
+1407,Stick Horse,Equipment Level
+1408,Archer Puppet,Equipment Level
+1409,Invisibility Vial,Equipment Level
+1410,Giant Arrow,Equipment Level
+1411,Healer Puppet,Equipment Level
+1412,Frozen Arrow,Equipment Level
+1413,Magic Mirror,Equipment Level
+1414,Action Figure,Equipment Level
+1415,Monolith Arrow,Equipment Level
+1416,Henchmen Puppet,Equipment Level
+1417,Dark Orb,Equipment Level
+1418,Metal Pants,Equipment Level
+1419,Noble Iron,Equipment Level
+1420,Dark Crown,Equipment Level
+1421,Meteor Staff,Equipment Level
+1422,Portal Pendant,Equipment Level
+1423,Eternal Tome,Equipment Level
+1424,Life Gem,Equipment Level
+1425,Rage Gem,Equipment Level
+1426,Healing Tome,Equipment Level
+1427,Fireball,Equipment Level
+1428,Lavaloon Puppet,Equipment Level
+1429,Heroic Torch,Equipment Level
+1430,Royal Gem,Equipment Level
+1431,Seeking Shield,Equipment Level
+1432,Hog Puppet,Equipment Level
+1433,Haste Vial,Equipment Level
+1434,Rocket Spear,Equipment Level
+1435,Electro Boots,Equipment Level
+1436,Frost Flake,Equipment Level
+1437,Fire Heart,Equipment Level
+1438,Flame Blower,Equipment Level
+1439,Stun Blaster,Equipment Level
+1440,Electro Fangs,Equipment Level
+1441,Rocket Backpack,Equipment Level
+1442,Revenge Deck,Equipment Level
