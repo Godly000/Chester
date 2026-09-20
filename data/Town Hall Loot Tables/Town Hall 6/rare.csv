@@ -1,8 +1,8 @@
 Research Potion,1200
 Power Potion,1200
 Resource Potion,1200
-Gold,1200
-Elixir,1200
+Gold,1200,160000-320000
+Elixir,1200,160000-320000
 Builder Potion,800
 Capital Gold,800,2000-3000
 Builder Gold,600,750000-1250000
