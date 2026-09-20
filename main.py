@@ -2,23 +2,23 @@
 Loot Box Discord Bot
 =====================
 
-Reads a two-tier weighted-random loot table from CSV files:
+Reads Town-Hall-specific two-tier weighted-random loot tables from CSV files:
 
-  data/rarities.csv       -> category,weight
-  data/<category>.csv     -> item_name,weight[,extra]  (one file per category)
-  data/images.csv         -> item_name,image_url (shared image lookup)
-  data/xp.csv             -> level,cumulative_xp_required (leveling curve)
+  data/rarities.csv                              -> category,weight
+  Town Hall Loot Tables/Town Hall N/<rarity>.csv -> item_name,weight[,extra]
+  Town Hall Loot Tables/images.csv               -> item_name,image_url
+  data/xp.csv                                    -> level,cumulative_xp_required
 
 Weight columns may be plain numbers ("638") or comma-grouped ("1,923") --
 both are accepted. Item rows no longer carry their own image column --
 every item's image comes from a case-sensitive lookup of its name in
-data/images.csv.
+Town Hall Loot Tables/images.csv.
 
 The `extra` 3rd column is optional. If present, it is either:
   - a numeric range like "100-500": a random quantity is rolled from that
     range and shown in the output (e.g. "Gold x1,234"), or
-  - text naming another CSV in data/ (without ".csv"), e.g. "heroskin":
-    a random row is picked from data/heroskin.csv (name, image), that
+  - text naming another shared loot CSV (without ".csv"), e.g. "heroskin":
+    a random row is picked from that file (name, image), that
     row's image overrides this item's image, and ": <name>" is appended
     to this item's name (e.g. "Hero Equipment: Spiky Ball").
 
@@ -27,46 +27,35 @@ optionally start with a header row like "Item,Image" -- it's detected
 and skipped automatically.
 
 On the /chest command, the bot:
-  1. Picks a category using the weights in rarities.csv
-  2. Picks an item from that category's CSV using the item weights
-  3. Awards the player XP based on that category's rarity, stored locally
-     in data/player_xp.db (SQLite, keyed by Discord user ID)
-  4. Replies with an embed showing the category, item name, image, and
+  1. Selects the loot folder matching the player's Town Hall level
+  2. Picks a category using the weights in rarities.csv
+  3. Picks an item from that category's CSV using the item weights
+  4. Stores the reward and rarity XP in the player's ordered binary save
+     file inside saves/
+  5. Replies with an embed showing the category, item name, image, and
      XP gained -- with a separate follow-up message if this pushed the
      player up a level (see data/xp.csv)
 
-The /profile command shows a player's level and XP progress bar (their
-own by default; anyone else's requires Moderate Members permission or
-higher).
+The /profile command shows every saved value in a required category.
 
 Setup
 -----
 1. pip install -r requirements.txt
 2. Copy .env.example to .env and add your bot token:
        DISCORD_TOKEN=your-token-here
-3. Make sure the `data/` folder (rarities.csv, the category CSVs, and
-   images.csv) sits next to main.py.
+3. Keep `data/` and `Town Hall Loot Tables/` next to main.py.
 4. python main.py
 
 The bot needs the "applications.commands" and "bot" scopes when invited,
 with at least the "Send Messages" and "Embed Links" permissions.
 """
 
+import asyncio
 import csv
 import logging
 import os
 import random
 import re
-try:
-    import sqlite3
-except ImportError:
-    # Some minimal/slim Python builds (certain Docker images, some hosting
-    # panels) are compiled without SQLite support at all, which makes even
-    # `import sqlite3` fail with ModuleNotFoundError: No module named
-    # '_sqlite3'. That would otherwise crash the whole bot before a single
-    # line of bot logic runs. Defer that failure until the XP system
-    # actually tries to use it, with a clear diagnostic instead.
-    sqlite3 = None
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -75,6 +64,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+
+from player_saves import MigrationReport, SaveSchemaMismatch, SaveStore
+from upgrade_system import UpgradeRejected, UpgradeSystem
 
 # ---------------------------------------------------------------------------
 # Configuration / constants
@@ -89,7 +81,12 @@ DATA_DIR = SCRIPT_DIR / "data"
 RARITIES_FILE = DATA_DIR / "rarities.csv"
 IMAGES_FILE = DATA_DIR / "images.csv"
 XP_LEVELS_FILE = DATA_DIR / "xp.csv"
-XP_DB_FILE = DATA_DIR / "player_xp.db"
+PROGRESSION_DIR = DATA_DIR / "progression"
+SAVES_DIR = SCRIPT_DIR / "saves"
+SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
+TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
+COMMON_EQUIPMENT_MAX = 18
+EPIC_EQUIPMENT_MAX = 27
 
 # XP awarded to the player who rolled, per rarity of the item they got.
 XP_REWARDS = {
@@ -98,9 +95,6 @@ XP_REWARDS = {
     "rare": 290,
     "common": 160,
 }
-
-# Width (in segments) of the profile command's progress bar.
-PROGRESS_BAR_LENGTH = 10
 
 # Accept a couple of common alternate names in case the hosting panel's
 # environment variable was set up under a different key.
@@ -181,6 +175,14 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
+save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
+upgrade_system = UpgradeSystem(
+    PROGRESSION_DIR,
+    save_store,
+    COMMON_EQUIPMENT_MAX,
+    EPIC_EQUIPMENT_MAX,
+)
+save_migration_active = False
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +194,8 @@ class LootItem:
     name: str
     image_url: str
     weight: float
-    # Optional 4th CSV column. Either:
+    data_dir: Path
+    # Optional third CSV column
     #  - a numeric range like "100-500" -> a random quantity is rolled and
     #    shown in the output, or
     #  - the name of another CSV in data/ (without ".csv") -> a random row
@@ -205,6 +208,19 @@ class Category:
     name: str
     weight: float
     items: List[LootItem]
+
+
+@dataclass
+class ResolvedLoot:
+    display_name: str
+    image_url: str
+    reward_name: str
+    reward_amount: int
+    collection_category: Optional[str] = None
+
+
+class LootRollRejected(Exception):
+    pass
 
 
 def _read_weighted_csv_rows(path: Path) -> List[List[str]]:
@@ -246,59 +262,65 @@ def _parse_weight(weight_str: str) -> float:
     return float(weight_str.replace(",", "").strip())
 
 
-def _find_data_csv(name: str) -> Optional[Path]:
+def _find_data_csv(name: str, data_dir: Path = DATA_DIR) -> Optional[Path]:
     """
     Look up data/<name>.csv, case-insensitively, since CSV text fields
     might not exactly match a file's on-disk casing.
     """
     search_filename = f"{name}.csv"
-    exact = DATA_DIR / search_filename
+    exact = data_dir / search_filename
     if exact.exists():
         return exact
     target = search_filename.lower()
-    if DATA_DIR.exists():
-        for candidate in DATA_DIR.iterdir():
+    if data_dir.exists():
+        for candidate in data_dir.iterdir():
             if candidate.name.lower() == target:
                 return candidate
     log.warning(
         "Loot table file not found. Searched for '%s' (case-insensitive) in '%s'.",
-        search_filename, DATA_DIR,
+        search_filename, data_dir,
     )
     return None
 
 
-def load_images() -> Dict[str, str]:
+def load_images(images_file: Path = IMAGES_FILE) -> Dict[str, str]:
     """
     Load the item_name -> image_url lookup from images.csv. Lookups by
     item name are case-sensitive, matching the CSV exactly.
     """
     images: Dict[str, str] = {}
     try:
-        rows = _strip_header_row(_read_weighted_csv_rows(IMAGES_FILE))
+        rows = _strip_header_row(_read_weighted_csv_rows(images_file))
     except FileNotFoundError:
         log.warning(
             "Image lookup file not found. Searched for '%s' in '%s'.",
-            IMAGES_FILE.name, DATA_DIR,
+            images_file.name, images_file.parent,
         )
         return images
     for row in rows:
         if len(row) < 2:
-            log.warning("Skipping malformed row in %s: %r", IMAGES_FILE.name, row)
+            log.warning("Skipping malformed row in %s: %r", images_file.name, row)
             continue
         images[row[0]] = row[1]
     return images
 
 
-def load_categories() -> Dict[str, Category]:
+def load_categories(
+    loot_dir: Path = DATA_DIR,
+    images_file: Path = IMAGES_FILE,
+    rarities_file: Path = RARITIES_FILE,
+    reference_dir: Optional[Path] = None,
+) -> Dict[str, Category]:
     """
     Load rarities.csv (category,weight) and, for every category, its
     matching <category>.csv (item_name,weight[,extra]). Images come from
     the shared images.csv lookup, not from these files.
     """
     categories: Dict[str, Category] = {}
-    images = load_images()
+    reference_dir = reference_dir or loot_dir
+    images = load_images(images_file)
 
-    for row in _read_weighted_csv_rows(RARITIES_FILE):
+    for row in _read_weighted_csv_rows(rarities_file):
         if len(row) < 2:
             log.warning("Skipping malformed rarities row: %r", row)
             continue
@@ -309,8 +331,11 @@ def load_categories() -> Dict[str, Category]:
         except ValueError:
             log.warning("Skipping rarities row with bad weight: %r", row)
             continue
+        if weight <= 0:
+            log.warning("Skipping rarities row with non-positive weight: %r", row)
+            continue
 
-        item_file = DATA_DIR / f"{name}.csv"
+        item_file = loot_dir / f"{name}.csv"
         items: List[LootItem] = []
         try:
             item_rows = _strip_header_row(_read_weighted_csv_rows(item_file))
@@ -324,6 +349,13 @@ def load_categories() -> Dict[str, Category]:
                 except ValueError:
                     log.warning("Skipping item row with bad weight in %s: %r", item_file.name, item_row)
                     continue
+                if item_weight <= 0:
+                    log.warning(
+                        "Skipping item row with non-positive weight in %s: %r",
+                        item_file.name,
+                        item_row,
+                    )
+                    continue
                 # Optional 3rd column now (previously 4th, before the image
                 # column was removed). If it's not present, this is simply
                 # None and the item is used as-is (no quantity, no sub-roll).
@@ -331,18 +363,16 @@ def load_categories() -> Dict[str, Category]:
 
                 image_url = images.get(item_name)
                 if image_url is None:
-                    # Note: this will always warn at startup for the 4
-                    # category-placeholder items (Capital House, Decoration,
-                    # Hero Skin, Hero Equipment), since their real image
-                    # always comes from a sub-table roll instead -- that's
-                    # expected and harmless. If a *roll* still ends up with
-                    # no image (e.g. the sub-table lookup also fails), the
-                    # embed itself will show an error, not just this log.
-                    log.warning(
-                        "No image found in images.csv for item '%s' (case-sensitive "
-                        "lookup); this item will have no image unless overridden.",
-                        item_name,
+                    uses_subtable = bool(
+                        extra_field
+                        and not _QUANTITY_RANGE_RE.match(extra_field.strip())
                     )
+                    if not uses_subtable:
+                        log.warning(
+                            "No image found in images.csv for item '%s' "
+                            "(case-sensitive lookup).",
+                            item_name,
+                        )
                     image_url = ""
 
                 items.append(
@@ -350,13 +380,14 @@ def load_categories() -> Dict[str, Category]:
                         name=item_name,
                         image_url=image_url,
                         weight=item_weight,
+                        data_dir=reference_dir,
                         extra_field=extra_field,
                     )
                 )
         except FileNotFoundError:
             log.warning(
                 "Loot table file not found. Searched for '%s' in '%s' (category '%s').",
-                item_file.name, DATA_DIR, name,
+                item_file.name, loot_dir, name,
             )
 
         if not items:
@@ -366,21 +397,54 @@ def load_categories() -> Dict[str, Category]:
         categories[name] = Category(name=name, weight=weight, items=items)
 
     if not categories:
-        raise RuntimeError("No valid categories were loaded. Check your CSV files in data/.")
+        raise RuntimeError(f"No valid categories were loaded from {loot_dir}.")
 
     return categories
 
 
-def resolve_item_display(item: LootItem) -> "tuple[str, str]":
-    """
-    Apply the optional 4th CSV column, if present, and return the final
-    (display_name, image_url) to show for this item.
+def load_town_hall_loot_tables() -> Dict[int, Dict[str, Category]]:
+    loot_tables: Dict[int, Dict[str, Category]] = {}
+    images_file = TOWN_HALL_LOOT_DIR / "images.csv"
+    expected_categories = {
+        row[0]
+        for row in _read_weighted_csv_rows(RARITIES_FILE)
+        if len(row) >= 2
+    }
+    for town_hall in range(1, 19):
+        loot_dir = TOWN_HALL_LOOT_DIR / f"Town Hall {town_hall}"
+        categories = load_categories(
+            loot_dir=loot_dir,
+            images_file=images_file,
+            rarities_file=RARITIES_FILE,
+            reference_dir=TOWN_HALL_LOOT_DIR,
+        )
+        missing = expected_categories - categories.keys()
+        if missing:
+            raise RuntimeError(
+                f"Town Hall {town_hall} is missing valid loot tables for: "
+                f"{', '.join(sorted(missing))}"
+            )
+        loot_tables[town_hall] = categories
+    return loot_tables
 
-      - No 4th column          -> unchanged name/image.
+
+COLLECTION_REWARD_CATEGORIES = {
+    "Capital House": "Clan Capital House Part",
+    "Decoration": "Decoration",
+    "Hero Equipment": "Hero Equipment",
+    "Hero Skin": "Hero Skin",
+}
+
+
+def resolve_item_display(item: LootItem) -> ResolvedLoot:
+    """
+    Apply the optional third CSV column and return display and save values.
+
+      - No third column        -> unchanged name/image and quantity one.
       - Numeric range ("A-B")  -> roll a random quantity in [A, B] and
                                    append it to the name, comma-formatted
                                    (e.g. "Gold x1,234").
-      - Any other text ("X")   -> look up data/X.csv, pick a random row
+      - Any other text ("X")   -> look up the shared X.csv, pick a random row
                                    from it (name, image), override this
                                    item's image with that row's image, and
                                    append ": <name>" to this item's name
@@ -390,7 +454,7 @@ def resolve_item_display(item: LootItem) -> "tuple[str, str]":
     image_url = item.image_url
 
     if not item.extra_field:
-        return display_name, image_url
+        return ResolvedLoot(display_name, image_url, item.name, 1)
 
     extra = item.extra_field.strip()
     range_match = _QUANTITY_RANGE_RE.match(extra)
@@ -401,23 +465,22 @@ def resolve_item_display(item: LootItem) -> "tuple[str, str]":
             low, high = high, low
         quantity = random.randint(low, high)
         display_name = f"{display_name} x{quantity:,}"
-        return display_name, image_url
+        return ResolvedLoot(display_name, image_url, item.name, quantity)
 
     # Otherwise, treat the field as a reference to another CSV in data/.
-    sub_path = _find_data_csv(extra)
+    sub_path = _find_data_csv(extra, item.data_dir)
     if sub_path is None:
-        # _find_data_csv already logged exactly what it searched for.
-        return display_name, image_url
+        return ResolvedLoot(display_name, image_url, item.name, 1)
 
     try:
         sub_rows = _strip_header_row(_read_weighted_csv_rows(sub_path))
     except Exception as e:
         log.warning("Failed to read sub-table %s: %s", sub_path, e)
-        return display_name, image_url
+        return ResolvedLoot(display_name, image_url, item.name, 1)
 
     if not sub_rows:
         log.warning("Sub-table %s has no rows; using the item as-is.", sub_path)
-        return display_name, image_url
+        return ResolvedLoot(display_name, image_url, item.name, 1)
 
     chosen = random.choice(sub_rows)
     sub_name = chosen[0]
@@ -425,7 +488,13 @@ def resolve_item_display(item: LootItem) -> "tuple[str, str]":
 
     display_name = f"{display_name}: {sub_name}"
     image_url = sub_image
-    return display_name, image_url
+    return ResolvedLoot(
+        display_name=display_name,
+        image_url=image_url,
+        reward_name=sub_name,
+        reward_amount=1,
+        collection_category=COLLECTION_REWARD_CATEGORIES.get(item.name),
+    )
 
 
 def weighted_choice(names: List[str], weights: List[float]) -> str:
@@ -452,9 +521,14 @@ def roll_loot(categories: Dict[str, Category]):
 
 
 async def build_loot_embed(
-    category: Category, item: LootItem, xp_reward: Optional[int] = None
+    category: Category,
+    item: LootItem,
+    xp_reward: Optional[int] = None,
+    resolved: Optional[ResolvedLoot] = None,
 ) -> discord.Embed:
-    display_name, image_url = resolve_item_display(item)
+    resolved = resolved or resolve_item_display(item)
+    display_name = resolved.display_name
+    image_url = resolved.image_url
     color = RARITY_COLORS.get(category.name.lower(), discord.Color.green())
     embed = discord.Embed(
         title=display_name,
@@ -483,57 +557,8 @@ async def build_loot_embed(
 
 
 # ---------------------------------------------------------------------------
-# XP / leveling system
+# XP and leveling system
 # ---------------------------------------------------------------------------
-#
-# Player XP is stored locally in a small SQLite database (data/player_xp.db)
-# keyed by Discord user ID -- no external service, no network calls, just a
-# single file on disk next to the rest of the bot's data.
-#
-# Level thresholds come from data/xp.csv: "level,cumulative_xp_required".
-# Row 1 is always level 1 at 0 XP; the last row is the max level.
-
-def init_xp_db() -> None:
-    """Create the player_xp table if it doesn't already exist."""
-    if sqlite3 is None:
-        raise RuntimeError(
-            "Python's sqlite3 module isn't available in this environment "
-            "(the SQLite C extension wasn't compiled in). The XP/leveling "
-            "system needs it. On most hosts this means your Python build "
-            "or Docker image is missing SQLite support -- try a different "
-            "Python image/version, or ask your host to enable it."
-        )
-    with sqlite3.connect(XP_DB_FILE) as conn:
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS player_xp ("
-            "user_id INTEGER PRIMARY KEY, "
-            "xp INTEGER NOT NULL DEFAULT 0"
-            ")"
-        )
-        conn.commit()
-
-
-def get_xp(user_id: int) -> int:
-    with sqlite3.connect(XP_DB_FILE) as conn:
-        row = conn.execute(
-            "SELECT xp FROM player_xp WHERE user_id = ?", (user_id,)
-        ).fetchone()
-    return row[0] if row else 0
-
-
-def add_xp(user_id: int, amount: int) -> int:
-    """Add `amount` XP to a player's total and return their new total."""
-    with sqlite3.connect(XP_DB_FILE) as conn:
-        conn.execute(
-            "INSERT INTO player_xp (user_id, xp) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET xp = xp + excluded.xp",
-            (user_id, amount),
-        )
-        conn.commit()
-        row = conn.execute(
-            "SELECT xp FROM player_xp WHERE user_id = ?", (user_id,)
-        ).fetchone()
-    return row[0]
 
 
 def load_xp_levels() -> List[int]:
@@ -585,48 +610,6 @@ def xp_to_level(xp: int) -> int:
     return level
 
 
-def level_progress(xp: int) -> dict:
-    """
-    Return progress info for the profile command:
-      level, xp, current_threshold, next_threshold (None if max level),
-      xp_into_level, xp_needed_for_next (None if max level), is_max_level
-    """
-    level = xp_to_level(xp)
-    max_level = len(xp_levels)
-    current_threshold = xp_levels[level - 1] if xp_levels else 0
-
-    if not xp_levels or level >= max_level:
-        return {
-            "level": level,
-            "xp": xp,
-            "current_threshold": current_threshold,
-            "next_threshold": None,
-            "xp_into_level": xp - current_threshold,
-            "xp_needed_for_next": None,
-            "is_max_level": True,
-        }
-
-    next_threshold = xp_levels[level]
-    return {
-        "level": level,
-        "xp": xp,
-        "current_threshold": current_threshold,
-        "next_threshold": next_threshold,
-        "xp_into_level": xp - current_threshold,
-        "xp_needed_for_next": next_threshold - current_threshold,
-        "is_max_level": False,
-    }
-
-
-def make_progress_bar(current: int, total: int, length: int = PROGRESS_BAR_LENGTH) -> str:
-    """Render a simple block-character progress bar, e.g. '▰▰▰▰▱▱▱▱▱▱'."""
-    if total <= 0:
-        filled = length
-    else:
-        filled = round(length * min(max(current / total, 0), 1))
-    return "▰" * filled + "▱" * (length - filled)
-
-
 # ---------------------------------------------------------------------------
 # #chester channel restriction
 # ---------------------------------------------------------------------------
@@ -661,12 +644,45 @@ def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[s
     return "As an Admin to set up Chester by creating a #chester channel."
 
 
-async def enforce_chester_channel(interaction: discord.Interaction) -> bool:
+async def enforce_chester_channel(
+    interaction: discord.Interaction,
+    initialize_save: bool = True,
+) -> bool:
     """
     For slash commands. Sends an ephemeral notice (private to the user,
     with Discord's built-in dismiss button) and returns False if this
     isn't the #chester channel.
     """
+    if save_migration_active:
+        message = "⚠️ Player saves are being updated. Please try again shortly."
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+        return False
+
+    if initialize_save:
+        try:
+            save_store.ensure_player(interaction.user.id)
+        except SaveSchemaMismatch:
+            message = (
+                "⚠️ Player saves need to be updated for the new progression files. "
+                "A moderator must run `/update_saves`."
+            )
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+            return False
+        except Exception as e:
+            log.exception("Failed to initialize player save for %s: %s", interaction.user.id, e)
+            message = "⚠️ Your player save could not be initialized. Please contact an admin."
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+            return False
+
     message = _channel_gate_message(interaction.guild, interaction.channel)
     if message is None:
         return True
@@ -682,25 +698,31 @@ async def enforce_chester_channel(interaction: discord.Interaction) -> bool:
 # ---------------------------------------------------------------------------
 
 # Loaded once at startup; use the reload command to refresh without restarting.
-categories: Dict[str, Category] = {}
+town_hall_loot_tables: Dict[int, Dict[str, Category]] = {}
 
 
 @bot.event
 async def on_ready():
-    global categories, xp_levels
+    global town_hall_loot_tables, xp_levels
 
     try:
-        categories = load_categories()
-        log.info("Loaded categories: %s", ", ".join(categories.keys()))
+        town_hall_loot_tables = load_town_hall_loot_tables()
+        log.info("Loaded loot tables for %d Town Hall levels.", len(town_hall_loot_tables))
     except Exception as e:
         log.exception("Failed to load loot tables: %s", e)
 
     try:
-        init_xp_db()
+        save_store.load_schema()
+        upgrade_system.load()
         xp_levels = load_xp_levels()
+        log.info(
+            "Loaded %d save fields across %d profile categories.",
+            len(save_store.fields),
+            len(save_store.categories),
+        )
         log.info("Loaded %d XP level thresholds.", len(xp_levels))
     except Exception as e:
-        log.exception("Failed to set up XP system: %s", e)
+        log.exception("Failed to set up save system: %s", e)
 
     try:
         synced = await bot.tree.sync()
@@ -734,17 +756,58 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
     Perform a real /chest roll: pick loot, award XP for it, and return
     (embed, new_level_if_leveled_up_else_None).
     """
-    if not categories:
+    if not town_hall_loot_tables:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
+    village, _ = save_store.player_values(user_id)
+    town_hall = village["Town Hall"]
+    categories = town_hall_loot_tables.get(town_hall)
+    if categories is None:
+        if town_hall == 0:
+            raise LootRollRejected(
+                "Upgrade Town Hall to level 1 before opening a chest."
+            )
+        raise LootRollRejected(
+            f"No chest loot table is available for Town Hall level {town_hall}."
+        )
     category, item = roll_loot(categories)
+    resolved = resolve_item_display(item)
 
     xp_reward = XP_REWARDS.get(category.name.lower(), 0)
-    old_xp = get_xp(user_id)
-    new_xp = add_xp(user_id, xp_reward)
+    old_xp = village["Experience"]
+    village_additions = {
+        "Experience": xp_reward,
+        "Total Opened Chests": 1,
+    }
+    collection_unlocks: List[str] = []
+
+    if resolved.collection_category:
+        if save_store.has_collection_field(resolved.reward_name):
+            collection_unlocks.append(resolved.reward_name)
+        else:
+            log.warning(
+                "Chest reward '%s' is missing from collection.csv category '%s'.",
+                resolved.reward_name,
+                resolved.collection_category,
+            )
+    elif save_store.has_village_field(resolved.reward_name):
+        village_additions[resolved.reward_name] = resolved.reward_amount
+        total_name = f"Total {resolved.reward_name}"
+        if save_store.has_village_field(total_name):
+            village_additions[total_name] = resolved.reward_amount
+    else:
+        log.warning("Chest reward '%s' is missing from village.csv.", resolved.reward_name)
+
+    changed = save_store.update_rewards(user_id, village_additions, collection_unlocks)
+    new_xp = changed["Experience"]
     old_level = xp_to_level(old_xp)
     new_level = xp_to_level(new_xp)
 
-    embed = await build_loot_embed(category, item, xp_reward=xp_reward)
+    embed = await build_loot_embed(
+        category,
+        item,
+        xp_reward=xp_reward,
+        resolved=resolved,
+    )
     leveled_up_to = new_level if new_level > old_level else None
     return embed, leveled_up_to
 
@@ -763,6 +826,8 @@ async def chest_slash(interaction: discord.Interaction):
                 color=discord.Color.gold(),
             )
             await interaction.followup.send(embed=level_up_embed)
+    except LootRollRejected as e:
+        await interaction.response.send_message(f"⚠️ {e}", ephemeral=True)
     except Exception as e:
         log.exception("Error rolling loot: %s", e)
         await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
@@ -786,23 +851,39 @@ async def chest_slash_error(interaction: discord.Interaction, error: app_command
 async def rarity_autocomplete(interaction: discord.Interaction, current: str):
     """Suggest rarity names currently loaded from rarities.csv."""
     current_lower = current.lower()
+    rarity_names = sorted(
+        {
+            name
+            for categories in town_hall_loot_tables.values()
+            for name in categories
+        }
+    )
     return [
         app_commands.Choice(name=name, value=name)
-        for name in categories.keys()
+        for name in rarity_names
         if current_lower in name.lower()
     ][:25]
 
 
 @bot.tree.command(name="test", description="[Admin] Force a roll from a specific rarity/category.")
-@app_commands.describe(rarity="Which rarity/category to force a roll from")
+@app_commands.describe(
+    rarity="Which rarity/category to force a roll from",
+    town_hall="Which Town Hall level's loot table to test",
+)
 @app_commands.autocomplete(rarity=rarity_autocomplete)
 @app_commands.checks.has_permissions(administrator=True)
-async def test_slash(interaction: discord.Interaction, rarity: str):
+async def test_slash(
+    interaction: discord.Interaction,
+    rarity: str,
+    town_hall: app_commands.Range[int, 1, 18],
+):
     if not await enforce_chester_channel(interaction):
         return
-    if not categories:
+    categories = town_hall_loot_tables.get(town_hall)
+    if categories is None:
         await interaction.response.send_message(
-            "⚠️ Loot tables are not loaded. Try `/reload_loot` first.", ephemeral=True
+            "⚠️ Town Hall must be from 1 through 18 and its loot table must be loaded.",
+            ephemeral=True,
         )
         return
 
@@ -839,17 +920,227 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
         await interaction.response.send_message(f"⚠️ Something went wrong: {error}", ephemeral=True)
 
 
+async def upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
+    current_key = current.casefold()
+    return [
+        app_commands.Choice(name=field.name, value=field.name)
+        for field in upgrade_system.level_fields
+        if current_key in field.name.casefold()
+    ][:25]
+
+
+def _format_upgrade_costs(costs: Dict[str, int]) -> str:
+    if not costs:
+        return "Free"
+    return "\n".join(
+        f"{resource}: **{amount:,}**" for resource, amount in costs.items()
+    )
+
+
+@bot.tree.command(name="upgrade", description="Upgrade an unlocked village item.")
+@app_commands.describe(item="Any saved item whose category contains Level")
+@app_commands.autocomplete(item=upgrade_item_autocomplete)
+async def upgrade_slash(interaction: discord.Interaction, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        outcome, refreshed = upgrade_system.start_upgrade(
+            interaction.user.id,
+            item,
+        )
+    except UpgradeRejected as e:
+        await interaction.response.send_message(f"⚠️ Upgrade rejected: {e}", ephemeral=True)
+        return
+    except Exception as e:
+        log.exception("Unexpected error in /upgrade: %s", e)
+        await interaction.response.send_message(
+            f"⚠️ The upgrade could not be started: {e}",
+            ephemeral=True,
+        )
+        return
+
+    title = "Upgrade complete" if outcome.instant else "Upgrade started"
+    embed = discord.Embed(
+        title=title,
+        description=(
+            f"**{outcome.item}**\n"
+            f"Level {outcome.previous_level:,} → {outcome.target_level:,}"
+        ),
+        color=discord.Color.green(),
+    )
+    embed.add_field(
+        name="Cost",
+        value=_format_upgrade_costs(outcome.costs),
+        inline=False,
+    )
+    if not outcome.instant and outcome.slot and outcome.finish_time:
+        embed.add_field(
+            name=outcome.slot.removesuffix(" Upgrade"),
+            value=(
+                f"Finishes <t:{outcome.finish_time}:F> "
+                f"(<t:{outcome.finish_time}:R>)"
+            ),
+            inline=False,
+        )
+    if refreshed.completed:
+        finished = "\n".join(
+            f"{entry.item} reached level {entry.new_level:,}"
+            for entry in refreshed.completed
+        )
+        embed.add_field(name="Also completed", value=finished, inline=False)
+    if refreshed.warnings:
+        embed.add_field(
+            name="Save warnings",
+            value="\n".join(refreshed.warnings),
+            inline=False,
+        )
+    embed.set_footer(text="Made by __godly__")
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(
+    name="refresh_upgrades",
+    description="Finish completed upgrades and show upgrades still in progress.",
+)
+async def refresh_upgrades_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        report = upgrade_system.refresh(interaction.user.id)
+    except Exception as e:
+        log.exception("Unexpected error in /refresh_upgrades: %s", e)
+        await interaction.response.send_message(
+            f"⚠️ Upgrades could not be refreshed: {e}",
+            ephemeral=True,
+        )
+        return
+
+    embed = discord.Embed(title="Upgrade status", color=discord.Color.blue())
+    if report.completed:
+        embed.add_field(
+            name="Completed",
+            value="\n".join(
+                f"**{entry.item}:** level {entry.new_level:,}"
+                for entry in report.completed
+            ),
+            inline=False,
+        )
+    if report.active:
+        embed.add_field(
+            name="In progress",
+            value="\n".join(
+                f"**{entry.item}:** <t:{entry.finish_time}:R> "
+                f"({entry.slot.removesuffix(' Upgrade')})"
+                for entry in report.active
+            ),
+            inline=False,
+        )
+    if report.warnings:
+        embed.add_field(
+            name="Save warnings",
+            value="\n".join(report.warnings),
+            inline=False,
+        )
+    if not report.completed and not report.active and not report.warnings:
+        embed.description = "No upgrades are currently in progress."
+    embed.set_footer(text="Made by __godly__")
+    await interaction.response.send_message(embed=embed)
+
+
+def _migrate_save_files() -> MigrationReport:
+    old_village = PROGRESSION_DIR / "village-old.csv"
+    old_collection = PROGRESSION_DIR / "collection-old.csv"
+    missing = [path.name for path in (old_village, old_collection) if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "Missing previous schema file or files: " + ", ".join(missing)
+        )
+
+    old_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
+    old_store.load_schema(
+        village_path=old_village,
+        collection_path=old_collection,
+    )
+    new_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
+    new_store.load_schema()
+    new_upgrade_system = UpgradeSystem(
+        PROGRESSION_DIR,
+        new_store,
+        COMMON_EQUIPMENT_MAX,
+        EPIC_EQUIPMENT_MAX,
+    )
+    new_upgrade_system.load()
+    return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR)
+
+
+@bot.tree.command(
+    name="update_saves",
+    description="[Moderator] Migrate player saves after progression CSV changes.",
+)
+@app_commands.checks.has_permissions(moderate_members=True)
+async def update_saves_slash(interaction: discord.Interaction):
+    global save_migration_active
+
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+
+    save_migration_active = True
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        report = await asyncio.to_thread(_migrate_save_files)
+        save_store.load_schema()
+        upgrade_system.load()
+        save_store.ensure_player(interaction.user.id)
+        await interaction.followup.send(
+            "✅ Save migration completed.\n"
+            f"Players checked: **{report.total_saves:,}**\n"
+            f"Saves migrated: **{report.migrated_saves:,}**\n"
+            f"Already current: **{report.current_saves:,}**\n"
+            f"Fields added: **{report.added_fields:,}**\n"
+            f"Fields removed: **{report.removed_fields:,}**\n"
+            f"Fields moved: **{report.moved_fields:,}**\n"
+            f"Types changed: **{report.changed_types:,}**\n"
+            f"Categories changed: **{report.changed_categories:,}**\n"
+            f"Backup: `{report.backup_path.name}`",
+            ephemeral=True,
+        )
+    except Exception as e:
+        log.exception("Save migration failed: %s", e)
+        await interaction.followup.send(
+            f"⚠️ Save migration failed. Existing data was preserved or backed up: {e}",
+            ephemeral=True,
+        )
+    finally:
+        save_migration_active = False
+
+
+@update_saves_slash.error
+async def update_saves_slash_error(
+    interaction: discord.Interaction,
+    error: app_commands.AppCommandError,
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        message = "⚠️ You need Moderator permissions to use `/update_saves`."
+    else:
+        log.exception("Unexpected error in /update_saves: %s", error)
+        message = f"⚠️ Something went wrong: {error}"
+    if interaction.response.is_done():
+        await interaction.followup.send(message, ephemeral=True)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)
+
+
 @bot.tree.command(name="reload_loot", description="Reload the loot tables from CSV without restarting the bot.")
 async def reload_loot(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
-    global categories, xp_levels
+    global town_hall_loot_tables, xp_levels
     try:
-        categories = load_categories()
+        town_hall_loot_tables = load_town_hall_loot_tables()
         xp_levels = load_xp_levels()
         await interaction.response.send_message(
-            f"✅ Reloaded {len(categories)} categories: {', '.join(categories.keys())} "
-            f"(and {len(xp_levels)} XP level thresholds)",
+            f"✅ Reloaded loot for {len(town_hall_loot_tables)} Town Hall levels "
+            f"and {len(xp_levels)} XP level thresholds.",
             ephemeral=True,
         )
     except Exception as e:
@@ -898,24 +1189,61 @@ async def help_slash(interaction: discord.Interaction):
     embed = discord.Embed(
         description=(
             "/chest: Simulates opening one Treasure Chest from Clash of Clans.\n"
-            "/test: Admin only. Forces an opening of a Treasure Chest at a specific rarity.\n"
+            "/test: Admin only. Tests a rarity from a selected Town Hall loot table.\n"
+            "/upgrade: Starts or instantly applies an eligible item upgrade.\n"
+            "/refresh_upgrades: Applies finished upgrades and shows active upgrade slots.\n"
             "/reload_loot: Admin only. Reloads the loot table, needed when the rewards "
             "change or mistakes are found in the files.\n"
+            "/update_saves: Moderator only. Migrates saves after progression CSV changes.\n"
             "/about: Shows bot version, version release date, and bot author information.\n"
             "/support: Gives a donation link which helps support the bot.\n"
-            "/profile: Shows a player's level and XP progress. Moderators and above can "
-            "check anyone's profile by providing them as an argument."
+            "/profile: Shows every saved value in a selected category. Moderators and "
+            "above can check anyone's profile by providing them as an argument."
         ),
         color=discord.Color.blue(),
     )
     await interaction.response.send_message(embed=embed)
 
 
-@bot.tree.command(name="profile", description="Show a player's level and XP progress.")
+async def profile_category_autocomplete(interaction: discord.Interaction, current: str):
+    current_key = current.casefold()
+    return [
+        app_commands.Choice(name=category, value=category)
+        for category in save_store.categories
+        if current_key in category.casefold()
+    ][:25]
+
+
+def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800) -> List[str]:
+    pages: List[str] = []
+    lines: List[str] = []
+    length = 0
+    for name, value in values:
+        line = f"**{name}:** {value:,}"
+        added = len(line) + (1 if lines else 0)
+        if lines and length + added > maximum_length:
+            pages.append("\n".join(lines))
+            lines = []
+            length = 0
+            added = len(line)
+        lines.append(line)
+        length += added
+    if lines:
+        pages.append("\n".join(lines))
+    return pages
+
+
+@bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
+    category="The save category to display.",
     member="View someone else's profile instead of your own (Moderator permission or higher required)."
 )
-async def profile_slash(interaction: discord.Interaction, member: Optional[discord.Member] = None):
+@app_commands.autocomplete(category=profile_category_autocomplete)
+async def profile_slash(
+    interaction: discord.Interaction,
+    category: str,
+    member: Optional[discord.Member] = None,
+):
     if not await enforce_chester_channel(interaction):
         return
 
@@ -930,29 +1258,32 @@ async def profile_slash(interaction: discord.Interaction, member: Optional[disco
             )
             return
 
-    xp = get_xp(target.id)
-    progress = level_progress(xp)
-
-    if progress["is_max_level"]:
-        progress_line = f"**MAX LEVEL** — {xp:,} total XP"
-        bar = make_progress_bar(1, 1)
-    else:
-        bar = make_progress_bar(progress["xp_into_level"], progress["xp_needed_for_next"])
-        progress_line = (
-            f"{progress['xp_into_level']:,} / {progress['xp_needed_for_next']:,} XP "
-            f"to Level {progress['level'] + 1}"
+    try:
+        resolved_category = save_store.resolve_category(category)
+        values = save_store.category_values(target.id, resolved_category)
+    except KeyError:
+        await interaction.response.send_message(
+            f"⚠️ Unknown category '{category}'. Valid categories: "
+            f"{', '.join(save_store.categories)}",
+            ephemeral=True,
         )
+        return
 
-    embed = discord.Embed(
-        title=f"{target.display_name}'s Profile",
-        description=f"**Level {progress['level']}**\n{bar}\n{progress_line}",
-        color=discord.Color.blue(),
-    )
-    embed.add_field(name="Total XP", value=f"{xp:,}", inline=True)
-    embed.set_thumbnail(url=target.display_avatar.url)
-    embed.set_footer(text="Made by __godly__")
-
-    await interaction.response.send_message(embed=embed)
+    pages = _profile_pages(values)
+    for page_number, page in enumerate(pages, start=1):
+        page_label = f" ({page_number}/{len(pages)})" if len(pages) > 1 else ""
+        embed = discord.Embed(
+            title=f"{target.display_name} — {resolved_category}{page_label}",
+            description=page,
+            color=discord.Color.blue(),
+        )
+        if page_number == 1:
+            embed.set_thumbnail(url=target.display_avatar.url)
+        embed.set_footer(text="Made by __godly__")
+        if page_number == 1:
+            await interaction.response.send_message(embed=embed)
+        else:
+            await interaction.followup.send(embed=embed)
 
 
 def main():
