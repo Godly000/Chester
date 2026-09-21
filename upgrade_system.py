@@ -7,9 +7,22 @@ from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Tuple
 
 from player_saves import FORMAT_DETAILS, SaveField, SaveStore
+from resource_system import RESOURCE_CODES, ResourceReceipt, ResourceSystem
 
 
 BUILDER_CATEGORIES = {"Structure Level", "Hero Level"}
+SECOND_BUILDER_COST = 250
+THIRD_BUILDER_COST = 500
+FOURTH_BUILDER_COST = 1000
+FIFTH_BUILDER_COST = 2000
+BUILDER_UNLOCK_COSTS = {
+    2: SECOND_BUILDER_COST,
+    3: THIRD_BUILDER_COST,
+    4: FOURTH_BUILDER_COST,
+    5: FIFTH_BUILDER_COST,
+}
+BUILDER_BASE_MESSAGE = "WIP: Builder Base update coming soon!"
+GOBLIN_RESEARCHER_MESSAGE = "Goblin Researcher isn't here to steal your gems!"
 RESEARCHER_CATEGORIES = {
     "Troop Level",
     "Spell Level",
@@ -60,6 +73,10 @@ class UpgradeRejected(Exception):
     pass
 
 
+class WorkerUnavailable(UpgradeRejected):
+    pass
+
+
 @dataclass(frozen=True)
 class UpgradePrice:
     duration: int
@@ -77,6 +94,15 @@ class UpgradeOutcome:
     slot: Optional[str]
     finish_time: Optional[int]
     costs: Dict[str, int]
+
+
+@dataclass(frozen=True)
+class CancelledUpgrade:
+    item: str
+    slot: str
+    refunds: Dict[str, int]
+    received: ResourceReceipt
+    warnings: List[str]
 
 
 @dataclass(frozen=True)
@@ -100,6 +126,28 @@ class RefreshReport:
     warnings: List[str]
 
 
+class UpgradeCurrencyChoiceRequired(UpgradeRejected):
+    def __init__(
+        self,
+        item: str,
+        current_level: int,
+        price: UpgradePrice,
+        resources: Tuple[str, ...],
+        refreshed: RefreshReport,
+    ):
+        super().__init__("Choose a currency for this upgrade")
+        self.item = item
+        self.current_level = current_level
+        self.price = UpgradePrice(
+            price.duration,
+            dict(price.fixed_costs),
+            price.choice_resources,
+            price.choice_cost,
+        )
+        self.resources = resources
+        self.refreshed = refreshed
+
+
 class UpgradeSystem:
     def __init__(
         self,
@@ -107,7 +155,9 @@ class UpgradeSystem:
         save_store: SaveStore,
         common_equipment_max: int,
         epic_equipment_max: int,
+        resource_system: Optional[ResourceSystem] = None,
     ):
+        self.resource_system = resource_system
         self.progression_dir = progression_dir
         self.save_store = save_store
         self.common_equipment_max = common_equipment_max
@@ -184,7 +234,7 @@ class UpgradeSystem:
         if duration < 0 or amount < 0:
             raise ValueError(f"Negative upgrade data for {row['Name']}")
         resource = row["Resource"]
-        if resource == "DE":
+        if resource in {"DE", "Dark Elixir"}:
             return UpgradePrice(duration, {"Dark Elixir": amount})
         if resource == "Both":
             return UpgradePrice(duration, {}, ("Gold", "Elixir"), amount)
@@ -284,7 +334,7 @@ class UpgradeSystem:
         serial_by_name: Dict[str, int] = {}
         name_by_serial: Dict[int, str] = {}
         for serial, name, category in rows:
-            if serial <= 0 or serial > 32767:
+            if serial < 0 or serial > 32767:
                 raise ValueError(f"Upgrade serial is out of range: {serial}")
             if name in serial_by_name or serial in name_by_serial:
                 raise ValueError("upgrade_ids.csv contains duplicate mappings")
@@ -327,6 +377,9 @@ class UpgradeSystem:
             raise ValueError("Builder and Researcher upgrade slots are required")
         maximum_serial = max(self.name_by_serial, default=0)
         for upgrade_name, time_name in self.builder_slots + self.researcher_slots:
+            for cost_name in self._cost_fields(upgrade_name):
+                if cost_name not in self.save_store.village_by_name:
+                    raise ValueError(f"Missing upgrade cost save field: {cost_name}")
             upgrade_field = self.save_store.village_by_name[upgrade_name]
             time_field = self.save_store.village_by_name[time_name]
             if FORMAT_DETAILS[upgrade_field.data_type][2] < maximum_serial:
@@ -337,6 +390,19 @@ class UpgradeSystem:
                 raise ValueError(f"{time_name} cannot store a current UNIX timestamp")
 
     def resolve_item(self, item: str) -> SaveField:
+        worker = re.fullmatch(r"(?:Builder|Builder's Hut) #(\d+)", item.strip(), re.IGNORECASE)
+        if worker:
+            number = int(worker.group(1))
+            if number >= 6:
+                raise WorkerUnavailable(BUILDER_BASE_MESSAGE)
+            item = f"Builder's Hut #{number}"
+        researcher = re.fullmatch(r"Researcher #(\d+)", item.strip(), re.IGNORECASE)
+        if researcher:
+            number = int(researcher.group(1))
+            if number >= 3:
+                raise WorkerUnavailable(GOBLIN_RESEARCHER_MESSAGE)
+            requirement = "Laboratory level 1" if number == 1 else "Pet House level 2"
+            raise UpgradeRejected(f"Researcher #{number} unlocks automatically at {requirement}")
         field = self.fields_by_key.get(item.strip().casefold())
         if field is None:
             raise UpgradeRejected(f"Unknown upgradeable item: {item}")
@@ -446,6 +512,14 @@ class UpgradeSystem:
         return self._parse_number(row["19"])
 
     def _price_for(self, field: SaveField, target_level: int) -> UpgradePrice:
+        if target_level == 1:
+            builder = re.fullmatch(r"Builder's Hut #(\d+)", field.name)
+            if builder:
+                number = int(builder.group(1))
+                if number >= 6:
+                    raise WorkerUnavailable(BUILDER_BASE_MESSAGE)
+                cost = BUILDER_UNLOCK_COSTS.get(number, 0)
+                return UpgradePrice(0, {"Gems": cost} if cost else {})
         if field.category == EQUIPMENT_CATEGORY:
             costs = self.equipment_prices.get(target_level)
             if costs is None:
@@ -467,11 +541,28 @@ class UpgradeSystem:
             f"No upgrade statistics exist for {field.name} level {target_level}"
         )
 
+    def _affordable_currencies(
+        self,
+        price: UpgradePrice,
+        village: Mapping[str, int],
+    ) -> Tuple[str, ...]:
+        if not price.choice_cost:
+            return ()
+        return tuple(
+            resource
+            for resource in price.choice_resources
+            if village.get(resource, 0) - price.fixed_costs.get(resource, 0)
+            >= price.choice_cost
+        )
+
     def _deductions(
         self,
         price: UpgradePrice,
         village: Mapping[str, int],
+        currency: Optional[str] = None,
     ) -> Dict[str, int]:
+        if currency is not None and currency not in price.choice_resources:
+            raise UpgradeRejected(f"{currency} cannot be used for this upgrade")
         missing: List[str] = []
         deductions: Dict[str, int] = {}
         for resource, amount in price.fixed_costs.items():
@@ -482,15 +573,17 @@ class UpgradeSystem:
                 deductions[resource] = amount
 
         if price.choice_resources and price.choice_cost:
-            selected = next(
-                (
-                    resource
-                    for resource in price.choice_resources
-                    if village.get(resource, 0) >= price.choice_cost
-                ),
-                None,
-            )
-            if selected is None:
+            affordable = self._affordable_currencies(price, village)
+            if currency is not None:
+                selected = currency
+                if selected not in affordable:
+                    required = price.choice_cost + price.fixed_costs.get(selected, 0)
+                    missing.append(
+                        f"{selected}: need {required:,}, have {village.get(selected, 0):,}"
+                    )
+                else:
+                    deductions[selected] = deductions.get(selected, 0) + price.choice_cost
+            elif not affordable:
                 balances = ", ".join(
                     f"{resource} {village.get(resource, 0):,}"
                     for resource in price.choice_resources
@@ -499,8 +592,11 @@ class UpgradeSystem:
                     f"need {price.choice_cost:,} of one of "
                     f"{', '.join(price.choice_resources)}; have {balances}"
                 )
-            else:
-                deductions[selected] = price.choice_cost
+            elif len(affordable) == 1:
+                selected = affordable[0]
+                deductions[selected] = deductions.get(selected, 0) + price.choice_cost
+            elif not missing:
+                raise UpgradeRejected("Choose a currency before starting this upgrade")
 
         if missing:
             raise UpgradeRejected("Inadequate resources: " + "; ".join(missing))
@@ -533,18 +629,37 @@ class UpgradeSystem:
                 f"No upgrade slot type is configured for category {field.category}"
             )
         for upgrade_name, time_name in slots:
+            number = int(re.search(r"#(\d+)", upgrade_name).group(1))
+            if slot_type == "Builder":
+                unlocked = number == 1 or (
+                    number in BUILDER_UNLOCK_COSTS and village.get(f"Builder's Hut #{number}", 0) >= 1
+                )
+            else:
+                unlocked = (
+                    number == 1 and village.get("Laboratory", 0) >= 1
+                ) or (
+                    number == 2 and village.get("Pet House", 0) >= 2
+                )
+            if not unlocked:
+                continue
             serial = village[upgrade_name]
             finish_time = village[time_name]
             if serial == 0 and finish_time == 0:
                 return upgrade_name, time_name
-            if (serial == 0) != (finish_time == 0):
+            if finish_time <= 0 or serial not in self.name_by_serial:
                 raise UpgradeRejected(f"Upgrade slot {upgrade_name} contains inconsistent data")
-        raise UpgradeRejected(f"No {slot_type} upgrade slot is available")
+        if slot_type == "Researcher":
+            if village.get("Laboratory", 0) < 1:
+                raise UpgradeRejected("Unlock the first Researcher by completing Laboratory level 1")
+            if village.get("Pet House", 0) < 2:
+                raise UpgradeRejected("The first Researcher is busy. Complete Pet House level 2 to unlock the second Researcher")
+            raise WorkerUnavailable(GOBLIN_RESEARCHER_MESSAGE)
+        raise UpgradeRejected("No unlocked Builder is free. Wait for an upgrade or unlock another Builder with /upgrade")
 
     def _pending_serials(self, village: Mapping[str, int]) -> Dict[int, str]:
         pending: Dict[int, str] = {}
-        for upgrade_name, _, serial, _ in self._slot_values(village):
-            if serial:
+        for upgrade_name, _, serial, finish_time in self._slot_values(village):
+            if serial or finish_time:
                 pending[serial] = upgrade_name
         return pending
 
@@ -566,11 +681,16 @@ class UpgradeSystem:
         collection: Mapping[str, int],
     ) -> List[str]:
         blockers: List[str] = []
-        if any(serial for _, _, serial, _ in self._slot_values(village)):
+        if any(serial or finish_time for _, _, serial, finish_time in self._slot_values(village)):
             blockers.append("an upgrade is still in progress")
 
         for field in self.level_fields:
             if field.name == "Town Hall":
+                continue
+            if (
+                self._base_name(field.name) == "Builder's Hut"
+                and village[field.name] == 0
+            ):
                 continue
             try:
                 maximum = self._availability(
@@ -604,19 +724,54 @@ class UpgradeSystem:
                 changes[weapon] = 1
         return changes
 
+    def _cost_fields(self, slot: str) -> Tuple[str, str]:
+        prefix = slot.removesuffix(" Upgrade")
+        return f"{prefix} Currency", f"{prefix} Cost"
+
+    def _clear_slot(self, village: Dict[str, int], slot: str, time_name: str) -> None:
+        village[slot] = 0
+        village[time_name] = 0
+        for name in self._cost_fields(slot):
+            if name in village:
+                village[name] = 0
+
+    def _check_instance_order(self, field: SaveField, village: Mapping[str, int]) -> None:
+        match = INSTANCE_PATTERN.match(field.name)
+        if field.category != "Structure Level" or match is None:
+            return
+        base, number = match.group(1), int(match.group(2))
+        alternatives = []
+        for candidate in self.level_fields:
+            other = INSTANCE_PATTERN.match(candidate.name)
+            if candidate.category != field.category or other is None:
+                continue
+            if other.group(1) == base and int(other.group(2)) < number:
+                if village[candidate.name] == village[field.name]:
+                    alternatives.append((int(other.group(2)), candidate.name))
+        if alternatives:
+            lowest = min(alternatives)[1]
+            raise UpgradeRejected(
+                f"Upgrade {lowest} first because it is the lowest numbered {base} "
+                f"at level {village[field.name]}. If it is upgrading, wait for it to finish."
+            )
+
     def refresh(self, user_id: int, now: Optional[int] = None) -> RefreshReport:
         now = int(time.time()) if now is None else int(now)
-        village, _ = self.save_store.player_values(user_id)
-        set_values: Dict[str, int] = {}
-        completed: List[CompletedUpgrade] = []
-        active: List[ActiveUpgrade] = []
-        warnings: List[str] = []
-        completed_serials: set[int] = set()
+        with self.save_store.transaction(user_id) as (village, collection):
+            return self._refresh_values(village, now)
 
-        for upgrade_name, time_name, serial, finish_time in self._slot_values(village):
+    def _refresh_values(self, village: Dict[str, int], now: int) -> RefreshReport:
+        if village.get("Town Hall", 0) >= 1 and village.get("Builder's Hut #1", 0) == 0:
+            village["Builder's Hut #1"] = 1
+        completed = []
+        active = []
+        warnings = []
+        completed_serials = set()
+        slots = sorted(self._slot_values(village), key=lambda slot: slot[3])
+        for upgrade_name, time_name, serial, finish_time in slots:
             if serial == 0 and finish_time == 0:
                 continue
-            if serial == 0 or finish_time == 0:
+            if finish_time <= 0:
                 warnings.append(f"{upgrade_name} contains inconsistent data")
                 continue
             item = self.name_by_serial.get(serial)
@@ -625,32 +780,27 @@ class UpgradeSystem:
                 continue
             field = self.fields_by_name.get(item)
             if field is None:
-                warnings.append(
-                    f"{upgrade_name} referred to removed item {item} and was cleared"
-                )
-                set_values[upgrade_name] = 0
-                set_values[time_name] = 0
+                warnings.append(f"{upgrade_name} referred to removed item {item} and was cleared")
+                self._clear_slot(village, upgrade_name, time_name)
                 continue
             if finish_time > now:
-                active.append(ActiveUpgrade(item, finish_time, upgrade_name))
+                if serial in completed_serials:
+                    warnings.append(f"Duplicate upgrade for {item} was cleared")
+                    self._clear_slot(village, upgrade_name, time_name)
+                else:
+                    active.append(ActiveUpgrade(item, finish_time, upgrade_name))
                 continue
-
             if serial not in completed_serials:
-                current_level = set_values.get(item, village[item])
-                new_level = current_level + 1
-                set_values[item] = new_level
-                set_values.update(
-                    self._completion_side_effects(item, new_level, village)
-                )
+                if self.resource_system and self.resource_system.is_producer(item):
+                    self.resource_system.collect(village, finish_time, automatic=True)
+                new_level = village[item] + 1
+                village[item] = new_level
+                village.update(self._completion_side_effects(item, new_level, village))
                 completed.append(CompletedUpgrade(item, new_level, upgrade_name))
                 completed_serials.add(serial)
             else:
                 warnings.append(f"Duplicate completed upgrade for {item} was cleared")
-            set_values[upgrade_name] = 0
-            set_values[time_name] = 0
-
-        if set_values:
-            self.save_store.update_village_values(user_id, set_values=set_values)
+            self._clear_slot(village, upgrade_name, time_name)
         return RefreshReport(completed, active, warnings)
 
     def start_upgrade(
@@ -658,21 +808,39 @@ class UpgradeSystem:
         user_id: int,
         item: str,
         now: Optional[int] = None,
+        *,
+        currency: Optional[str] = None,
+        expected_level: Optional[int] = None,
+        expected_price: Optional[UpgradePrice] = None,
     ) -> Tuple[UpgradeOutcome, RefreshReport]:
         now = int(time.time()) if now is None else int(now)
         refresh_report = self.refresh(user_id, now)
-        village, collection = self.save_store.player_values(user_id)
+        with self.save_store.transaction(user_id) as (village, collection):
+            return self._start_values(
+                village, collection, item, now, currency, expected_level,
+                expected_price, refresh_report,
+            )
+
+    def _start_values(
+        self, village, collection, item, now, currency, expected_level,
+        expected_price, refresh_report,
+    ):
         field = self.resolve_item(item)
         current_level = village[field.name]
-        maximum = self._availability(field, village, collection)
-        target_level = current_level + 1
-
+        if expected_level is not None and current_level != expected_level:
+            raise UpgradeRejected(
+                f"{field.name} changed level while you were choosing. Use /upgrade again."
+            )
         serial = self.serial_for(field)
         pending = self._pending_serials(village)
         if serial in pending:
             raise UpgradeRejected(
                 f"{field.name} is already upgrading in {pending[serial]}"
             )
+
+        self._check_instance_order(field, village)
+        maximum = self._availability(field, village, collection)
+        target_level = current_level + 1
 
         if field.name == "Town Hall" and current_level > 0:
             blockers = self._town_hall_blockers(village, collection)
@@ -690,8 +858,10 @@ class UpgradeSystem:
                 f"{field.name} cannot exceed its current maximum level of {maximum}"
             )
         price = self._price_for(field, target_level)
-        deductions = self._deductions(price, village)
-        additions = {resource: -amount for resource, amount in deductions.items()}
+        if expected_price is not None and price != expected_price:
+            raise UpgradeRejected(
+                "The upgrade cost or duration changed while you were choosing. Use /upgrade again."
+            )
         set_values: Dict[str, int] = {}
         slot_name: Optional[str] = None
         finish_time: Optional[int] = None
@@ -714,11 +884,25 @@ class UpgradeSystem:
             set_values[time_name] = finish_time
             slot_name = upgrade_name
 
-        self.save_store.update_village_values(
-            user_id,
-            set_values=set_values,
-            additions=additions,
-        )
+        affordable = self._affordable_currencies(price, village)
+        if currency is None and len(affordable) > 1:
+            self._deductions(price, village, affordable[0])
+            raise UpgradeCurrencyChoiceRequired(
+                field.name, current_level, price, affordable, refresh_report
+            )
+        deductions = self._deductions(price, village, currency)
+        if self.resource_system and self.resource_system.is_producer(field.name):
+            self.resource_system.collect(village, now, automatic=True)
+        if slot_name:
+            currency_field, cost_field = self._cost_fields(slot_name)
+            if len(deductions) > 1:
+                raise UpgradeRejected("Timed upgrades must use a single resource")
+            resource, amount = next(iter(deductions.items()), (None, 0))
+            set_values[currency_field] = RESOURCE_CODES[resource] if resource else 4
+            set_values[cost_field] = amount
+        for resource, amount in deductions.items():
+            village[resource] -= amount
+        village.update(set_values)
         return (
             UpgradeOutcome(
                 item=field.name,
@@ -731,3 +915,52 @@ class UpgradeSystem:
             ),
             refresh_report,
         )
+
+    def cancel_upgrade(self, user_id: int, item: str, now: Optional[int] = None):
+        now = int(time.time()) if now is None else int(now)
+        self.refresh(user_id, now)
+        if self.resource_system is None:
+            raise UpgradeRejected("Resource storage data is not loaded")
+        with self.save_store.transaction(user_id) as (village, collection):
+            selected = None
+            key = item.strip().casefold()
+            for slot, time_name, serial, finish_time in self._slot_values(village):
+                if finish_time <= now:
+                    continue
+                name = self.name_by_serial.get(serial)
+                if name is None:
+                    continue
+                choices = {name.casefold(), slot.casefold(), slot.removesuffix(" Upgrade").casefold()}
+                if key in choices:
+                    selected = slot, time_name, serial, name
+                    break
+            if selected is None:
+                raise UpgradeRejected(f"No active upgrade matches {item}. Completed upgrades cannot be cancelled.")
+            slot, time_name, serial, name = selected
+            currency_field, cost_field = self._cost_fields(slot)
+            resource_code = village[currency_field]
+            paid_cost = village[cost_field]
+            warnings = []
+            if resource_code == 4:
+                if paid_cost:
+                    raise UpgradeRejected("The saved upgrade cost is inconsistent")
+                paid = {}
+            elif resource_code in RESOURCE_CODES.values():
+                resource = next(name for name, code in RESOURCE_CODES.items() if code == resource_code)
+                paid = {resource: paid_cost}
+            elif resource_code == 0 and paid_cost == 0:
+                price = self._price_for(self.fields_by_name[name], village[name] + 1)
+                if price.choice_resources:
+                    raise UpgradeRejected("This older upgrade has no saved payment currency, so its refund cannot be determined")
+                paid = price.fixed_costs
+                warnings.append("This upgrade predates payment tracking. Its refund uses the current upgrade cost.")
+            else:
+                raise UpgradeRejected("The saved upgrade currency is invalid")
+            if self.resource_system.is_producer(name):
+                self.resource_system.collect(village, now, automatic=True)
+            refunds = {resource: amount // 2 for resource, amount in paid.items()}
+            received = self.resource_system.deposit(village, refunds)
+            for duplicate_slot, duplicate_time, duplicate_serial, finish_time in self._slot_values(village):
+                if duplicate_serial == serial and finish_time:
+                    self._clear_slot(village, duplicate_slot, duplicate_time)
+            return CancelledUpgrade(name, slot, refunds, received, warnings)
