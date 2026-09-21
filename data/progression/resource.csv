@@ -1,0 +1,202 @@
+Name,Level,Resource,Production,Capacity
+Town Hall,1,Elixir,0,1000
+Town Hall,2,Elixir,0,2500
+Town Hall,3,Elixir,0,10000
+Town Hall,4,Elixir,0,50000
+Town Hall,5,Elixir,0,100000
+Town Hall,6,Elixir,0,300000
+Town Hall,7,Elixir,0,500000
+Town Hall,8,Elixir,0,750000
+Town Hall,9,Elixir,0,1000000
+Town Hall,10,Elixir,0,1500000
+Town Hall,11,Elixir,0,2000000
+Town Hall,12,Elixir,0,2000000
+Town Hall,13,Elixir,0,2000000
+Town Hall,14,Elixir,0,3000000
+Town Hall,15,Elixir,0,3000000
+Town Hall,16,Elixir,0,4000000
+Town Hall,17,Elixir,0,4000000
+Town Hall,18,Elixir,0,5000000
+Town Hall,1,Gold,0,1000
+Town Hall,2,Gold,0,2500
+Town Hall,3,Gold,0,10000
+Town Hall,4,Gold,0,50000
+Town Hall,5,Gold,0,100000
+Town Hall,6,Gold,0,300000
+Town Hall,7,Gold,0,500000
+Town Hall,8,Gold,0,750000
+Town Hall,9,Gold,0,1000000
+Town Hall,10,Gold,0,1500000
+Town Hall,11,Gold,0,2000000
+Town Hall,12,Gold,0,2000000
+Town Hall,13,Gold,0,2000000
+Town Hall,14,Gold,0,3000000
+Town Hall,15,Gold,0,3000000
+Town Hall,16,Gold,0,4000000
+Town Hall,17,Gold,0,4000000
+Town Hall,18,Gold,0,5000000
+Town Hall,1,Dark Elixir,0,0
+Town Hall,2,Dark Elixir,0,0
+Town Hall,3,Dark Elixir,0,0
+Town Hall,4,Dark Elixir,0,0
+Town Hall,5,Dark Elixir,0,0
+Town Hall,6,Dark Elixir,0,0
+Town Hall,7,Dark Elixir,0,2500
+Town Hall,8,Dark Elixir,0,5000
+Town Hall,9,Dark Elixir,0,10000
+Town Hall,10,Dark Elixir,0,20000
+Town Hall,11,Dark Elixir,0,20000
+Town Hall,12,Dark Elixir,0,20000
+Town Hall,13,Dark Elixir,0,20000
+Town Hall,14,Dark Elixir,0,30000
+Town Hall,15,Dark Elixir,0,30000
+Town Hall,16,Dark Elixir,0,40000
+Town Hall,17,Dark Elixir,0,40000
+Town Hall,18,Dark Elixir,0,50000
+Elixir Storage,1,Elixir,0,1500
+Elixir Storage,2,Elixir,0,3000
+Elixir Storage,3,Elixir,0,6000
+Elixir Storage,4,Elixir,0,12000
+Elixir Storage,5,Elixir,0,25000
+Elixir Storage,6,Elixir,0,45000
+Elixir Storage,7,Elixir,0,100000
+Elixir Storage,8,Elixir,0,225000
+Elixir Storage,9,Elixir,0,450000
+Elixir Storage,10,Elixir,0,850000
+Elixir Storage,11,Elixir,0,1750000
+Elixir Storage,12,Elixir,0,2000000
+Elixir Storage,13,Elixir,0,3000000
+Elixir Storage,14,Elixir,0,4000000
+Elixir Storage,15,Elixir,0,4500000
+Elixir Storage,16,Elixir,0,5000000
+Elixir Storage,17,Elixir,0,5500000
+Elixir Storage,18,Elixir,0,6000000
+Elixir Storage,19,Elixir,0,6500000
+Gold Storage,1,Gold,0,1500
+Gold Storage,2,Gold,0,3000
+Gold Storage,3,Gold,0,6000
+Gold Storage,4,Gold,0,12000
+Gold Storage,5,Gold,0,25000
+Gold Storage,6,Gold,0,45000
+Gold Storage,7,Gold,0,100000
+Gold Storage,8,Gold,0,225000
+Gold Storage,9,Gold,0,450000
+Gold Storage,10,Gold,0,850000
+Gold Storage,11,Gold,0,1750000
+Gold Storage,12,Gold,0,2000000
+Gold Storage,13,Gold,0,3000000
+Gold Storage,14,Gold,0,4000000
+Gold Storage,15,Gold,0,4500000
+Gold Storage,16,Gold,0,5000000
+Gold Storage,17,Gold,0,5500000
+Gold Storage,18,Gold,0,6000000
+Gold Storage,19,Gold,0,6500000
+Dark Elixir Storage,1,Dark Elixir,0,10000
+Dark Elixir Storage,2,Dark Elixir,0,17500
+Dark Elixir Storage,3,Dark Elixir,0,40000
+Dark Elixir Storage,4,Dark Elixir,0,75000
+Dark Elixir Storage,5,Dark Elixir,0,140000
+Dark Elixir Storage,6,Dark Elixir,0,180000
+Dark Elixir Storage,7,Dark Elixir,0,220000
+Dark Elixir Storage,8,Dark Elixir,0,280000
+Dark Elixir Storage,9,Dark Elixir,0,330000
+Dark Elixir Storage,10,Dark Elixir,0,360000
+Dark Elixir Storage,11,Dark Elixir,0,390000
+Dark Elixir Storage,12,Dark Elixir,0,420000
+Dark Elixir Storage,13,Dark Elixir,0,450000
+Elixir Collector,1,Elixir,200,1000
+Elixir Collector,2,Elixir,400,2000
+Elixir Collector,3,Elixir,600,3000
+Elixir Collector,4,Elixir,800,5000
+Elixir Collector,5,Elixir,1000,10000
+Elixir Collector,6,Elixir,1300,20000
+Elixir Collector,7,Elixir,1600,30000
+Elixir Collector,8,Elixir,1900,50000
+Elixir Collector,9,Elixir,2200,75000
+Elixir Collector,10,Elixir,2800,100000
+Elixir Collector,11,Elixir,3500,150000
+Elixir Collector,12,Elixir,4200,200000
+Elixir Collector,13,Elixir,4900,250000
+Elixir Collector,14,Elixir,5600,300000
+Elixir Collector,15,Elixir,6300,350000
+Elixir Collector,16,Elixir,7000,385000
+Elixir Collector,17,Elixir,7560,420000
+Elixir Collector,18,Elixir,7857,436500
+Elixir Collector,19,Elixir,8154,453000
+Elixir Collector,20,Elixir,8154,453000
+Gold Mine,1,Gold,200,1000
+Gold Mine,2,Gold,400,2000
+Gold Mine,3,Gold,600,3000
+Gold Mine,4,Gold,800,5000
+Gold Mine,5,Gold,1000,10000
+Gold Mine,6,Gold,1300,20000
+Gold Mine,7,Gold,1600,30000
+Gold Mine,8,Gold,1900,50000
+Gold Mine,9,Gold,2200,75000
+Gold Mine,10,Gold,2800,100000
+Gold Mine,11,Gold,3500,150000
+Gold Mine,12,Gold,4200,200000
+Gold Mine,13,Gold,4900,250000
+Gold Mine,14,Gold,5600,300000
+Gold Mine,15,Gold,6300,350000
+Gold Mine,16,Gold,7000,385000
+Gold Mine,17,Gold,7560,420000
+Gold Mine,18,Gold,7857,436500
+Gold Mine,19,Gold,8154,453000
+Gold Mine,20,Gold,8154,453000
+Dark Elixir Drill,1,Dark Elixir,20,160
+Dark Elixir Drill,2,Dark Elixir,30,300
+Dark Elixir Drill,3,Dark Elixir,45,540
+Dark Elixir Drill,4,Dark Elixir,60,840
+Dark Elixir Drill,5,Dark Elixir,80,1280
+Dark Elixir Drill,6,Dark Elixir,100,1800
+Dark Elixir Drill,7,Dark Elixir,120,2400
+Dark Elixir Drill,8,Dark Elixir,140,3000
+Dark Elixir Drill,9,Dark Elixir,160,3600
+Dark Elixir Drill,10,Dark Elixir,180,4200
+Dark Elixir Drill,11,Dark Elixir,200,4600
+Dark Elixir Drill,12,Dark Elixir,209,4807
+Dark Elixir Drill,13,Dark Elixir,218,5014
+Dark Elixir Drill,14,Dark Elixir,218,5014
+Clan Castle,1,Elixir,0,900000
+Clan Castle,2,Elixir,0,1800000
+Clan Castle,3,Elixir,0,2400000
+Clan Castle,4,Elixir,0,3000000
+Clan Castle,5,Elixir,0,3600000
+Clan Castle,6,Elixir,0,4200000
+Clan Castle,7,Elixir,0,4800000
+Clan Castle,8,Elixir,0,5400000
+Clan Castle,9,Elixir,0,6000000
+Clan Castle,10,Elixir,0,6600000
+Clan Castle,11,Elixir,0,7200000
+Clan Castle,12,Elixir,0,7800000
+Clan Castle,13,Elixir,0,8400000
+Clan Castle,14,Elixir,0,9000000
+Clan Castle,1,Gold,0,900000
+Clan Castle,2,Gold,0,1800000
+Clan Castle,3,Gold,0,2400000
+Clan Castle,4,Gold,0,3000000
+Clan Castle,5,Gold,0,3600000
+Clan Castle,6,Gold,0,4200000
+Clan Castle,7,Gold,0,4800000
+Clan Castle,8,Gold,0,5400000
+Clan Castle,9,Gold,0,6000000
+Clan Castle,10,Gold,0,6600000
+Clan Castle,11,Gold,0,7200000
+Clan Castle,12,Gold,0,7800000
+Clan Castle,13,Gold,0,8400000
+Clan Castle,14,Gold,0,9000000
+Clan Castle,1,Dark Elixir,0,0
+Clan Castle,2,Dark Elixir,0,0
+Clan Castle,3,Dark Elixir,0,12000
+Clan Castle,4,Dark Elixir,0,18000
+Clan Castle,5,Dark Elixir,0,21000
+Clan Castle,6,Dark Elixir,0,24000
+Clan Castle,7,Dark Elixir,0,27000
+Clan Castle,8,Dark Elixir,0,30000
+Clan Castle,9,Dark Elixir,0,33000
+Clan Castle,10,Dark Elixir,0,36000
+Clan Castle,11,Dark Elixir,0,39000
+Clan Castle,12,Dark Elixir,0,42000
+Clan Castle,13,Dark Elixir,0,45000
+Clan Castle,14,Dark Elixir,0,48000

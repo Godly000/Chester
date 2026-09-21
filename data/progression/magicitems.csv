@@ -1,0 +1,31 @@
+Name,Target,Cost,Count,Strength,Sell,Capacity
+Builder Bite,All Builders,,,3600,2,25
+Clan Castle Cake,,,,,2,25
+Study Soup,All Researchers,,,10800,2,25
+Power Pancakes,,,,,2,25
+Mighty Morsel,,,,,2,25
+Hero Potion,,,,,10,5
+Research Potion,All Researchers,,,82800,10,5
+Power Potion,,,,,10,5
+Resource Potion,Resources,,,86400,20,5
+Wall Rings,Wall,1000000,,,5,25
+Builder Potion,All Builders,,,32400,20,5
+Pet Potion,Researcher,,,82800,20,5
+Super Potion,,,,,10,5
+Builder Star Jar,,,,,10,25
+Clock Tower Potion,,,,,10,25
+Shovel of Obstacles,,,,,50,25
+Book of Building,Builder,0,,2147483647,50,1
+Book of Heroes,Builder,0,,2147483647,50,1
+Book of Fighting,Builder,0,,2147483647,50,1
+Book of Spells,Builder,0,,2147483647,50,1
+Book of Everything,Builder,0,,2147483647,75,1
+Rune of Builder Gold,,,,,50,5
+Rune of Builder Elixir,,,,,50,5
+Hammer of Building,Builder,2147483647,,2147483647,100,1
+Hammer of Heroes,Builder,2147483647,,2147483647,100,1
+Hammer of Fighting,Builder,2147483647,,2147483647,100,1
+Hammer of Spells,Builder,2147483647,,2147483647,100,1
+Rune of Gold,Gold,0,,2147483647,50,1
+Rune of Elixir,Elixir,0,,2147483647,50,1
+Rune of Dark Elixir,Dark Elixir,0,,2147483647,50,1
