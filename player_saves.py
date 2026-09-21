@@ -4,9 +4,12 @@ import os
 import shutil
 import struct
 import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import RLock
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple
 
 
@@ -69,6 +72,7 @@ class SaveStore:
         self.binary_format = "<"
         self.record_size = 0
         self.schema_digest = b""
+        self.lock = RLock()
 
     def load_schema(
         self,
@@ -186,12 +190,34 @@ class SaveStore:
         path = self.player_path(user_id)
         try:
             with path.open("xb") as file:
-                file.write(self._encode_values([0] * len(self.fields)))
+                file.write(self._encode_values(self._default_values()))
                 file.flush()
                 os.fsync(file.fileno())
         except FileExistsError:
             self._read_values(path)
         return path
+
+    def _default_values(self) -> List[int]:
+        values = [0] * len(self.fields)
+        field = self.village_by_name.get("Last Resource Check")
+        if field is not None:
+            values[field.index] = self._bounded_value(int(time.time()), field.data_type)
+        return values
+
+    @contextmanager
+    def transaction(self, user_id: int):
+        with self.lock:
+            path = self.ensure_player(user_id)
+            values = self._read_values(path)
+            village = {name: values[field.index] for name, field in self.village_by_name.items()}
+            collection = {name: values[field.index] for name, field in self.collection_by_name.items()}
+            yield village, collection
+            updated = []
+            for field in self.fields:
+                source = village if field.source == "village" else collection
+                updated.append(self._bounded_value(source[field.name], field.data_type))
+            if updated != values:
+                self._write_values(path, updated)
 
     def _encode_values(self, values: List[int]) -> bytes:
         if len(values) != len(self.fields):
@@ -401,7 +427,7 @@ class SaveStore:
                 except SaveSchemaMismatch:
                     old_values, _ = old_store._decode_raw(raw, allow_legacy=True)
 
-                migrated_values = [0] * len(self.fields)
+                migrated_values = self._default_values()
                 for identity in common:
                     old_field = old_fields[identity]
                     new_field = new_fields[identity]
