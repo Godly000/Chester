@@ -56,6 +56,7 @@ import logging
 import os
 import random
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -65,8 +66,17 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from magic_system import MagicRejected, MagicSystem
 from player_saves import MigrationReport, SaveSchemaMismatch, SaveStore
-from upgrade_system import UpgradeRejected, UpgradeSystem
+from resource_system import RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
+from upgrade_system import (
+    RefreshReport,
+    UpgradeCurrencyChoiceRequired,
+    UpgradeOutcome,
+    UpgradeRejected,
+    UpgradeSystem,
+    WorkerUnavailable,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration / constants
@@ -87,6 +97,7 @@ SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
 TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
+CLAN_CASTLE_RESOURCE_RATIO = 0.05
 
 # XP awarded to the player who rolled, per rarity of the item they got.
 XP_REWARDS = {
@@ -102,6 +113,9 @@ _TOKEN_ENV_KEYS = ("DISCORD_TOKEN", "TOKEN", "BOT_TOKEN", "DISCORD_BOT_TOKEN")
 
 # Only a channel literally named this responds to commands.
 CHESTER_CHANNEL_NAME = "chester"
+VILLAGE_WELCOME_MESSAGE = (
+    "Welcome, Chief! Your village has been created, have fun opening chests!"
+)
 
 # Matches a numeric range like "100-500", "1000 - 2000", or comma-grouped
 # numbers like "800,000-1,200,000".
@@ -176,12 +190,15 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
+resource_system = ResourceSystem(PROGRESSION_DIR, save_store, CLAN_CASTLE_RESOURCE_RATIO)
 upgrade_system = UpgradeSystem(
     PROGRESSION_DIR,
     save_store,
     COMMON_EQUIPMENT_MAX,
     EPIC_EQUIPMENT_MAX,
+    resource_system,
 )
+magic_system = MagicSystem(PROGRESSION_DIR, save_store, upgrade_system, resource_system)
 save_migration_active = False
 
 
@@ -787,7 +804,9 @@ async def on_ready():
 
     try:
         save_store.load_schema()
+        resource_system.load()
         upgrade_system.load()
+        magic_system.load()
         xp_levels = load_xp_levels()
         log.info(
             "Loaded %d save fields across %d profile categories.",
@@ -832,14 +851,11 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
     """
     if not town_hall_loot_tables:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
+    upgrade_system.refresh(user_id)
     village, _ = save_store.player_values(user_id)
     town_hall = village["Town Hall"]
     categories = town_hall_loot_tables.get(town_hall)
     if categories is None:
-        if town_hall == 0:
-            raise LootRollRejected(
-                "Upgrade Town Hall to level 1 before opening a chest."
-            )
         raise LootRollRejected(
             f"No chest loot table is available for Town Hall level {town_hall}."
         )
@@ -871,8 +887,23 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
     else:
         log.warning("Chest reward '%s' is missing from village.csv.", resolved.reward_name)
 
-    changed = save_store.update_rewards(user_id, village_additions, collection_unlocks)
-    new_xp = changed["Experience"]
+    resource_amounts = {
+        resource: village_additions.pop(resource)
+        for resource in RESOURCE_TYPES if resource in village_additions
+    }
+    magic_awards = []
+    with save_store.transaction(user_id) as (values, collection):
+        received = resource_system.deposit(values, resource_amounts)
+        for name, amount in village_additions.items():
+            field = save_store.village_by_name[name]
+            if field.category == "Magic Item":
+                stored, sold, gems = magic_system.award(values, name, amount)
+                magic_awards.append((name, stored, sold, gems))
+            else:
+                values[name] = save_store._bounded_add(values[name], amount, field.data_type)
+        for name in collection_unlocks:
+            collection[name] = 1
+        new_xp = values["Experience"]
     old_level = xp_to_level(old_xp)
     new_level = xp_to_level(new_xp)
 
@@ -882,6 +913,13 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
         xp_reward=xp_reward,
         resolved=resolved,
     )
+    if resource_amounts:
+        embed.add_field(name="Stored resources", value=_format_resource_receipt(received), inline=False)
+    for name, stored, sold, gems in magic_awards:
+        description = f"Stored {stored:,} {name}."
+        if sold:
+            description += f" Automatically sold {sold:,} excess for {gems:,} Gems."
+        embed.add_field(name="Magic item inventory", value=description, inline=False)
     leveled_up_to = new_level if new_level > old_level else None
     return embed, leveled_up_to
 
@@ -892,8 +930,19 @@ async def chest_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
     try:
+        village, _ = save_store.player_values(interaction.user.id)
+        if village["Town Hall"] == 0:
+            save_store.update_village_values(
+                interaction.user.id, set_values={"Town Hall": 1}
+            )
+            await interaction.response.send_message(
+                VILLAGE_WELCOME_MESSAGE, ephemeral=True
+            )
         embed, leveled_up_to = await _do_loot_roll(interaction.user.id)
-        await interaction.response.send_message(embed=embed)
+        if interaction.response.is_done():
+            await interaction.followup.send(embed=embed, ephemeral=False)
+        else:
+            await interaction.response.send_message(embed=embed)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
                 description=f"🎉 {interaction.user.mention} leveled up to **Level {leveled_up_to}**!",
@@ -901,10 +950,16 @@ async def chest_slash(interaction: discord.Interaction):
             )
             await interaction.followup.send(embed=level_up_embed)
     except LootRollRejected as e:
-        await interaction.response.send_message(f"⚠️ {e}", ephemeral=True)
+        if interaction.response.is_done():
+            await interaction.followup.send(f"⚠️ {e}", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"⚠️ {e}", ephemeral=True)
     except Exception as e:
         log.exception("Error rolling loot: %s", e)
-        await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
+        if interaction.response.is_done():
+            await interaction.followup.send(f"⚠️ Something went wrong: {e}", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
 
 
 @chest_slash.error
@@ -996,10 +1051,13 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
 
 async def upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
     current_key = current.casefold()
+    names = [field.name for field in upgrade_system.level_fields]
+    names.extend(f"Builder #{number}" for number in range(1, 7))
+    names.extend(f"Researcher #{number}" for number in range(1, 4))
     return [
-        app_commands.Choice(name=field.name, value=field.name)
-        for field in upgrade_system.level_fields
-        if current_key in field.name.casefold()
+        app_commands.Choice(name=name, value=name)
+        for name in names
+        if current_key in name.casefold()
     ][:25]
 
 
@@ -1011,28 +1069,7 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     )
 
 
-@bot.tree.command(name="upgrade", description="Upgrade an unlocked village item.")
-@app_commands.describe(item="Any saved item whose category contains Level")
-@app_commands.autocomplete(item=upgrade_item_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, item: str):
-    if not await enforce_chester_channel(interaction):
-        return
-    try:
-        outcome, refreshed = upgrade_system.start_upgrade(
-            interaction.user.id,
-            item,
-        )
-    except UpgradeRejected as e:
-        await interaction.response.send_message(f"⚠️ Upgrade rejected: {e}", ephemeral=True)
-        return
-    except Exception as e:
-        log.exception("Unexpected error in /upgrade: %s", e)
-        await interaction.response.send_message(
-            f"⚠️ The upgrade could not be started: {e}",
-            ephemeral=True,
-        )
-        return
-
+def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> discord.Embed:
     title = "Upgrade complete" if outcome.instant else "Upgrade started"
     embed = discord.Embed(
         title=title,
@@ -1069,6 +1106,152 @@ async def upgrade_slash(interaction: discord.Interaction, item: str):
             inline=False,
         )
     embed.set_footer(text="Made by __godly__")
+    return embed
+
+
+class UpgradeCurrencyView(discord.ui.View):
+    def __init__(self, user_id: int, choice: UpgradeCurrencyChoiceRequired):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.choice = choice
+        self.used = False
+        self.message: Optional[discord.InteractionMessage] = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "Only the player who requested this upgrade can choose its currency.",
+                ephemeral=True,
+            )
+            return False
+        if self.used or self.is_finished():
+            await interaction.response.send_message(
+                "This currency choice is no longer active. Use /upgrade again.",
+                ephemeral=True,
+            )
+            return False
+        return True
+
+    async def _choose(self, interaction: discord.Interaction, currency: str):
+        if not await self.interaction_check(interaction):
+            return
+        self.used = True
+        self.stop()
+        if not await enforce_chester_channel(interaction):
+            if self.message is not None:
+                await self.message.edit(view=None)
+            return
+        try:
+            outcome, refreshed = upgrade_system.start_upgrade(
+                self.user_id,
+                self.choice.item,
+                currency=currency,
+                expected_level=self.choice.current_level,
+                expected_price=self.choice.price,
+            )
+        except WorkerUnavailable as error:
+            await interaction.response.edit_message(content=str(error), embed=None, view=None)
+            return
+        except UpgradeRejected as error:
+            await interaction.response.edit_message(
+                content=f"⚠️ Upgrade rejected: {error}", embed=None, view=None
+            )
+            return
+        except Exception as error:
+            log.exception("Unexpected error choosing upgrade currency: %s", error)
+            await interaction.response.edit_message(
+                content=f"⚠️ The upgrade could not be started: {error}",
+                embed=None,
+                view=None,
+            )
+            return
+        combined = RefreshReport(
+            completed=self.choice.refreshed.completed + refreshed.completed,
+            active=refreshed.active,
+            warnings=list(dict.fromkeys(self.choice.refreshed.warnings + refreshed.warnings)),
+        )
+        await interaction.response.edit_message(
+            content=None, embed=_build_upgrade_embed(outcome, combined), view=None
+        )
+
+    @discord.ui.button(label="Use Gold", style=discord.ButtonStyle.primary)
+    async def use_gold(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._choose(interaction, "Gold")
+
+    @discord.ui.button(label="Use Elixir", style=discord.ButtonStyle.primary)
+    async def use_elixir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._choose(interaction, "Elixir")
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.interaction_check(interaction):
+            return
+        self.used = True
+        self.stop()
+        await interaction.response.edit_message(
+            content="Upgrade cancelled. No upgrade resources were spent.",
+            embed=None,
+            view=None,
+        )
+
+    async def on_timeout(self):
+        if self.used:
+            return
+        self.used = True
+        self.stop()
+        if self.message is not None:
+            try:
+                await self.message.edit(
+                    content="This currency choice expired. Use /upgrade again.",
+                    embed=None,
+                    view=None,
+                )
+            except discord.HTTPException:
+                log.debug("Could not clear an expired upgrade currency prompt")
+
+
+@bot.tree.command(name="upgrade", description="Upgrade an unlocked village item.")
+@app_commands.describe(item="An upgradeable item or a Builder number to unlock")
+@app_commands.autocomplete(item=upgrade_item_autocomplete)
+async def upgrade_slash(interaction: discord.Interaction, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        outcome, refreshed = upgrade_system.start_upgrade(
+            interaction.user.id,
+            item,
+        )
+    except UpgradeCurrencyChoiceRequired as choice:
+        view = UpgradeCurrencyView(interaction.user.id, choice)
+        embed = discord.Embed(
+            title="Choose upgrade currency",
+            description=(
+                f"**{choice.item}**\n"
+                f"Level {choice.current_level:,} → {choice.current_level + 1:,}\n\n"
+                f"Pay **{choice.price.choice_cost:,} Gold** or "
+                f"**{choice.price.choice_cost:,} Elixir**.\n"
+                "Choose one below. This choice expires in two minutes."
+            ),
+            color=discord.Color.blue(),
+        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+        return
+    except WorkerUnavailable as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    except UpgradeRejected as error:
+        await interaction.response.send_message(
+            f"⚠️ Upgrade rejected: {error}", ephemeral=True
+        )
+        return
+    except Exception as error:
+        log.exception("Unexpected error in /upgrade: %s", error)
+        await interaction.response.send_message(
+            f"⚠️ The upgrade could not be started: {error}", ephemeral=True
+        )
+        return
+    embed = _build_upgrade_embed(outcome, refreshed)
     await interaction.response.send_message(embed=embed)
 
 
@@ -1121,14 +1304,262 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+def _magic_result_embed(result):
+    return discord.Embed(
+        title=result.item,
+        description="\n".join(result.lines)[:4000],
+        color=discord.Color.green(),
+    )
+
+
+async def magic_item_autocomplete(interaction: discord.Interaction, current: str):
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in magic_system.items if current.casefold() in name.casefold()
+    ][:25]
+
+
+class MagicItemView(discord.ui.View):
+    def __init__(self, user_id, item, options):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.item = item
+        self.options = {option.value: option for option in options}
+        self.used = False
+        self.message = None
+        self.selection = discord.ui.Select(
+            placeholder="Choose a Wall level" if item.target == "Wall" else "Choose a worker",
+            options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options],
+        )
+        self.selection.callback = self.choose
+        self.add_item(self.selection)
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Only the player who opened this dialog can use it.", ephemeral=True)
+            return False
+        if self.used or self.is_finished():
+            await interaction.response.send_message("This selection has expired. Run /use again.", ephemeral=True)
+            return False
+        return True
+
+    async def choose(self, interaction):
+        if not await self.interaction_check(interaction):
+            return
+        self.used = True
+        self.stop()
+        if not await enforce_chester_channel(interaction):
+            if self.message is not None:
+                await self.message.edit(view=None)
+            return
+        try:
+            option = self.options.get(self.selection.values[0])
+            if option is None:
+                raise MagicRejected("Invalid selection. Run /use again")
+            result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item)
+        except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
+            await interaction.response.edit_message(content=str(error), embed=None, view=None)
+            return
+        except Exception as error:
+            log.exception("Magic item selection failed: %s", error)
+            await interaction.response.edit_message(content="The magic item could not be used.", embed=None, view=None)
+            return
+        await interaction.response.edit_message(content=None, embed=_magic_result_embed(result), view=None)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.interaction_check(interaction):
+            return
+        self.used = True
+        self.stop()
+        await interaction.response.edit_message(content="Cancelled. No magic item was used.", embed=None, view=None)
+
+    async def on_timeout(self):
+        if self.used:
+            return
+        self.used = True
+        if self.message is not None:
+            try:
+                await self.message.edit(content="Selection expired. No magic item was used.", embed=None, view=None)
+            except discord.HTTPException:
+                log.debug("Could not clear an expired magic item dialog")
+
+
+@bot.tree.command(name="use", description="Use a magic item from your inventory.")
+@app_commands.describe(item="The type of magic item to use")
+@app_commands.autocomplete(item=magic_item_autocomplete)
+async def use_slash(interaction: discord.Interaction, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        definition, options, status = magic_system.prepare(interaction.user.id, item)
+        if options:
+            view = MagicItemView(interaction.user.id, definition, options)
+            embed = discord.Embed(
+                title=f"Use {definition.name}", description="\n".join(status), color=discord.Color.blue()
+            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            view.message = await interaction.original_response()
+            return
+        result = magic_system.use(interaction.user.id, item)
+    except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    except Exception as error:
+        log.exception("Unexpected error in /use: %s", error)
+        await interaction.response.send_message("The magic item could not be used.", ephemeral=True)
+        return
+    await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=True)
+
+
+@bot.tree.command(name="sell", description="Sell one magic item from your inventory for Gems.")
+@app_commands.describe(item="The type of magic item to sell")
+@app_commands.autocomplete(item=magic_item_autocomplete)
+async def sell_slash(interaction: discord.Interaction, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        result = magic_system.sell(interaction.user.id, item)
+    except MagicRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    except Exception as error:
+        log.exception("Unexpected error in /sell: %s", error)
+        await interaction.response.send_message("The magic item could not be sold.", ephemeral=True)
+        return
+    await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=True)
+
+
+def _format_resource_receipt(receipt: ResourceReceipt) -> str:
+    if not receipt.main:
+        return "No resources were ready to collect."
+    return "\n".join(
+        f"**{resource}:** {amount:,} to storages, {receipt.treasury.get(resource, 0):,} to treasury"
+        for resource, amount in receipt.main.items()
+    )
+
+
+async def cancel_upgrade_autocomplete(interaction: discord.Interaction, current: str):
+    if save_migration_active:
+        return []
+    try:
+        village, _ = save_store.player_values(interaction.user.id)
+    except Exception:
+        return []
+    choices = []
+    for slot, _, serial, finish in upgrade_system._slot_values(village):
+        item = upgrade_system.name_by_serial.get(serial)
+        if finish <= int(time.time()) or item is None:
+            continue
+        label = f"{slot.removesuffix(' Upgrade')}: {item}"
+        if current.casefold() in label.casefold():
+            choices.append(app_commands.Choice(name=label, value=slot))
+    return choices[:25]
+
+
+@bot.tree.command(name="cancel_upgrade", description="Cancel an active upgrade and refund half its cost.")
+@app_commands.describe(item="An upgrading item or its Builder or Researcher slot")
+@app_commands.autocomplete(item=cancel_upgrade_autocomplete)
+async def cancel_upgrade_slash(interaction: discord.Interaction, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        outcome = upgrade_system.cancel_upgrade(interaction.user.id, item)
+    except (UpgradeRejected, ResourceRejected) as error:
+        await interaction.response.send_message(f"Cancellation rejected: {error}", ephemeral=True)
+        return
+    except Exception as error:
+        log.exception("Unexpected error in /cancel_upgrade: %s", error)
+        await interaction.response.send_message("The upgrade could not be cancelled.", ephemeral=True)
+        return
+    embed = discord.Embed(
+        title="Upgrade cancelled",
+        description=f"**{outcome.item}**\n{outcome.slot.removesuffix(' Upgrade')} is now free.",
+        color=discord.Color.blue(),
+    )
+    embed.add_field(name="Half cost refund", value=_format_upgrade_costs(outcome.refunds), inline=False)
+    embed.add_field(name="Received after storage limits", value=_format_resource_receipt(outcome.received), inline=False)
+    if outcome.warnings:
+        embed.add_field(name="Refund information", value="\n".join(outcome.warnings), inline=False)
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="collect_loot", description="Collect resources generated by your Mines, Collectors, and Drills.")
+async def collect_loot_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        now = int(time.time())
+        upgrade_system.refresh(interaction.user.id, now)
+        with save_store.transaction(interaction.user.id) as (village, collection):
+            received = resource_system.collect(village, now)
+    except ResourceRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    except Exception as error:
+        log.exception("Unexpected error in /collect_loot: %s", error)
+        await interaction.response.send_message("Your resources could not be collected.", ephemeral=True)
+        return
+    embed = discord.Embed(title="Resources collected", description=_format_resource_receipt(received), color=discord.Color.green())
+    embed.set_footer(text="Overflow fills the treasury at five percent efficiency")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="collect_treasury", description="Move treasury resources into available main storage space.")
+async def collect_treasury_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        upgrade_system.refresh(interaction.user.id)
+        with save_store.transaction(interaction.user.id) as (village, collection):
+            collected = resource_system.collect_treasury(village)
+    except Exception as error:
+        log.exception("Unexpected error in /collect_treasury: %s", error)
+        await interaction.response.send_message("Your treasury could not be collected.", ephemeral=True)
+        return
+    description = "\n".join(f"**{resource}:** {amount:,}" for resource, amount in collected.items())
+    embed = discord.Embed(title="Treasury collected", description=description, color=discord.Color.green())
+    embed.set_footer(text="Resources that did not fit remain in your treasury")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="view_collectors", description="View producer rates, stored loot, and capacities.")
+async def view_collectors_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        now = int(time.time())
+        upgrade_system.refresh(interaction.user.id, now)
+        village, _ = save_store.player_values(interaction.user.id)
+        statuses = resource_system.collector_status(village, now)
+    except Exception as error:
+        log.exception("Unexpected error in /view_collectors: %s", error)
+        await interaction.response.send_message("Your collectors could not be displayed.", ephemeral=True)
+        return
+    embed = discord.Embed(title="Resource collectors", color=discord.Color.blue())
+    if not statuses:
+        embed.description = "Build a Gold Mine, Elixir Collector, or Dark Elixir Drill to begin producing resources."
+    for status in statuses:
+        percent = 100 * status.stored / status.capacity if status.capacity else 0
+        embed.add_field(
+            name=f"{status.item} | Level {status.level}",
+            value=(f"{status.hourly_rate:,} {status.resource} per hour\n"
+                   f"{status.stored:,} / {status.capacity:,} stored ({percent:.1f}%)"),
+            inline=False,
+        )
+    embed.set_footer(text="Use collect_loot to move these resources into storage")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 def _migrate_save_files() -> MigrationReport:
     old_village = PROGRESSION_DIR / "village-old.csv"
     old_collection = PROGRESSION_DIR / "collection-old.csv"
-    missing = [path.name for path in (old_village, old_collection) if not path.is_file()]
-    if missing:
-        raise FileNotFoundError(
-            "Missing previous schema file or files: " + ", ".join(missing)
-        )
+    if not old_village.is_file() and not old_collection.is_file():
+        raise FileNotFoundError("Provide village-old.csv or collection-old.csv for each changed schema")
+    if not old_village.is_file():
+        old_village = PROGRESSION_DIR / "village.csv"
+    if not old_collection.is_file():
+        old_collection = PROGRESSION_DIR / "collection.csv"
 
     old_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
     old_store.load_schema(
@@ -1137,13 +1568,17 @@ def _migrate_save_files() -> MigrationReport:
     )
     new_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
     new_store.load_schema()
+    new_resource_system = ResourceSystem(PROGRESSION_DIR, new_store, CLAN_CASTLE_RESOURCE_RATIO)
+    new_resource_system.load()
     new_upgrade_system = UpgradeSystem(
         PROGRESSION_DIR,
         new_store,
         COMMON_EQUIPMENT_MAX,
         EPIC_EQUIPMENT_MAX,
+        new_resource_system,
     )
     new_upgrade_system.load()
+    MagicSystem(PROGRESSION_DIR, new_store, new_upgrade_system, new_resource_system).load()
     return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR)
 
 
@@ -1163,7 +1598,9 @@ async def update_saves_slash(interaction: discord.Interaction):
     try:
         report = await asyncio.to_thread(_migrate_save_files)
         save_store.load_schema()
+        resource_system.load()
         upgrade_system.load()
+        magic_system.load()
         save_store.ensure_player(interaction.user.id)
         await interaction.followup.send(
             "✅ Save migration completed.\n"
@@ -1265,7 +1702,13 @@ async def help_slash(interaction: discord.Interaction):
             "/chest: Simulates opening one Treasure Chest from Clash of Clans.\n"
             "/test: Admin only. Tests a rarity from a selected Town Hall loot table.\n"
             "/upgrade: Starts or instantly applies an eligible item upgrade.\n"
+            "/use: Uses a magic item and prompts for a target when required.\n"
+            "/sell: Sells one magic item for Gems.\n"
             "/refresh_upgrades: Applies finished upgrades and shows active upgrade slots.\n"
+            "/cancel_upgrade: Cancels an active item or slot and refunds half its cost.\n"
+            "/collect_loot: Collects resources produced by Mines, Collectors, and Drills.\n"
+            "/collect_treasury: Moves treasury loot into available main storage space.\n"
+            "/view_collectors: Shows producer rates, fill progress, and capacities.\n"
             "/reload_loot: Admin only. Reloads the loot table, needed when the rewards "
             "change or mistakes are found in the files.\n"
             "/update_saves: Moderator only. Migrates saves after progression CSV changes.\n"
@@ -1335,6 +1778,14 @@ async def profile_slash(
     try:
         resolved_category = save_store.resolve_category(category)
         values = save_store.category_values(target.id, resolved_category)
+        if resolved_category.casefold() == "currency":
+            village, _ = save_store.player_values(target.id)
+            listed_names = {name for name, _ in values}
+            values.extend(
+                (name, village[name])
+                for name in TREASURY_FIELDS.values()
+                if name in village and name not in listed_names
+            )
     except KeyError:
         await interaction.response.send_message(
             f"⚠️ Unknown category '{category}'. Valid categories: "
