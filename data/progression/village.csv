@@ -25,6 +25,7 @@ Total Starry Ore,Statistic,integer
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
+Last Resource Check,Statistic,integer
 Builder Bite,Magic Item,byte
 Clan Castle Cake,Magic Item,byte
 Study Soup,Magic Item,byte
