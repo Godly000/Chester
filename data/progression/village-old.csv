@@ -1,0 +1,730 @@
+Name,Category,Data Format
+Gems,Currency,integer
+Gold,Currency,integer
+Elixir,Currency,integer
+Dark Elixir,Currency,integer
+Builder Gold,Currency,integer
+Builder Elixir,Currency,integer
+Capital Gold,Currency,integer
+Shiny Ore,Currency,integer
+Glowy Ore,Currency,short
+Starry Ore,Currency,short
+Raid Medals,Currency,short
+Clan War League Medals,Currency,short
+Experience,Statistic,long
+Total Gems,Statistic,integer
+Total Gold,Statistic,long
+Total Elixir,Statistic,long
+Total Dark Elixir,Statistic,long
+Total Builder Gold,Statistic,long
+Total Builder Elixir,Statistic,long
+Total Capital Gold,Statistic,integer
+Total Shiny Ore,Statistic,integer
+Total Glowy Ore,Statistic,integer
+Total Starry Ore,Statistic,integer
+Total Raid Medals,Statistic,integer
+Total Clan War League Medals,Statistic,integer
+Total Opened Chests,Statistic,integer
+Last Resource Check,Statistic,integer
+Treasury Gold,Treasury,integer
+Treasury Elixir,Treasury,integer
+Treasury Dark Elixir,Treasury,integer
+Builder Bite,Magic Item,byte
+Clan Castle Cake,Magic Item,byte
+Study Soup,Magic Item,byte
+Power Pancakes,Magic Item,byte
+Mighty Morsel,Magic Item,byte
+Hero Potion,Magic Item,byte
+Research Potion,Magic Item,byte
+Power Potion,Magic Item,byte
+Resource Potion,Magic Item,byte
+Wall Rings,Magic Item,byte
+Builder Potion,Magic Item,byte
+Pet Potion,Magic Item,byte
+Super Potion,Magic Item,byte
+Builder Star Jar,Magic Item,byte
+Clock Tower Potion,Magic Item,byte
+Shovel of Obstacles,Magic Item,byte
+Book of Building,Magic Item,byte
+Book of Heroes,Magic Item,byte
+Book of Fighting,Magic Item,byte
+Book of Spells,Magic Item,byte
+Book of Everything,Magic Item,byte
+Rune of Builder Gold,Magic Item,byte
+Rune of Builder Elixir,Magic Item,byte
+Hammer of Building,Magic Item,byte
+Hammer of Heroes,Magic Item,byte
+Hammer of Fighting,Magic Item,byte
+Hammer of Spells,Magic Item,byte
+Rune of Gold,Magic Item,byte
+Rune of Elixir,Magic Item,byte
+Rune of Dark Elixir,Magic Item,byte
+Builder #1 Upgrade,Upgrade,short
+Builder #1 Time,Upgrade,integer
+Builder #1 Currency,Upgrade,byte
+Builder #1 Cost,Upgrade,integer
+Builder #2 Upgrade,Upgrade,short
+Builder #2 Time,Upgrade,integer
+Builder #2 Currency,Upgrade,byte
+Builder #2 Cost,Upgrade,integer
+Builder #3 Upgrade,Upgrade,short
+Builder #3 Time,Upgrade,integer
+Builder #3 Currency,Upgrade,byte
+Builder #3 Cost,Upgrade,integer
+Builder #4 Upgrade,Upgrade,short
+Builder #4 Time,Upgrade,integer
+Builder #4 Currency,Upgrade,byte
+Builder #4 Cost,Upgrade,integer
+Builder #5 Upgrade,Upgrade,short
+Builder #5 Time,Upgrade,integer
+Builder #5 Currency,Upgrade,byte
+Builder #5 Cost,Upgrade,integer
+Builder #6 Upgrade,Upgrade,short
+Builder #6 Time,Upgrade,integer
+Builder #6 Currency,Upgrade,byte
+Builder #6 Cost,Upgrade,integer
+Builder #7 Upgrade,Upgrade,short
+Builder #7 Time,Upgrade,integer
+Builder #7 Currency,Upgrade,byte
+Builder #7 Cost,Upgrade,integer
+Builder #8 Upgrade,Upgrade,short
+Builder #8 Time,Upgrade,integer
+Builder #8 Currency,Upgrade,byte
+Builder #8 Cost,Upgrade,integer
+Builder #9 Upgrade,Upgrade,short
+Builder #9 Time,Upgrade,integer
+Builder #9 Currency,Upgrade,byte
+Builder #9 Cost,Upgrade,integer
+Researcher #1 Upgrade,Upgrade,short
+Researcher #1 Time,Upgrade,integer
+Researcher #1 Currency,Upgrade,byte
+Researcher #1 Cost,Upgrade,integer
+Researcher #2 Upgrade,Upgrade,short
+Researcher #2 Time,Upgrade,integer
+Researcher #2 Currency,Upgrade,byte
+Researcher #2 Cost,Upgrade,integer
+Researcher #3 Upgrade,Upgrade,short
+Researcher #3 Time,Upgrade,integer
+Researcher #3 Currency,Upgrade,byte
+Researcher #3 Cost,Upgrade,integer
+Town Hall,Structure Level,byte
+Town Hall 12 Weapon,Structure Level,byte
+Town Hall 13 Weapon,Structure Level,byte
+Town Hall 14 Weapon,Structure Level,byte
+Town Hall 15 Weapon,Structure Level,byte
+Town Hall 17 Weapon,Structure Level,byte
+Smasher,Structure Level,byte
+Longshot,Structure Level,byte
+Logger,Structure Level,byte
+Cannon #1,Structure Level,byte
+Cannon #2,Structure Level,byte
+Cannon #3,Structure Level,byte
+Cannon #4,Structure Level,byte
+Cannon #5,Structure Level,byte
+Cannon #6,Structure Level,byte
+Cannon #7,Structure Level,byte
+Archer Tower #1,Structure Level,byte
+Archer Tower #2,Structure Level,byte
+Archer Tower #3,Structure Level,byte
+Archer Tower #4,Structure Level,byte
+Archer Tower #5,Structure Level,byte
+Archer Tower #6,Structure Level,byte
+Archer Tower #7,Structure Level,byte
+Archer Tower #8,Structure Level,byte
+Archer Tower #9,Structure Level,byte
+Mortar #1,Structure Level,byte
+Mortar #2,Structure Level,byte
+Mortar #3,Structure Level,byte
+Mortar #4,Structure Level,byte
+Air Defense #1,Structure Level,byte
+Air Defense #2,Structure Level,byte
+Air Defense #3,Structure Level,byte
+Air Defense #4,Structure Level,byte
+Wizard Tower #1,Structure Level,byte
+Wizard Tower #2,Structure Level,byte
+Wizard Tower #3,Structure Level,byte
+Wizard Tower #4,Structure Level,byte
+Wizard Tower #5,Structure Level,byte
+Air Sweeper #1,Structure Level,byte
+Air Sweeper #2,Structure Level,byte
+Hidden Tesla #1,Structure Level,byte
+Hidden Tesla #2,Structure Level,byte
+Hidden Tesla #3,Structure Level,byte
+Hidden Tesla #4,Structure Level,byte
+Hidden Tesla #5,Structure Level,byte
+Bomb Tower #1,Structure Level,byte
+Bomb Tower #2,Structure Level,byte
+X-Bow #1,Structure Level,byte
+X-Bow #2,Structure Level,byte
+X-Bow #3,Structure Level,byte
+X-Bow #4,Structure Level,byte
+Inferno Tower #1,Structure Level,byte
+Inferno Tower #2,Structure Level,byte
+Inferno Tower #3,Structure Level,byte
+Eagle Artillery,Structure Level,byte
+Scattershot #1,Structure Level,byte
+Scattershot #2,Structure Level,byte
+Builder's Hut #1,Structure Level,byte
+Builder's Hut #2,Structure Level,byte
+Builder's Hut #3,Structure Level,byte
+Builder's Hut #4,Structure Level,byte
+Builder's Hut #5,Structure Level,byte
+Monolith,Structure Level,byte
+Spell Tower #1,Structure Level,byte
+Spell Tower #2,Structure Level,byte
+Ricochet Cannon #1,Structure Level,byte
+Ricochet Cannon #2,Structure Level,byte
+Ricochet Cannon #3,Structure Level,byte
+Multi-Archer Tower #1,Structure Level,byte
+Multi-Archer Tower #2,Structure Level,byte
+Multi-Archer Tower #3,Structure Level,byte
+Multi-Archer Tower #4,Structure Level,byte
+Firespitter #1,Structure Level,byte
+Firespitter #2,Structure Level,byte
+Multi-Gear Tower,Structure Level,byte
+Revenge Tower,Structure Level,byte
+Super Wizard Tower #1,Structure Level,byte
+Super Wizard Tower #2,Structure Level,byte
+Crafted Defense AA,Structure Level,byte
+Crafted Defense AB,Structure Level,byte
+Crafted Defense AC,Structure Level,byte
+Crafted Defense BA,Structure Level,byte
+Crafted Defense BB,Structure Level,byte
+Crafted Defense BC,Structure Level,byte
+Crafted Defense CA,Structure Level,byte
+Crafted Defense CB,Structure Level,byte
+Crafted Defense CC,Structure Level,byte
+Wall #1,Structure Level,byte
+Wall #2,Structure Level,byte
+Wall #3,Structure Level,byte
+Wall #4,Structure Level,byte
+Wall #5,Structure Level,byte
+Wall #6,Structure Level,byte
+Wall #7,Structure Level,byte
+Wall #8,Structure Level,byte
+Wall #9,Structure Level,byte
+Wall #10,Structure Level,byte
+Wall #11,Structure Level,byte
+Wall #12,Structure Level,byte
+Wall #13,Structure Level,byte
+Wall #14,Structure Level,byte
+Wall #15,Structure Level,byte
+Wall #16,Structure Level,byte
+Wall #17,Structure Level,byte
+Wall #18,Structure Level,byte
+Wall #19,Structure Level,byte
+Wall #20,Structure Level,byte
+Wall #21,Structure Level,byte
+Wall #22,Structure Level,byte
+Wall #23,Structure Level,byte
+Wall #24,Structure Level,byte
+Wall #25,Structure Level,byte
+Wall #26,Structure Level,byte
+Wall #27,Structure Level,byte
+Wall #28,Structure Level,byte
+Wall #29,Structure Level,byte
+Wall #30,Structure Level,byte
+Wall #31,Structure Level,byte
+Wall #32,Structure Level,byte
+Wall #33,Structure Level,byte
+Wall #34,Structure Level,byte
+Wall #35,Structure Level,byte
+Wall #36,Structure Level,byte
+Wall #37,Structure Level,byte
+Wall #38,Structure Level,byte
+Wall #39,Structure Level,byte
+Wall #40,Structure Level,byte
+Wall #41,Structure Level,byte
+Wall #42,Structure Level,byte
+Wall #43,Structure Level,byte
+Wall #44,Structure Level,byte
+Wall #45,Structure Level,byte
+Wall #46,Structure Level,byte
+Wall #47,Structure Level,byte
+Wall #48,Structure Level,byte
+Wall #49,Structure Level,byte
+Wall #50,Structure Level,byte
+Wall #51,Structure Level,byte
+Wall #52,Structure Level,byte
+Wall #53,Structure Level,byte
+Wall #54,Structure Level,byte
+Wall #55,Structure Level,byte
+Wall #56,Structure Level,byte
+Wall #57,Structure Level,byte
+Wall #58,Structure Level,byte
+Wall #59,Structure Level,byte
+Wall #60,Structure Level,byte
+Wall #61,Structure Level,byte
+Wall #62,Structure Level,byte
+Wall #63,Structure Level,byte
+Wall #64,Structure Level,byte
+Wall #65,Structure Level,byte
+Wall #66,Structure Level,byte
+Wall #67,Structure Level,byte
+Wall #68,Structure Level,byte
+Wall #69,Structure Level,byte
+Wall #70,Structure Level,byte
+Wall #71,Structure Level,byte
+Wall #72,Structure Level,byte
+Wall #73,Structure Level,byte
+Wall #74,Structure Level,byte
+Wall #75,Structure Level,byte
+Wall #76,Structure Level,byte
+Wall #77,Structure Level,byte
+Wall #78,Structure Level,byte
+Wall #79,Structure Level,byte
+Wall #80,Structure Level,byte
+Wall #81,Structure Level,byte
+Wall #82,Structure Level,byte
+Wall #83,Structure Level,byte
+Wall #84,Structure Level,byte
+Wall #85,Structure Level,byte
+Wall #86,Structure Level,byte
+Wall #87,Structure Level,byte
+Wall #88,Structure Level,byte
+Wall #89,Structure Level,byte
+Wall #90,Structure Level,byte
+Wall #91,Structure Level,byte
+Wall #92,Structure Level,byte
+Wall #93,Structure Level,byte
+Wall #94,Structure Level,byte
+Wall #95,Structure Level,byte
+Wall #96,Structure Level,byte
+Wall #97,Structure Level,byte
+Wall #98,Structure Level,byte
+Wall #99,Structure Level,byte
+Wall #100,Structure Level,byte
+Wall #101,Structure Level,byte
+Wall #102,Structure Level,byte
+Wall #103,Structure Level,byte
+Wall #104,Structure Level,byte
+Wall #105,Structure Level,byte
+Wall #106,Structure Level,byte
+Wall #107,Structure Level,byte
+Wall #108,Structure Level,byte
+Wall #109,Structure Level,byte
+Wall #110,Structure Level,byte
+Wall #111,Structure Level,byte
+Wall #112,Structure Level,byte
+Wall #113,Structure Level,byte
+Wall #114,Structure Level,byte
+Wall #115,Structure Level,byte
+Wall #116,Structure Level,byte
+Wall #117,Structure Level,byte
+Wall #118,Structure Level,byte
+Wall #119,Structure Level,byte
+Wall #120,Structure Level,byte
+Wall #121,Structure Level,byte
+Wall #122,Structure Level,byte
+Wall #123,Structure Level,byte
+Wall #124,Structure Level,byte
+Wall #125,Structure Level,byte
+Wall #126,Structure Level,byte
+Wall #127,Structure Level,byte
+Wall #128,Structure Level,byte
+Wall #129,Structure Level,byte
+Wall #130,Structure Level,byte
+Wall #131,Structure Level,byte
+Wall #132,Structure Level,byte
+Wall #133,Structure Level,byte
+Wall #134,Structure Level,byte
+Wall #135,Structure Level,byte
+Wall #136,Structure Level,byte
+Wall #137,Structure Level,byte
+Wall #138,Structure Level,byte
+Wall #139,Structure Level,byte
+Wall #140,Structure Level,byte
+Wall #141,Structure Level,byte
+Wall #142,Structure Level,byte
+Wall #143,Structure Level,byte
+Wall #144,Structure Level,byte
+Wall #145,Structure Level,byte
+Wall #146,Structure Level,byte
+Wall #147,Structure Level,byte
+Wall #148,Structure Level,byte
+Wall #149,Structure Level,byte
+Wall #150,Structure Level,byte
+Wall #151,Structure Level,byte
+Wall #152,Structure Level,byte
+Wall #153,Structure Level,byte
+Wall #154,Structure Level,byte
+Wall #155,Structure Level,byte
+Wall #156,Structure Level,byte
+Wall #157,Structure Level,byte
+Wall #158,Structure Level,byte
+Wall #159,Structure Level,byte
+Wall #160,Structure Level,byte
+Wall #161,Structure Level,byte
+Wall #162,Structure Level,byte
+Wall #163,Structure Level,byte
+Wall #164,Structure Level,byte
+Wall #165,Structure Level,byte
+Wall #166,Structure Level,byte
+Wall #167,Structure Level,byte
+Wall #168,Structure Level,byte
+Wall #169,Structure Level,byte
+Wall #170,Structure Level,byte
+Wall #171,Structure Level,byte
+Wall #172,Structure Level,byte
+Wall #173,Structure Level,byte
+Wall #174,Structure Level,byte
+Wall #175,Structure Level,byte
+Wall #176,Structure Level,byte
+Wall #177,Structure Level,byte
+Wall #178,Structure Level,byte
+Wall #179,Structure Level,byte
+Wall #180,Structure Level,byte
+Wall #181,Structure Level,byte
+Wall #182,Structure Level,byte
+Wall #183,Structure Level,byte
+Wall #184,Structure Level,byte
+Wall #185,Structure Level,byte
+Wall #186,Structure Level,byte
+Wall #187,Structure Level,byte
+Wall #188,Structure Level,byte
+Wall #189,Structure Level,byte
+Wall #190,Structure Level,byte
+Wall #191,Structure Level,byte
+Wall #192,Structure Level,byte
+Wall #193,Structure Level,byte
+Wall #194,Structure Level,byte
+Wall #195,Structure Level,byte
+Wall #196,Structure Level,byte
+Wall #197,Structure Level,byte
+Wall #198,Structure Level,byte
+Wall #199,Structure Level,byte
+Wall #200,Structure Level,byte
+Wall #201,Structure Level,byte
+Wall #202,Structure Level,byte
+Wall #203,Structure Level,byte
+Wall #204,Structure Level,byte
+Wall #205,Structure Level,byte
+Wall #206,Structure Level,byte
+Wall #207,Structure Level,byte
+Wall #208,Structure Level,byte
+Wall #209,Structure Level,byte
+Wall #210,Structure Level,byte
+Wall #211,Structure Level,byte
+Wall #212,Structure Level,byte
+Wall #213,Structure Level,byte
+Wall #214,Structure Level,byte
+Wall #215,Structure Level,byte
+Wall #216,Structure Level,byte
+Wall #217,Structure Level,byte
+Wall #218,Structure Level,byte
+Wall #219,Structure Level,byte
+Wall #220,Structure Level,byte
+Wall #221,Structure Level,byte
+Wall #222,Structure Level,byte
+Wall #223,Structure Level,byte
+Wall #224,Structure Level,byte
+Wall #225,Structure Level,byte
+Wall #226,Structure Level,byte
+Wall #227,Structure Level,byte
+Wall #228,Structure Level,byte
+Wall #229,Structure Level,byte
+Wall #230,Structure Level,byte
+Wall #231,Structure Level,byte
+Wall #232,Structure Level,byte
+Wall #233,Structure Level,byte
+Wall #234,Structure Level,byte
+Wall #235,Structure Level,byte
+Wall #236,Structure Level,byte
+Wall #237,Structure Level,byte
+Wall #238,Structure Level,byte
+Wall #239,Structure Level,byte
+Wall #240,Structure Level,byte
+Wall #241,Structure Level,byte
+Wall #242,Structure Level,byte
+Wall #243,Structure Level,byte
+Wall #244,Structure Level,byte
+Wall #245,Structure Level,byte
+Wall #246,Structure Level,byte
+Wall #247,Structure Level,byte
+Wall #248,Structure Level,byte
+Wall #249,Structure Level,byte
+Wall #250,Structure Level,byte
+Wall #251,Structure Level,byte
+Wall #252,Structure Level,byte
+Wall #253,Structure Level,byte
+Wall #254,Structure Level,byte
+Wall #255,Structure Level,byte
+Wall #256,Structure Level,byte
+Wall #257,Structure Level,byte
+Wall #258,Structure Level,byte
+Wall #259,Structure Level,byte
+Wall #260,Structure Level,byte
+Wall #261,Structure Level,byte
+Wall #262,Structure Level,byte
+Wall #263,Structure Level,byte
+Wall #264,Structure Level,byte
+Wall #265,Structure Level,byte
+Wall #266,Structure Level,byte
+Wall #267,Structure Level,byte
+Wall #268,Structure Level,byte
+Wall #269,Structure Level,byte
+Wall #270,Structure Level,byte
+Wall #271,Structure Level,byte
+Wall #272,Structure Level,byte
+Wall #273,Structure Level,byte
+Wall #274,Structure Level,byte
+Wall #275,Structure Level,byte
+Wall #276,Structure Level,byte
+Wall #277,Structure Level,byte
+Wall #278,Structure Level,byte
+Wall #279,Structure Level,byte
+Wall #280,Structure Level,byte
+Wall #281,Structure Level,byte
+Wall #282,Structure Level,byte
+Wall #283,Structure Level,byte
+Wall #284,Structure Level,byte
+Wall #285,Structure Level,byte
+Wall #286,Structure Level,byte
+Wall #287,Structure Level,byte
+Wall #288,Structure Level,byte
+Wall #289,Structure Level,byte
+Wall #290,Structure Level,byte
+Wall #291,Structure Level,byte
+Wall #292,Structure Level,byte
+Wall #293,Structure Level,byte
+Wall #294,Structure Level,byte
+Wall #295,Structure Level,byte
+Wall #296,Structure Level,byte
+Wall #297,Structure Level,byte
+Wall #298,Structure Level,byte
+Wall #299,Structure Level,byte
+Wall #300,Structure Level,byte
+Wall #301,Structure Level,byte
+Wall #302,Structure Level,byte
+Wall #303,Structure Level,byte
+Wall #304,Structure Level,byte
+Wall #305,Structure Level,byte
+Wall #306,Structure Level,byte
+Wall #307,Structure Level,byte
+Wall #308,Structure Level,byte
+Wall #309,Structure Level,byte
+Wall #310,Structure Level,byte
+Wall #311,Structure Level,byte
+Wall #312,Structure Level,byte
+Wall #313,Structure Level,byte
+Wall #314,Structure Level,byte
+Wall #315,Structure Level,byte
+Wall #316,Structure Level,byte
+Wall #317,Structure Level,byte
+Wall #318,Structure Level,byte
+Wall #319,Structure Level,byte
+Wall #320,Structure Level,byte
+Wall #321,Structure Level,byte
+Wall #322,Structure Level,byte
+Wall #323,Structure Level,byte
+Wall #324,Structure Level,byte
+Wall #325,Structure Level,byte
+Bomb #1,Structure Level,byte
+Bomb #2,Structure Level,byte
+Bomb #3,Structure Level,byte
+Bomb #4,Structure Level,byte
+Bomb #5,Structure Level,byte
+Bomb #6,Structure Level,byte
+Bomb #7,Structure Level,byte
+Bomb #8,Structure Level,byte
+Spring Trap #1,Structure Level,byte
+Spring Trap #2,Structure Level,byte
+Spring Trap #3,Structure Level,byte
+Spring Trap #4,Structure Level,byte
+Spring Trap #5,Structure Level,byte
+Spring Trap #6,Structure Level,byte
+Spring Trap #7,Structure Level,byte
+Spring Trap #8,Structure Level,byte
+Spring Trap #9,Structure Level,byte
+Air Bomb #1,Structure Level,byte
+Air Bomb #2,Structure Level,byte
+Air Bomb #3,Structure Level,byte
+Air Bomb #4,Structure Level,byte
+Air Bomb #5,Structure Level,byte
+Air Bomb #6,Structure Level,byte
+Air Bomb #7,Structure Level,byte
+Air Bomb #8,Structure Level,byte
+Giant Bomb #1,Structure Level,byte
+Giant Bomb #2,Structure Level,byte
+Giant Bomb #3,Structure Level,byte
+Giant Bomb #4,Structure Level,byte
+Giant Bomb #5,Structure Level,byte
+Giant Bomb #6,Structure Level,byte
+Giant Bomb #7,Structure Level,byte
+Giant Bomb #8,Structure Level,byte
+Seeking Air Mine #1,Structure Level,byte
+Seeking Air Mine #2,Structure Level,byte
+Seeking Air Mine #3,Structure Level,byte
+Seeking Air Mine #4,Structure Level,byte
+Seeking Air Mine #5,Structure Level,byte
+Seeking Air Mine #6,Structure Level,byte
+Seeking Air Mine #7,Structure Level,byte
+Seeking Air Mine #8,Structure Level,byte
+Seeking Air Mine #9,Structure Level,byte
+Skeleton Trap #1,Structure Level,byte
+Skeleton Trap #2,Structure Level,byte
+Skeleton Trap #3,Structure Level,byte
+Skeleton Trap #4,Structure Level,byte
+Tornado Trap,Structure Level,byte
+Giga Bomb,Structure Level,byte
+Elixir Storage #1,Structure Level,byte
+Elixir Storage #2,Structure Level,byte
+Elixir Storage #3,Structure Level,byte
+Elixir Storage #4,Structure Level,byte
+Gold Storage #1,Structure Level,byte
+Gold Storage #2,Structure Level,byte
+Gold Storage #3,Structure Level,byte
+Gold Storage #4,Structure Level,byte
+Dark Elixir Storage,Structure Level,byte
+Elixir Collector #1,Structure Level,byte
+Elixir Collector #2,Structure Level,byte
+Elixir Collector #3,Structure Level,byte
+Elixir Collector #4,Structure Level,byte
+Elixir Collector #5,Structure Level,byte
+Elixir Collector #6,Structure Level,byte
+Elixir Collector #7,Structure Level,byte
+Gold Mine #1,Structure Level,byte
+Gold Mine #2,Structure Level,byte
+Gold Mine #3,Structure Level,byte
+Gold Mine #4,Structure Level,byte
+Gold Mine #5,Structure Level,byte
+Gold Mine #6,Structure Level,byte
+Gold Mine #7,Structure Level,byte
+Dark Elixir Drill #1,Structure Level,byte
+Dark Elixir Drill #2,Structure Level,byte
+Dark Elixir Drill #3,Structure Level,byte
+Helper Hut,Structure Level,byte
+Army Camp #1,Structure Level,byte
+Army Camp #2,Structure Level,byte
+Army Camp #3,Structure Level,byte
+Army Camp #4,Structure Level,byte
+Barracks,Structure Level,byte
+Clan Castle,Structure Level,byte
+Laboratory,Structure Level,byte
+Hero Hall,Structure Level,byte
+Dark Barracks,Structure Level,byte
+Spell Factory,Structure Level,byte
+Dark Spell Factory,Structure Level,byte
+Blacksmith,Structure Level,byte
+Workshop,Structure Level,byte
+Pet House,Structure Level,byte
+Barbarian King,Hero Level,byte
+Archer Queen,Hero Level,byte
+Minion Prince,Hero Level,byte
+Grand Warden,Hero Level,byte
+Royal Champion,Hero Level,byte
+Dragon Duke,Hero Level,byte
+Barbarian,Troop Level,byte
+Archer,Troop Level,byte
+Giant,Troop Level,byte
+Goblin,Troop Level,byte
+Wall Breaker,Troop Level,byte
+Balloon,Troop Level,byte
+Wizard,Troop Level,byte
+Healer,Troop Level,byte
+Dragon,Troop Level,byte
+P.E.K.K.A.,Troop Level,byte
+Baby Dragon,Troop Level,byte
+Miner,Troop Level,byte
+Electro Dragon,Troop Level,byte
+Yeti,Troop Level,byte
+Dragon Rider,Troop Level,byte
+Electro Titan,Troop Level,byte
+Root Rider,Troop Level,byte
+Thrower,Troop Level,byte
+Meteor Golem,Troop Level,byte
+Minion,Troop Level,byte
+Hog Rider,Troop Level,byte
+Valkyrie,Troop Level,byte
+Golem,Troop Level,byte
+Witch,Troop Level,byte
+Lava Hound,Troop Level,byte
+Bowler,Troop Level,byte
+Ice Golem,Troop Level,byte
+Headhunter,Troop Level,byte
+Apprentice Warden,Troop Level,byte
+Druid,Troop Level,byte
+Furnace,Troop Level,byte
+Ruin Witch,Troop Level,byte
+Lightning Spell,Spell Level,byte
+Healing Spell,Spell Level,byte
+Rage Spell,Spell Level,byte
+Jump Spell,Spell Level,byte
+Freeze Spell,Spell Level,byte
+Clone Spell,Spell Level,byte
+Invisibility Spell,Spell Level,byte
+Recall Spell,Spell Level,byte
+Revive Spell,Spell Level,byte
+Totem Spell,Spell Level,byte
+Poison Spell,Spell Level,byte
+Earthquake Spell,Spell Level,byte
+Haste Spell,Spell Level,byte
+Skeleton Spell,Spell Level,byte
+Bat Spell,Spell Level,byte
+Overgrowth Spell,Spell Level,byte
+Ice Block Spell,Spell Level,byte
+Angry Spell,Spell Level,byte
+Wall Wrecker,Siege Level,byte
+Battle Blimp,Siege Level,byte
+Stone Slammer,Siege Level,byte
+Siege Barracks,Siege Level,byte
+Log Launcher,Siege Level,byte
+Flame Flinger,Siege Level,byte
+Battle Drill,Siege Level,byte
+Troop Launcher,Siege Level,byte
+Sky Wagon,Siege Level,byte
+L.A.S.S.I.,Pet Level,byte
+Electric Owl,Pet Level,byte
+Yak,Pet Level,byte
+Unicorn,Pet Level,byte
+Frosty,Pet Level,byte
+Diggy,Pet Level,byte
+Poison Lizard,Pet Level,byte
+Phoenix,Pet Level,byte
+Spirit Fox,Pet Level,byte
+Angry Jelly,Pet Level,byte
+Sneezy,Pet Level,byte
+Greedy Raven,Pet Level,byte
+Barbarian Puppet,Equipment Level,byte
+Rage Vial,Equipment Level,byte
+Earthquake Boots,Equipment Level,byte
+Vampstache,Equipment Level,byte
+Giant Gauntlet,Equipment Level,byte
+Spiky Ball,Equipment Level,byte
+Snake Bracelet,Equipment Level,byte
+Stick Horse,Equipment Level,byte
+Archer Puppet,Equipment Level,byte
+Invisibility Vial,Equipment Level,byte
+Giant Arrow,Equipment Level,byte
+Healer Puppet,Equipment Level,byte
+Frozen Arrow,Equipment Level,byte
+Magic Mirror,Equipment Level,byte
+Action Figure,Equipment Level,byte
+Monolith Arrow,Equipment Level,byte
+Henchmen Puppet,Equipment Level,byte
+Dark Orb,Equipment Level,byte
+Metal Pants,Equipment Level,byte
+Noble Iron,Equipment Level,byte
+Dark Crown,Equipment Level,byte
+Meteor Staff,Equipment Level,byte
+Portal Pendant,Equipment Level,byte
+Eternal Tome,Equipment Level,byte
+Life Gem,Equipment Level,byte
+Rage Gem,Equipment Level,byte
+Healing Tome,Equipment Level,byte
+Fireball,Equipment Level,byte
+Lavaloon Puppet,Equipment Level,byte
+Heroic Torch,Equipment Level,byte
+Royal Gem,Equipment Level,byte
+Seeking Shield,Equipment Level,byte
+Hog Puppet,Equipment Level,byte
+Haste Vial,Equipment Level,byte
+Rocket Spear,Equipment Level,byte
+Electro Boots,Equipment Level,byte
+Frost Flake,Equipment Level,byte
+Fire Heart,Equipment Level,byte
+Flame Blower,Equipment Level,byte
+Stun Blaster,Equipment Level,byte
+Electro Fangs,Equipment Level,byte
+Rocket Backpack,Equipment Level,byte
+Revenge Deck,Equipment Level,byte
