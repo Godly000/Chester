@@ -1,8 +1,8 @@
-Gold,1500,20000-40000
-Elixir,1500,20000-40000
-Builder Bite,1500
-Clan Castle Cake,1500
-Study Soup,1500
-Power Pancakes,1500
-Builder Gold,500,375000-625000
-Builder Elixir,500,375000-625000
+Gold,1500,chestresources.csv#4:Gold
+Elixir,1500,chestresources.csv#4:Elixir
+Builder Bite,1500,
+Clan Castle Cake,1500,
+Study Soup,1500,
+Power Pancakes,1500,
+Builder Gold,500,chestresources.csv#4:Builder Gold
+Builder Elixir,500,chestresources.csv#4:Builder Elixir
