@@ -1,5 +1,5 @@
-Research Potion,2000
-Power Potion,2000
-Resource Potion,2000
-Gold,2000,15000-30000
-Elixir,2000,15000-30000
+Research Potion,2000,
+Power Potion,2000,
+Resource Potion,2000,
+Gold,2000,chestresources.csv#3:Gold
+Elixir,2000,chestresources.csv#3:Elixir
