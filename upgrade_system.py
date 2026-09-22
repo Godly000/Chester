@@ -10,7 +10,11 @@ from player_saves import FORMAT_DETAILS, SaveField, SaveStore
 from resource_system import RESOURCE_CODES, ResourceReceipt, ResourceSystem
 
 
-BUILDER_CATEGORIES = {"Structure Level", "Hero Level"}
+STRUCTURE_CATEGORIES = {
+    "Structure Level", "Defense Level", "Wall Level", "Trap Level",
+    "Resource Level", "Army Level",
+}
+BUILDER_CATEGORIES = STRUCTURE_CATEGORIES | {"Hero Level"}
 SECOND_BUILDER_COST = 250
 THIRD_BUILDER_COST = 500
 FOURTH_BUILDER_COST = 1000
@@ -75,6 +79,28 @@ class UpgradeRejected(Exception):
 
 class WorkerUnavailable(UpgradeRejected):
     pass
+
+
+class TownHallUpgradeBlocked(UpgradeRejected):
+    def __init__(self, count: int):
+        label = "upgrade" if count == 1 else "upgrades"
+        super().__init__(
+            f"You have {count:,} {label} remaining before you can upgrade to the next "
+            "Town Hall, use the `remaining` command to see a full list."
+        )
+
+
+@dataclass(frozen=True)
+class RemainingUpgrade:
+    item: str
+    current_level: int
+    target_level: int
+    slot: Optional[str] = None
+    finish_time: Optional[int] = None
+
+    @property
+    def count(self) -> int:
+        return max(int(self.slot is not None), self.target_level - self.current_level)
 
 
 @dataclass(frozen=True)
@@ -179,7 +205,7 @@ class UpgradeSystem:
         self.level_fields = [
             field
             for field in self.save_store.fields
-            if "level" in field.category.casefold()
+            if "level" in field.category.casefold() or field.name == "Town Hall"
         ]
         self.fields_by_name = {field.name: field for field in self.level_fields}
         self.fields_by_key = {field.name.casefold(): field for field in self.level_fields}
@@ -618,7 +644,7 @@ class UpgradeSystem:
         field: SaveField,
         village: Mapping[str, int],
     ) -> Tuple[str, str]:
-        if field.category in BUILDER_CATEGORIES:
+        if field.category in BUILDER_CATEGORIES or field.name == "Town Hall":
             slots = self.builder_slots
             slot_type = "Builder"
         elif field.category in RESEARCHER_CATEGORIES:
@@ -680,36 +706,53 @@ class UpgradeSystem:
         village: Mapping[str, int],
         collection: Mapping[str, int],
     ) -> List[str]:
-        blockers: List[str] = []
-        if any(serial or finish_time for _, _, serial, finish_time in self._slot_values(village)):
-            blockers.append("an upgrade is still in progress")
+        return [
+            f"{entry.item} is level {entry.current_level}/{entry.target_level}"
+            for entry in self.remaining_upgrades(village, collection)
+        ]
 
+    def remaining_upgrades(
+        self, village: Mapping[str, int], collection: Mapping[str, int]
+    ) -> List[RemainingUpgrade]:
+        projected = dict(village)
+        candidates = [
+            field for field in self.level_fields
+            if field.name != "Town Hall" and not (
+                self._base_name(field.name) == "Builder's Hut" and village[field.name] == 0
+            )
+        ]
+        for _ in range(len(candidates) + 1):
+            changed = False
+            for field in candidates:
+                try:
+                    maximum = self._availability(field, projected, collection, reject_at_maximum=False)
+                except UpgradeRejected as error:
+                    if "not unlocked" in str(error):
+                        continue
+                    raise
+                target = self._supported_maximum(field, maximum)
+                if target > projected[field.name]:
+                    projected[field.name] = target
+                    changed = True
+            if not changed:
+                break
+        pending = {}
+        for slot, _, serial, finish_time in self._slot_values(village):
+            if serial == 0 and finish_time == 0:
+                continue
+            item = self.name_by_serial.get(serial, f"Unknown upgrade in {slot}")
+            pending.setdefault(item, (slot, finish_time))
+        remaining = []
         for field in self.level_fields:
-            if field.name == "Town Hall":
-                continue
-            if (
-                self._base_name(field.name) == "Builder's Hut"
-                and village[field.name] == 0
-            ):
-                continue
-            try:
-                maximum = self._availability(
-                    field,
-                    village,
-                    collection,
-                    reject_at_maximum=False,
-                )
-            except UpgradeRejected as error:
-                if "not unlocked" in str(error):
-                    continue
-                raise
-            effective_maximum = self._supported_maximum(field, maximum)
-            current_level = village[field.name]
-            if current_level < effective_maximum:
-                blockers.append(
-                    f"{field.name} is level {current_level}/{effective_maximum}"
-                )
-        return blockers
+            current = village[field.name]
+            target = projected[field.name]
+            active = pending.pop(field.name, None)
+            if target > current or active is not None:
+                slot, finish = active if active else (None, None)
+                remaining.append(RemainingUpgrade(field.name, current, max(target, current + int(active is not None)), slot, finish))
+        for name, (slot, finish) in pending.items():
+            remaining.append(RemainingUpgrade(name, 0, 1, slot, finish))
+        return remaining
 
     def _completion_side_effects(
         self,
@@ -735,13 +778,15 @@ class UpgradeSystem:
             if name in village:
                 village[name] = 0
 
-    def _check_instance_order(self, field: SaveField, village: Mapping[str, int]) -> None:
+    def _check_instance_order(self, field: SaveField, village: Mapping[str, int], batch_started=()) -> None:
         match = INSTANCE_PATTERN.match(field.name)
-        if field.category != "Structure Level" or match is None:
+        if field.category not in STRUCTURE_CATEGORIES or match is None:
             return
         base, number = match.group(1), int(match.group(2))
         alternatives = []
         for candidate in self.level_fields:
+            if candidate.name in batch_started:
+                continue
             other = INSTANCE_PATTERN.match(candidate.name)
             if candidate.category != field.category or other is None:
                 continue
@@ -823,7 +868,7 @@ class UpgradeSystem:
 
     def _start_values(
         self, village, collection, item, now, currency, expected_level,
-        expected_price, refresh_report,
+        expected_price, refresh_report, batch_started=(),
     ):
         field = self.resolve_item(item)
         current_level = village[field.name]
@@ -838,20 +883,14 @@ class UpgradeSystem:
                 f"{field.name} is already upgrading in {pending[serial]}"
             )
 
-        self._check_instance_order(field, village)
+        self._check_instance_order(field, village, batch_started)
         maximum = self._availability(field, village, collection)
         target_level = current_level + 1
 
         if field.name == "Town Hall" and current_level > 0:
-            blockers = self._town_hall_blockers(village, collection)
-            if blockers:
-                shown = "; ".join(blockers[:5])
-                remaining = len(blockers) - min(len(blockers), 5)
-                suffix = f"; and {remaining} more" if remaining else ""
-                raise UpgradeRejected(
-                    "Town Hall cannot be upgraded until every other possible "
-                    f"upgrade is complete: {shown}{suffix}"
-                )
+            remaining = self.remaining_upgrades(village, collection)
+            if remaining:
+                raise TownHallUpgradeBlocked(sum(entry.count for entry in remaining))
 
         if target_level > maximum:
             raise UpgradeRejected(
