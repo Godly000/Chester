@@ -93,7 +93,7 @@ class ResourceSystem:
         known_names = {name for name, _ in rows}
         self.buildings = [
             field.name for field in self.save_store.fields
-            if field.source == "village" and field.category == "Structure Level"
+            if field.source == "village"
             and self.base_name(field.name) in known_names
         ]
 
