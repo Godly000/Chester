@@ -270,6 +270,7 @@ class UpgradeSystem:
 
     def _load_normal_prices(self) -> Dict[Tuple[str, int], UpgradePrice]:
         rows = self._read_csv_rows("upgrades.csv")
+        self.upgrade_images = {}
         rows_by_name = {row["Name"]: row for row in rows}
         if len(rows_by_name) != len(rows):
             raise ValueError("upgrades.csv contains duplicate names")
@@ -292,6 +293,7 @@ class UpgradeSystem:
                     raise ValueError(
                         f"Duplicate upgrade price for {key[0]} level {target_level}"
                     )
+                self.upgrade_images[key] = (row.get("Image") or "").strip()
                 prices[key] = self._normal_price(row)
                 continue
 
@@ -306,9 +308,11 @@ class UpgradeSystem:
             key = base_name, target_level
             if key in prices:
                 raise ValueError(f"Duplicate upgrade price for {base_name} level {target_level}")
+            self.upgrade_images[key] = (row.get("Image") or "").strip()
             prices[key] = self._normal_price(row)
 
         for target_level, row_name in TOWN_HALL_COST_ROWS.items():
+            self.upgrade_images[("Town Hall", target_level)] = (rows_by_name[row_name].get("Image") or "").strip()
             prices[("Town Hall", target_level)] = self._normal_price(rows_by_name[row_name])
         for weapon_name in TOWN_HALL_WEAPONS.values():
             prices.pop((weapon_name, 1), None)

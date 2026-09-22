@@ -61,6 +61,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -1260,12 +1261,11 @@ class BuildingPaymentView(discord.ui.View):
                     return
                 self.used = True
                 self.stop()
-                lines = []
-                for outcome in outcomes:
-                    status = "Complete" if outcome.instant else f"{outcome.slot.removesuffix(' Upgrade')}; finishes <t:{outcome.finish_time}:R>"
-                    lines.append(f"**{outcome.item}:** Level {outcome.previous_level} to {outcome.target_level} — {status}")
-                embed = discord.Embed(title="Building upgrades", description="\n".join(lines), color=discord.Color.green())
-                await interaction.response.edit_message(content=None, embed=embed, view=None)
+                entries = [
+                    (_build_upgrade_embed(outcome, RefreshReport([], [], [])), outcome.item, outcome.target_level)
+                    for outcome in outcomes
+                ]
+                await _publish_upgrade_embeds(interaction, entries, component=True)
             button.callback = pay
             self.add_item(button)
         cancel = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
@@ -1346,7 +1346,7 @@ async def _open_building_upgrades(interaction, category, group):
         total = sum(village[field.name] == level for field in fields)
         lines.append(f"**Level {level}:** {total} buildings; up to {maximum} can be upgraded now")
     embed = discord.Embed(title=f"Upgrade {group}", description="\n".join(lines) + "\n\nChoose the current level. Level 0 buildings have not been built.", color=discord.Color.blue())
-    await interaction.response.send_message(embed=embed, view=BuildingLevelView(interaction.user.id, category, group, levels), ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=BuildingLevelView(interaction.user.id, category, group, levels), ephemeral=False)
 
 def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     if not costs:
@@ -1354,6 +1354,46 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     return "\n".join(
         f"{resource}: **{amount:,}**" for resource, amount in costs.items()
     )
+
+
+async def _check_upgrade_image(url):
+    if not url.startswith(("https://", "http://")):
+        return False
+    try:
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, allow_redirects=True) as response:
+                if response.status != 200 or not response.headers.get("Content-Type", "").lower().startswith("image/"):
+                    return False
+                return bool(await response.content.read(32))
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
+        return False
+
+
+async def _publish_upgrade_embeds(interaction, entries, component=False):
+    await interaction.response.defer(ephemeral=False, thinking=not component)
+    urls = {}
+    for embed, item, target_level in entries:
+        base = upgrade_system._base_name(item)
+        url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
+        if url:
+            urls[url] = None
+    if urls:
+        results = await asyncio.gather(*(_check_upgrade_image(url) for url in urls))
+        urls.update(zip(urls, results))
+    embeds = []
+    for embed, item, target_level in entries:
+        base = upgrade_system._base_name(item)
+        url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
+        if url:
+            if urls[url]:
+                embed.set_image(url=url)
+            else:
+                embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
+        embeds.append(embed)
+    await interaction.edit_original_response(content=None, embed=embeds[0], view=None)
+    for embed in embeds[1:]:
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
 
 def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> discord.Embed:
@@ -1457,8 +1497,8 @@ class UpgradeCurrencyView(discord.ui.View):
             active=refreshed.active,
             warnings=list(dict.fromkeys(self.choice.refreshed.warnings + refreshed.warnings)),
         )
-        await interaction.response.edit_message(
-            content=None, embed=_build_upgrade_embed(outcome, combined), view=None
+        await _publish_upgrade_embeds(
+            interaction, [(_build_upgrade_embed(outcome, combined), outcome.item, outcome.target_level)], component=True
         )
 
     @discord.ui.button(label="Use Gold", style=discord.ButtonStyle.primary)
@@ -1600,10 +1640,12 @@ class WallPaymentView(discord.ui.View):
             return
         self.used = True
         self.stop()
-        await interaction.response.edit_message(
-            content=f"Upgraded {self.quote['quantity']:,} walls from level {self.quote['level']} to {self.quote['level'] + 1} for {cost:,} {currency}.",
-            embed=None, view=None,
-        )
+        level = self.quote["level"]
+        names = self.quote["names"]
+        label = names[0] if len(names) == 1 else f"{len(names):,} Walls"
+        outcome = UpgradeOutcome(label, level, level + 1, True, None, None, {currency: cost})
+        embed = _build_upgrade_embed(outcome, RefreshReport([], [], []))
+        await _publish_upgrade_embeds(interaction, [(embed, names[0], level + 1)], component=True)
 
     async def cancel(self, interaction):
         if not await self.interaction_check(interaction):
@@ -1679,7 +1721,7 @@ async def _open_wall_upgrades(interaction):
         return
     description = "\n".join(f"**Level {level}:** {count:,} walls" for level, count in sorted(counts.items()))
     embed = discord.Embed(title="Upgrade walls", description=description + "\n\nCounts show how many can be upgraded now. Choose the current wall level. Level 0 walls have not been built.", color=discord.Color.blue())
-    await interaction.response.send_message(embed=embed, view=WallLevelView(interaction.user.id, counts), ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=WallLevelView(interaction.user.id, counts), ephemeral=False)
 
 
 @bot.tree.command(name="upgrade", description="Upgrade an unlocked village item.")
@@ -1723,7 +1765,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
             ),
             color=discord.Color.blue(),
         )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
         view.message = await interaction.original_response()
         return
     except (WorkerUnavailable, TownHallUpgradeBlocked) as error:
@@ -1741,7 +1783,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
         )
         return
     embed = _build_upgrade_embed(outcome, refreshed)
-    await interaction.response.send_message(embed=embed)
+    await _publish_upgrade_embeds(interaction, [(embed, outcome.item, outcome.target_level)])
 
 
 @bot.tree.command(
@@ -1790,7 +1832,14 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
     if not report.completed and not report.active and not report.warnings:
         embed.description = "No upgrades are currently in progress."
     embed.set_footer(text="Made by __godly__")
-    await interaction.response.send_message(embed=embed)
+    if report.completed:
+        entries = [(embed, report.completed[0].item, report.completed[0].new_level)]
+        for completed in report.completed[1:]:
+            result = discord.Embed(title="Upgrade complete", description=f"**{completed.item}**\nLevel {completed.new_level - 1} → {completed.new_level}", color=discord.Color.green())
+            entries.append((result, completed.item, completed.new_level))
+        await _publish_upgrade_embeds(interaction, entries)
+    else:
+        await interaction.response.send_message(embed=embed)
 
 
 def _remaining_display_rows(entries):
@@ -1943,9 +1992,17 @@ def _magic_result_embed(result):
 
 
 async def magic_item_autocomplete(interaction: discord.Interaction, current: str):
+    if save_migration_active:
+        return []
+    try:
+        village, _ = save_store.player_values(interaction.user.id)
+    except Exception:
+        log.exception("Could not load magic item suggestions")
+        return []
     return [
         app_commands.Choice(name=name, value=name)
-        for name in magic_system.items if current.casefold() in name.casefold()
+        for name in magic_system.items
+        if village.get(name, 0) > 0 and current.casefold() in name.casefold()
     ][:25]
 
 
@@ -2057,7 +2114,10 @@ async def sell_slash(interaction: discord.Interaction, item: Optional[str] = Non
             lines = [
                 f"**{definition.name}:** {village.get(definition.name, 0):,} owned | {definition.sell:,} Gems each | {village.get(definition.name, 0) * definition.sell:,} Gems total"
                 for definition in magic_system.items.values()
+                if village.get(definition.name, 0) > 0
             ]
+            if not lines:
+                lines = ["You don't own any magic items to sell."]
             chunks = [lines[index:index + 15] for index in range(0, len(lines), 15)] or [[]]
             for number, chunk in enumerate(chunks):
                 embed = discord.Embed(title="Magic item sell values", description=f"**Current Gems:** {village.get('Gems', 0):,}\n\n" + "\n".join(chunk), color=discord.Color.blue())
@@ -2413,8 +2473,9 @@ async def profile_category_autocomplete(interaction: discord.Interaction, curren
     ][:25]
 
 
-def _profile_lines(values: List[Tuple[str, int]]) -> List[str]:
-    visible = [(name, value) for name, value in values if value > 0]
+def _profile_lines(values: List[Tuple[str, int]], capacities=None, show_empty_capacity=False) -> List[str]:
+    capacities = capacities or {}
+    visible = [(name, value) for name, value in values if value > 0 or (show_empty_capacity and capacities.get(name, 0) > 0)]
     walls = sorted(
         (int(match.group(1)), value)
         for name, value in visible
@@ -2439,15 +2500,18 @@ def _profile_lines(values: List[Tuple[str, int]]) -> List[str]:
                 lines.extend(wall_lines)
                 walls_added = True
         else:
-            lines.append(f"**{name}:** {value:,}")
+            if name in capacities:
+                lines.append(f"**{name}:** {value:,} / {capacities[name]:,}")
+            else:
+                lines.append(f"**{name}:** {value:,}")
     return lines
 
 
-def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800) -> List[str]:
+def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, capacities=None, show_empty_capacity=False) -> List[str]:
     pages: List[str] = []
     lines: List[str] = []
     length = 0
-    for line in _profile_lines(values):
+    for line in _profile_lines(values, capacities, show_empty_capacity):
         added = len(line) + (1 if lines else 0)
         if lines and length + added > maximum_length:
             pages.append("\n".join(lines))
@@ -2518,7 +2582,15 @@ async def profile_slash(
         return
 
     important_text = "\n".join(f"**{name}:** {value:,}" for name, value in important_values)
-    pages = _profile_pages(values)
+    treasury_capacities = {}
+    if resolved_category.casefold() in {"currency", "treasury"}:
+        village, _ = save_store.player_values(target.id)
+        _, capacities = resource_system.capacities(village)
+        treasury_capacities = {TREASURY_FIELDS[resource]: capacity for resource, capacity in capacities.items()}
+    pages = _profile_pages(
+        values, capacities=treasury_capacities,
+        show_empty_capacity=resolved_category.casefold() == "treasury",
+    )
     if not pages:
         kwargs = {"ephemeral": True}
         if important_text:
