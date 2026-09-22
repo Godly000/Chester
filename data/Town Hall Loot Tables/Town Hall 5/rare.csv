@@ -1,10 +1,10 @@
-Research Potion,1304
-Power Potion,1304
-Resource Potion,1304
-Gold,1304,80000-160000
-Elixir,1304,80000-160000
-Builder Potion,870
-Builder Gold,652,750000-1250000
-Builder Elixir,652,750000-1250000
-Builder Star Jar,652
-Clock Tower Potion,652
+Research Potion,1304,
+Power Potion,1304,
+Resource Potion,1304,
+Gold,1304,chestresources.csv#5:Gold
+Elixir,1304,chestresources.csv#5:Elixir
+Builder Potion,870,
+Builder Gold,652,chestresources.csv#5:Builder Gold*2
+Builder Elixir,652,chestresources.csv#5:Builder Elixir*2
+Builder Star Jar,652,
+Clock Tower Potion,652,
