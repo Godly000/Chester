@@ -59,6 +59,9 @@ class ObstacleSystem:
         if field is None or field.data_type != "integer":
             raise ValueError("Missing Last Obstacle Check integer save field")
         self.items = items
+        field = self.store.village_by_name.get("Obstacles cleared")
+        if field is None or field.category != "Statistic" or field.data_type != "short":
+            raise ValueError("Missing Obstacles cleared short statistic")
 
     def _now(self, now):
         now = int(time.time()) if now is None else int(now)
@@ -119,11 +122,17 @@ class ObstacleSystem:
         item = self.resolve(name)
         with self.store.transaction(user_id) as (village, collection):
             maximum = self.maximum(village, item)
+            if village[item.name] == 0:
+                raise ObstacleRejected(f"You can't remove any {item.name}: you have 0 of this obstacle.")
+            if maximum == 0:
+                raise ObstacleRejected(f"You can't remove any {item.name}: removing one costs {item.cost:,} {item.resource}, but you have {village[item.resource]:,}.")
             if not isinstance(amount, int) or isinstance(amount, bool) or not 1 <= amount <= maximum:
                 raise ObstacleRejected(f"You can remove between 1 and {maximum:,} {item.name} right now, based on your obstacles and {item.resource}.")
             reward = sum(int(self.rng.choice(item.reward)) for _ in range(amount))
             village[item.resource] -= item.cost * amount
             village[item.name] -= amount
+            field = self.store.village_by_name["Obstacles cleared"]
+            village["Obstacles cleared"] = self.store._bounded_add(village["Obstacles cleared"], amount, field.data_type)
             before = village["Gems"]
             field = self.store.village_by_name["Gems"]
             village["Gems"] = self.store._bounded_add(before, reward, field.data_type)
