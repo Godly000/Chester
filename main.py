@@ -70,7 +70,7 @@ from dotenv import load_dotenv
 from magic_system import MagicRejected, MagicSystem
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
-from player_saves import MigrationReport, SaveSchemaMismatch, SaveStore
+from player_saves import FORMAT_DETAILS, MigrationReport, SaveSchemaMismatch, SaveStore
 from resource_system import RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
     STRUCTURE_CATEGORIES,
@@ -93,6 +93,7 @@ log = logging.getLogger("loot_bot")
 SCRIPT_DIR = Path(__file__).parent
 ENV_PATH = SCRIPT_DIR / ".env"
 DATA_DIR = SCRIPT_DIR / "data"
+TUTORIAL_FILE = DATA_DIR / "tutorial.txt"
 RARITIES_FILE = DATA_DIR / "rarities.csv"
 IMAGES_FILE = DATA_DIR / "images.csv"
 XP_LEVELS_FILE = DATA_DIR / "xp.csv"
@@ -104,6 +105,8 @@ COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 GEM_BOX_CHANCE = 0.01
+SET_COMMAND_OWNER_ID = 459126084428890113
+NEW_PLAYER_MESSAGE = "New to Chester? Open a Chest using the /chest command to get started!"
 GEM_BOX_LOG_FILE = SCRIPT_DIR / "gembox_log.csv"
 
 # XP awarded to the player who rolled, per rarity of the item they got.
@@ -629,6 +632,48 @@ def weighted_choice(names: List[str], weights: List[float]) -> str:
     return random.choices(names, weights=weights, k=1)[0]
 
 
+def _unique_reward_options(item, village, collection):
+    def available(name):
+        return name in collection and not collection[name] and village.get(name, 0) == 0
+
+    if item.name in collection:
+        field = save_store.collection_by_name[item.name]
+        return [ResolvedLoot(item.name, item.image_url, item.name, 1, field.category)] if available(item.name) else []
+    if item.name not in COLLECTION_REWARD_CATEGORIES:
+        return None
+    path = _find_data_csv(item.extra_field or "", item.data_dir)
+    if path is None:
+        return []
+    rows = _strip_header_row(_read_weighted_csv_rows(path))
+    return [
+        ResolvedLoot(f"{item.name}: {row[0]}", row[1] if len(row) > 1 else item.image_url, row[0], 1, COLLECTION_REWARD_CATEGORIES[item.name])
+        for row in rows if row and available(row[0])
+    ]
+
+
+def _roll_unowned_loot(categories, village, collection):
+    eligible = {}
+    options = {}
+    for key, category in categories.items():
+        items = []
+        for item in category.items:
+            if item.weight <= 0:
+                continue
+            choices = _unique_reward_options(item, village, collection)
+            if choices == []:
+                continue
+            items.append(item)
+            options[id(item)] = choices
+        if items and category.weight > 0:
+            eligible[key] = Category(category.name, category.weight, items)
+    if not eligible:
+        raise LootRollRejected("No unowned or repeatable rewards are available in this chest loot table.")
+    category, item = roll_loot(eligible)
+    choices = options[id(item)]
+    resolved = random.choice(choices) if choices is not None else resolve_item_display(item)
+    return category, item, resolved
+
+
 def roll_item_from_category(category: Category) -> LootItem:
     """Perform a weighted item roll within a single, already-chosen category."""
     item_names = [item.name for item in category.items]
@@ -679,7 +724,7 @@ async def build_loot_embed(
     if xp_reward is not None:
         embed.add_field(name="XP Gained", value=f"+{xp_reward:,} XP", inline=False)
 
-    embed.set_footer(text="Made by __godly__")
+    embed.set_footer(text="Made by <@459126084428890113>")
     return embed
 
 
@@ -771,10 +816,26 @@ def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[s
     return "As an Admin to set up Chester by creating a #chester channel."
 
 
+async def _require_chest_first(interaction: discord.Interaction) -> bool:
+    if interaction.type == discord.InteractionType.autocomplete:
+        return True
+    command = interaction.command
+    if command is not None and command.name == "chest":
+        return True
+    if not save_store.player_path(interaction.user.id).is_file():
+        await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=True)
+        return False
+    return True
+
+
+bot.tree.interaction_check = _require_chest_first
+
+
 async def enforce_chester_channel(
     interaction: discord.Interaction,
     initialize_save: bool = True,
     initialize_obstacles: bool = True,
+    create_save: bool = False,
 ) -> bool:
     """
     For slash commands. Sends an ephemeral notice (private to the user,
@@ -787,6 +848,13 @@ async def enforce_chester_channel(
             await interaction.followup.send(message, ephemeral=True)
         else:
             await interaction.response.send_message(message, ephemeral=True)
+        return False
+
+    if not create_save and not save_store.player_path(interaction.user.id).is_file():
+        if interaction.response.is_done():
+            await interaction.followup.send(NEW_PLAYER_MESSAGE, ephemeral=True)
+        else:
+            await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=True)
         return False
 
     if initialize_save:
@@ -892,15 +960,14 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
     if not town_hall_loot_tables:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
     upgrade_system.refresh(user_id)
-    village, _ = save_store.player_values(user_id)
+    village, owned_collection = save_store.player_values(user_id)
     town_hall = village["Town Hall"]
     categories = town_hall_loot_tables.get(town_hall)
     if categories is None:
         raise LootRollRejected(
             f"No chest loot table is available for Town Hall level {town_hall}."
         )
-    category, item = roll_loot(categories)
-    resolved = resolve_item_display(item)
+    category, item, resolved = _roll_unowned_loot(categories, village, owned_collection)
 
     xp_reward = XP_REWARDS.get(category.name.lower(), 0)
     old_xp = village["Experience"]
@@ -984,8 +1051,19 @@ async def chest_slash(interaction: discord.Interaction):
         gembox_system.rolling.discard(user_id)
 
 
+def _set_chest_footer(embed):
+    try:
+        lines = [line.strip() for line in TUTORIAL_FILE.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+        if not lines:
+            raise ValueError("No tutorial lines were found")
+        embed.set_footer(text=random.choice(lines))
+    except (OSError, UnicodeError, ValueError) as error:
+        log.warning("Could not load chest tutorial footer: %s", error)
+        embed.remove_footer()
+
+
 async def _open_chest(interaction: discord.Interaction):
-    if not await enforce_chester_channel(interaction):
+    if not await enforce_chester_channel(interaction, create_save=True):
         return
     try:
         village, _ = save_store.player_values(interaction.user.id)
@@ -997,6 +1075,7 @@ async def _open_chest(interaction: discord.Interaction):
                 VILLAGE_WELCOME_MESSAGE, ephemeral=True
             )
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
+        _set_chest_footer(embed)
         if interaction.response.is_done():
             await interaction.followup.send(embed=embed, ephemeral=False)
         else:
@@ -1007,6 +1086,7 @@ async def _open_chest(interaction: discord.Interaction):
                 description=f"🎉 {interaction.user.mention} leveled up to **Level {leveled_up_to}**!",
                 color=discord.Color.gold(),
             )
+            _set_chest_footer(level_up_embed)
             await interaction.followup.send(embed=level_up_embed)
     except LootRollRejected as e:
         if interaction.response.is_done():
@@ -1037,6 +1117,8 @@ async def chest_slash_error(interaction: discord.Interaction, error: app_command
 
 
 async def rarity_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     """Suggest rarity names currently loaded from rarities.csv."""
     current_lower = current.lower()
     rarity_names = sorted(
@@ -1223,6 +1305,8 @@ def _group_can_upgrade(village, collection, category, group):
 
 
 async def upgrade_category_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     try:
@@ -1240,6 +1324,8 @@ async def upgrade_category_autocomplete(interaction: discord.Interaction, curren
 
 
 async def upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     category = getattr(interaction.namespace, "category", None)
@@ -1290,10 +1376,7 @@ class BuildingPaymentView(discord.ui.View):
                     return
                 self.used = True
                 self.stop()
-                entries = [
-                    (_build_upgrade_embed(outcome, RefreshReport([], [], [])), outcome.item, outcome.target_level)
-                    for outcome in outcomes
-                ]
+                entries = _build_batch_upgrade_entries(outcomes)
                 await _publish_upgrade_embeds(interaction, entries, component=True)
             button.callback = pay
             self.add_item(button)
@@ -1363,12 +1446,34 @@ class BuildingLevelView(discord.ui.View):
         return True
 
 
+def _unavailable_upgrade_reason(village, collection, category, group, rings_only=False):
+    fields = _upgrade_groups(category).get(group, [])
+    reasons = []
+    for level in sorted({village[field.name] for field in fields}):
+        try:
+            if group == "Walls":
+                quote = _wall_quote(village, collection, level, 1)
+                costs = quote["costs"]
+                if rings_only:
+                    costs = {"Wall Rings": costs["Wall Rings"]}
+                missing = [f"need {cost:,} {resource}, have {village.get(resource, 0):,}" for resource, cost in costs.items() if village.get(resource, 0) < cost]
+                if missing:
+                    reasons.append(f"Level {level}: " + "; or ".join(missing) + ".")
+            else:
+                _building_payment_options(village, collection, category, group, level, 1)
+        except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
+            reasons.append(f"Level {level}: {error}")
+    reason = "\n".join(dict.fromkeys(reasons)) or "There are no eligible items of this type."
+    action = "use any Wall Rings" if rings_only else f"upgrade any {group}"
+    return f"You can't {action}.\n{reason}"[:1900]
+
+
 async def _open_building_upgrades(interaction, category, group):
     upgrade_system.refresh(interaction.user.id)
     village, collection = save_store.player_values(interaction.user.id)
     levels = _available_group_levels(village, collection, category, group)
     if not levels:
-        raise UpgradeRejected("No buildings of this type can currently be upgraded with your resources and free Builders.")
+        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
     lines = []
     fields = _upgrade_groups(category)[group]
     for level, maximum in levels.items():
@@ -1397,6 +1502,27 @@ async def _check_upgrade_image(url):
                 return bool(await response.content.read(32))
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
         return False
+
+
+def _build_batch_upgrade_entries(outcomes):
+    entries = [
+        (_build_upgrade_embed(outcome, RefreshReport([], [], [])), outcome.item, outcome.target_level)
+        for outcome in outcomes
+    ]
+    timed = [outcome for outcome in outcomes if not outcome.instant and outcome.slot and outcome.finish_time]
+    if len(timed) > 1:
+        summary = entries[0][0]
+        lines = []
+        for outcome in timed:
+            worker = outcome.slot.removesuffix(" Upgrade")
+            line = f"**{worker}:** {outcome.item} — finishes <t:{outcome.finish_time}:R>"
+            if lines and len("\n".join(lines + [line])) > 1024:
+                summary.add_field(name="All assigned upgraders", value="\n".join(lines), inline=False)
+                lines = []
+            lines.append(line)
+        if lines:
+            summary.add_field(name="All assigned upgraders", value="\n".join(lines), inline=False)
+    return entries
 
 
 async def _publish_upgrade_embeds(interaction, entries, component=False):
@@ -1460,7 +1586,7 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
             value="\n".join(refreshed.warnings),
             inline=False,
         )
-    embed.set_footer(text="Made by __godly__")
+    embed.set_footer(text="Made by <@459126084428890113>")
     return embed
 
 
@@ -1739,13 +1865,16 @@ class WallLevelView(discord.ui.View):
         return True
 
 
-async def _open_wall_upgrades(interaction):
+async def _open_wall_upgrades(interaction, rings_only=False):
     upgrade_system.refresh(interaction.user.id)
     village, collection = save_store.player_values(interaction.user.id)
     wall = next((field for field in upgrade_system.level_fields if re.fullmatch(r"Wall #\d+", field.name)), None)
     counts = _available_group_levels(village, collection, wall.category, "Walls") if wall else {}
+    if rings_only:
+        counts = {level: count for level, count in counts.items() if village.get("Wall Rings", 0) >= _wall_quote(village, collection, level, 1)["costs"]["Wall Rings"]}
     if not counts:
-        await interaction.response.send_message("No walls are available.", ephemeral=True)
+        reason = _unavailable_upgrade_reason(village, collection, wall.category, "Walls", rings_only) if wall else "You can't upgrade any Walls: there are no Wall items configured."
+        await interaction.response.send_message(reason, ephemeral=True)
         return
     description = "\n".join(f"**Level {level}:** {count:,} walls" for level, count in sorted(counts.items()))
     embed = discord.Embed(title="Upgrade walls", description=description + "\n\nCounts show how many can be upgraded now. Choose the current wall level. Level 0 walls have not been built.", color=discord.Color.blue())
@@ -1801,7 +1930,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
         return
     except UpgradeRejected as error:
         await interaction.response.send_message(
-            f"⚠️ Upgrade rejected: {error}", ephemeral=True
+            str(error) if str(error).startswith("You can't") else f"You can't upgrade any {item}: {error}", ephemeral=True
         )
         return
     except Exception as error:
@@ -1859,7 +1988,7 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
         )
     if not report.completed and not report.active and not report.warnings:
         embed.description = "No upgrades are currently in progress."
-    embed.set_footer(text="Made by __godly__")
+    embed.set_footer(text="Made by <@459126084428890113>")
     if report.completed:
         entries = [(embed, report.completed[0].item, report.completed[0].new_level)]
         for completed in report.completed[1:]:
@@ -2020,6 +2149,8 @@ def _magic_result_embed(result):
 
 
 async def magic_item_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     try:
@@ -2073,7 +2204,9 @@ class MagicItemView(discord.ui.View):
                 raise MagicRejected("Invalid selection. Run /use again")
             result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item)
         except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-            await interaction.response.edit_message(content=str(error), embed=None, view=None)
+            await interaction.response.send_message(f"You can't use any {self.item.name}: {error}", ephemeral=True)
+            if self.message is not None:
+                await self.message.edit(view=None)
             return
         except Exception as error:
             log.exception("Magic item selection failed: %s", error)
@@ -2108,7 +2241,9 @@ async def use_slash(interaction: discord.Interaction, item: str):
         return
     try:
         if magic_system.resolve(item).name == "Wall Rings":
-            await _open_wall_upgrades(interaction)
+            village, _ = save_store.player_values(interaction.user.id)
+            magic_system._owned(village, magic_system.resolve(item))
+            await _open_wall_upgrades(interaction, rings_only=True)
             return
         definition, options, status = magic_system.prepare(interaction.user.id, item)
         if options:
@@ -2121,7 +2256,7 @@ async def use_slash(interaction: discord.Interaction, item: str):
             return
         result = magic_system.use(interaction.user.id, item)
     except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(f"You can't use any {item}: {error}", ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /use: %s", error)
@@ -2174,6 +2309,8 @@ def _format_resource_receipt(receipt: ResourceReceipt) -> str:
 
 
 async def cancel_upgrade_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     try:
@@ -2219,6 +2356,8 @@ async def cancel_upgrade_slash(interaction: discord.Interaction, item: str):
 
 
 async def obstacle_type_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     try:
@@ -2235,6 +2374,8 @@ async def obstacle_type_autocomplete(interaction: discord.Interaction, current: 
 
 
 async def obstacle_amount_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     if save_migration_active:
         return []
     try:
@@ -2503,7 +2644,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester Alpha v0.0.1 created by __godly__ on August 30, 2026. "
+            "Chester Alpha v0.0.1 created by <@459126084428890113> on August 30, 2026. "
             "Please submit bugs through her direct messages and use the "
             "/help command to see a list of all commands"
         ),
@@ -2566,6 +2707,8 @@ def _profile_categories():
 
 
 async def profile_category_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
     current_key = current.casefold()
     return [
         app_commands.Choice(name=category, value=category)
@@ -2657,6 +2800,9 @@ async def profile_slash(
             )
             return
 
+    if not save_store.player_path(target.id).is_file():
+        await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
+        return
     try:
         resolved_category = save_store.resolve_category("Obstacle" if category.casefold() == "obstacles" else category)
         if resolved_category.casefold() == "important":
@@ -2720,11 +2866,82 @@ async def profile_slash(
         )
         if page_number == 1:
             embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text="Made by __godly__")
+        embed.set_footer(text="Made by <@459126084428890113>")
         if page_number == 1:
             await interaction.response.send_message(embed=embed)
         else:
             await interaction.followup.send(embed=embed)
+
+
+def _set_category(category: str) -> str:
+    return save_store.resolve_category("Obstacle" if category.strip().casefold() == "obstacles" else category.strip())
+
+
+async def set_category_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
+    if interaction.user.id != SET_COMMAND_OWNER_ID or save_migration_active:
+        return []
+    return [app_commands.Choice(name=category, value=category) for category in save_store.categories if current.casefold() in category.casefold()][:25]
+
+
+async def set_name_autocomplete(interaction: discord.Interaction, current: str):
+    if not save_store.player_path(interaction.user.id).is_file():
+        return []
+    if interaction.user.id != SET_COMMAND_OWNER_ID or save_migration_active:
+        return []
+    try:
+        category = _set_category(getattr(interaction.namespace, "category", "") or "")
+    except KeyError:
+        return []
+    return [app_commands.Choice(name=field.name, value=field.name) for field in save_store.fields_by_category[category] if current.casefold() in field.name.casefold()][:25]
+
+
+def _set_player_field(user_id: str, category: str, name: str, value: str):
+    if not re.fullmatch(r"[0-9]{1,20}", user_id) or not 0 < int(user_id) < 2 ** 64:
+        raise ValueError("Enter a valid numeric Discord User ID.")
+    resolved = _set_category(category)
+    if not save_store.player_path(int(user_id)).is_file():
+        raise ValueError("That player needs to open a Chest using /chest to get started.")
+    matches = [field for field in save_store.fields_by_category[resolved] if field.name.casefold() == name.strip().casefold()]
+    if len(matches) != 1:
+        raise ValueError("Choose a unique saved item in that category.")
+    field = matches[0]
+    if not re.fullmatch(r"[0-9]{1,19}", value.strip()):
+        raise ValueError("Value must be a nonnegative whole number.")
+    number = int(value)
+    _, minimum, maximum = FORMAT_DETAILS[field.data_type]
+    if not minimum <= number <= maximum:
+        raise ValueError(f"{field.name} uses {field.data_type}; enter a value from {minimum:,} to {maximum:,}.")
+    with save_store.transaction(int(user_id)) as (village, collection):
+        values = village if field.source == "village" else collection
+        previous = values[field.name]
+        values[field.name] = number
+    return field, previous, number
+
+
+@bot.tree.command(name="set", description="Set a player save value. Bot owner only.")
+@app_commands.describe(user_id="Discord User ID of the player", category="Saved category", name="Saved item to change", value="Exact nonnegative integer value")
+@app_commands.autocomplete(category=set_category_autocomplete, name=set_name_autocomplete)
+async def set_slash(interaction: discord.Interaction, user_id: str, category: str, name: str, value: str):
+    if interaction.user.id != SET_COMMAND_OWNER_ID:
+        await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
+        return
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        field, previous, number = _set_player_field(user_id, category, name, value)
+    except SaveSchemaMismatch:
+        await interaction.response.send_message("This player's save needs migration. Run /update_saves first.", ephemeral=True)
+        return
+    except (ValueError, KeyError) as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    await interaction.response.send_message(
+        f"Updated user **{user_id}**, **{field.category} / {field.name}**: "
+        f"{_profile_value(field.name, previous)} → {_profile_value(field.name, number)}.",
+        ephemeral=True,
+    )
 
 
 def main():
