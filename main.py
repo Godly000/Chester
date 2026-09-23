@@ -68,6 +68,8 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from magic_system import MagicRejected, MagicSystem
+from gembox_system import GemBoxSystem
+from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import MigrationReport, SaveSchemaMismatch, SaveStore
 from resource_system import RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
@@ -101,6 +103,8 @@ TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
+GEM_BOX_CHANCE = 0.01
+GEM_BOX_LOG_FILE = SCRIPT_DIR / "gembox_log.csv"
 
 # XP awarded to the player who rolled, per rarity of the item they got.
 XP_REWARDS = {
@@ -202,7 +206,9 @@ upgrade_system = UpgradeSystem(
     resource_system,
 )
 magic_system = MagicSystem(PROGRESSION_DIR, save_store, upgrade_system, resource_system)
+obstacle_system = ObstacleSystem(DATA_DIR, save_store)
 save_migration_active = False
+gembox_system = GemBoxSystem(save_store, GEM_BOX_LOG_FILE, GEM_BOX_CHANCE, lambda: save_migration_active)
 
 
 # ---------------------------------------------------------------------------
@@ -768,6 +774,7 @@ def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[s
 async def enforce_chester_channel(
     interaction: discord.Interaction,
     initialize_save: bool = True,
+    initialize_obstacles: bool = True,
 ) -> bool:
     """
     For slash commands. Sends an ephemeral notice (private to the user,
@@ -785,6 +792,8 @@ async def enforce_chester_channel(
     if initialize_save:
         try:
             save_store.ensure_player(interaction.user.id)
+            if initialize_obstacles:
+                obstacle_system.initialize(interaction.user.id)
         except SaveSchemaMismatch:
             message = (
                 "⚠️ Player saves need to be updated for the new progression files. "
@@ -837,6 +846,7 @@ async def on_ready():
         resource_system.load()
         upgrade_system.load()
         magic_system.load()
+        obstacle_system.load()
         xp_levels = load_xp_levels()
         log.info(
             "Loaded %d save fields across %d profile categories.",
@@ -874,10 +884,10 @@ async def on_ready():
     log.info("Logged in as %s (id: %s)", bot.user, bot.user.id if bot.user else "?")
 
 
-async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
+async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str]:
     """
     Perform a real /chest roll: pick loot, award XP for it, and return
-    (embed, new_level_if_leveled_up_else_None).
+    (embed, new_level_if_leveled_up_else_None, rarity).
     """
     if not town_hall_loot_tables:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
@@ -951,12 +961,30 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int]]:
             description += f" Automatically sold {sold:,} excess for {gems:,} Gems."
         embed.add_field(name="Magic item inventory", value=description, inline=False)
     leveled_up_to = new_level if new_level > old_level else None
-    return embed, leveled_up_to
+    return embed, leveled_up_to, category.name
 
 
 @bot.tree.command(name="chest", description="Open a chest and get a random item!")
 @app_commands.checks.cooldown(1, 2.0)  # 1 use per 2 seconds, per user
 async def chest_slash(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    if user_id in gembox_system.active:
+        view = gembox_system.active[user_id]
+        await interaction.response.send_message(
+            f"Answer your active Gem Box first. It expires <t:{view.expires_at}:R>.", ephemeral=True,
+        )
+        return
+    if user_id in gembox_system.rolling:
+        await interaction.response.send_message("Your previous chest is still opening.", ephemeral=True)
+        return
+    gembox_system.rolling.add(user_id)
+    try:
+        await _open_chest(interaction)
+    finally:
+        gembox_system.rolling.discard(user_id)
+
+
+async def _open_chest(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -968,11 +996,12 @@ async def chest_slash(interaction: discord.Interaction):
             await interaction.response.send_message(
                 VILLAGE_WELCOME_MESSAGE, ephemeral=True
             )
-        embed, leveled_up_to = await _do_loot_roll(interaction.user.id)
+        embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
         if interaction.response.is_done():
             await interaction.followup.send(embed=embed, ephemeral=False)
         else:
             await interaction.response.send_message(embed=embed)
+        await gembox_system.maybe_offer(interaction, rarity)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
                 description=f"🎉 {interaction.user.mention} leveled up to **Level {leveled_up_to}**!",
@@ -1415,8 +1444,7 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
         embed.add_field(
             name=outcome.slot.removesuffix(" Upgrade"),
             value=(
-                f"Finishes <t:{outcome.finish_time}:F> "
-                f"(<t:{outcome.finish_time}:R>)"
+                f"Finishes <t:{outcome.finish_time}:R>"
             ),
             inline=False,
         )
@@ -2190,6 +2218,74 @@ async def cancel_upgrade_slash(interaction: discord.Interaction, item: str):
     await interaction.response.send_message(embed=embed)
 
 
+async def obstacle_type_autocomplete(interaction: discord.Interaction, current: str):
+    if save_migration_active:
+        return []
+    try:
+        obstacle_system.initialize(interaction.user.id)
+        village, _ = save_store.player_values(interaction.user.id)
+        return [
+            app_commands.Choice(name=f"{item.name} ({obstacle_system.maximum(village, item)} removable)", value=item.name)
+            for item in obstacle_system.items.values()
+            if current.casefold() in item.name.casefold() and obstacle_system.maximum(village, item) > 0
+        ][:25]
+    except Exception:
+        log.exception("Failed to load obstacle choices")
+        return []
+
+
+async def obstacle_amount_autocomplete(interaction: discord.Interaction, current: str):
+    if save_migration_active:
+        return []
+    try:
+        obstacle_system.initialize(interaction.user.id)
+        item = obstacle_system.resolve(getattr(interaction.namespace, "obstacle", "") or "")
+        village, _ = save_store.player_values(interaction.user.id)
+        maximum = obstacle_system.maximum(village, item)
+        numbers = [number for number in range(1, maximum + 1) if str(number).startswith(str(current))]
+        if len(numbers) > 25:
+            numbers = numbers[:24] + [numbers[-1]]
+        return [app_commands.Choice(name=f"{number} (maximum)" if number == maximum else str(number), value=number) for number in numbers]
+    except (ValueError, SaveSchemaMismatch):
+        return []
+
+
+@bot.tree.command(name="check_obstacles", description="Check your village for newly spawned obstacles.")
+async def check_obstacles_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction, initialize_obstacles=False):
+        return
+    try:
+        added, overflow, total = obstacle_system.check(interaction.user.id)
+    except ObstacleRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    lines = [f"**{name}:** +{amount}" for name, amount in added.items()]
+    if not lines:
+        lines = ["No additional obstacles appeared."]
+    if overflow:
+        lines.append(f"{overflow:,} spawns exceeded the obstacle save limits.")
+    lines.append(f"Total obstacles: **{total:,}**")
+    await interaction.response.send_message(embed=discord.Embed(title="Obstacles", description="\n".join(lines), color=discord.Color.green()))
+
+
+@bot.tree.command(name="remove_obstacle", description="Remove obstacles using resources and receive Gems.")
+@app_commands.describe(obstacle="The obstacle type to remove", amount="Number to remove from one to your current removable maximum")
+@app_commands.autocomplete(obstacle=obstacle_type_autocomplete, amount=obstacle_amount_autocomplete)
+async def remove_obstacle_slash(interaction: discord.Interaction, obstacle: str, amount: app_commands.Range[int, 1, 127]):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        item, cost, gems = obstacle_system.remove(interaction.user.id, obstacle, amount)
+    except ObstacleRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    await interaction.response.send_message(embed=discord.Embed(
+        title="Obstacles removed",
+        description=f"Removed **{amount:,} {item.name}**.\nSpent **{cost:,} {item.resource}**.\nReceived **{gems:,} Gems**.",
+        color=discord.Color.green(),
+    ))
+
+
 @bot.tree.command(name="collect_loot", description="Collect resources generated by your Mines, Collectors, and Drills.")
 async def collect_loot_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
@@ -2285,6 +2381,7 @@ def _migrate_save_files() -> MigrationReport:
     )
     new_upgrade_system.load()
     MagicSystem(PROGRESSION_DIR, new_store, new_upgrade_system, new_resource_system).load()
+    ObstacleSystem(DATA_DIR, new_store).load()
     return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR)
 
 
@@ -2307,7 +2404,9 @@ async def update_saves_slash(interaction: discord.Interaction):
         resource_system.load()
         upgrade_system.load()
         magic_system.load()
+        obstacle_system.load()
         save_store.ensure_player(interaction.user.id)
+        obstacle_system.initialize(interaction.user.id)
         await interaction.followup.send(
             "✅ Save migration completed.\n"
             f"Players checked: **{report.total_saves:,}**\n"
@@ -2439,6 +2538,8 @@ async def help_slash(
         ("cancel_upgrade", "Cancels an active item or slot and refunds half its cost."),
         ("view_collectors", "Shows producer rates, fill progress, and capacities."),
         ("collect_loot", "Collects resources produced by Mines, Collectors, and Drills."),
+        ("check_obstacles", "Checks for newly spawned obstacles."),
+        ("remove_obstacle", "Spends resources to remove obstacles and earn Gems."),
         ("collect_treasury", "Moves treasury loot into available main storage space."),
         ("use", "Uses a magic item and prompts for a target when required."),
         ("sell", "Shows magic item counts and sell values, or sells one selected item for Gems."),
@@ -2461,7 +2562,7 @@ async def help_slash(
 
 
 def _profile_categories():
-    return [category for category in save_store.categories if category.casefold() != "important"]
+    return ["Obstacles" if category.casefold() == "obstacle" else category for category in save_store.categories if category.casefold() != "important"]
 
 
 async def profile_category_autocomplete(interaction: discord.Interaction, current: str):
@@ -2471,6 +2572,12 @@ async def profile_category_autocomplete(interaction: discord.Interaction, curren
         for category in _profile_categories()
         if current_key in category.casefold()
     ][:25]
+
+
+def _profile_value(name: str, value: int) -> str:
+    if name in {"Last Resource Check", "Last Obstacle Check"} or re.fullmatch(r"(?:Builder|Researcher) #\d+ Time", name):
+        return f"<t:{value}:R>" if value > 0 else "Not set"
+    return f"{value:,}"
 
 
 def _profile_lines(values: List[Tuple[str, int]], capacities=None, show_empty_capacity=False) -> List[str]:
@@ -2503,7 +2610,7 @@ def _profile_lines(values: List[Tuple[str, int]], capacities=None, show_empty_ca
             if name in capacities:
                 lines.append(f"**{name}:** {value:,} / {capacities[name]:,}")
             else:
-                lines.append(f"**{name}:** {value:,}")
+                lines.append(f"**{name}:** {_profile_value(name, value)}")
     return lines
 
 
@@ -2551,7 +2658,7 @@ async def profile_slash(
             return
 
     try:
-        resolved_category = save_store.resolve_category(category)
+        resolved_category = save_store.resolve_category("Obstacle" if category.casefold() == "obstacles" else category)
         if resolved_category.casefold() == "important":
             await interaction.response.send_message(
                 "Important items appear at the top of every profile section. Choose a category: "
@@ -2581,7 +2688,7 @@ async def profile_slash(
         )
         return
 
-    important_text = "\n".join(f"**{name}:** {value:,}" for name, value in important_values)
+    important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
     treasury_capacities = {}
     if resolved_category.casefold() in {"currency", "treasury"}:
         village, _ = save_store.player_values(target.id)
