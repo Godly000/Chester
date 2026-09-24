@@ -1525,12 +1525,40 @@ def _build_batch_upgrade_entries(outcomes):
     return entries
 
 
+def _upgrade_image_url(item, target_level):
+    base = upgrade_system._base_name(item)
+    field = save_store.collection_by_name.get(base)
+    if field is not None and field.category == "Hero Equipment":
+        for directory in (DATA_DIR, PROGRESSION_DIR, TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"):
+            path = _find_data_csv("equipment", directory, warn_missing=False)
+            if path is None:
+                continue
+            with path.open(newline="", encoding="utf-8-sig") as image_file:
+                rows = [row for row in csv.reader(image_file) if any(cell.strip() for cell in row)]
+            if not rows:
+                return ""
+            header = [column.strip().casefold() for column in rows[0]]
+            name_index = next((header.index(key) for key in ("name", "item") if key in header), 0)
+            image_index = next((header.index(key) for key in ("image", "image_url", "image link") if key in header), 1)
+            for row in rows:
+                if len(row) > max(name_index, image_index) and row[name_index].strip().casefold() == base.casefold():
+                    url = row[image_index].strip()
+                    match = re.search(r"\.png", url, re.IGNORECASE)
+                    return url[:match.end()] if match else url
+            return ""
+        log.warning("Epic Equipment image file equipment.csv was not found")
+        return ""
+    url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
+    match = re.search(r"\.png", url, re.IGNORECASE)
+    return url[:match.end()] if match else url
+
+
 async def _publish_upgrade_embeds(interaction, entries, component=False):
     await interaction.response.defer(ephemeral=False, thinking=not component)
     urls = {}
+    image_urls = {(item, target_level): _upgrade_image_url(item, target_level) for embed, item, target_level in entries}
     for embed, item, target_level in entries:
-        base = upgrade_system._base_name(item)
-        url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
+        url = image_urls[item, target_level]
         if url:
             urls[url] = None
     if urls:
@@ -1539,7 +1567,7 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
     embeds = []
     for embed, item, target_level in entries:
         base = upgrade_system._base_name(item)
-        url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
+        url = image_urls[item, target_level]
         if url:
             if urls[url]:
                 embed.set_image(url=url)
