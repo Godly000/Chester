@@ -52,6 +52,7 @@ with at least the "Send Messages" and "Embed Links" permissions.
 
 import asyncio
 import csv
+import io
 import logging
 import os
 import random
@@ -103,6 +104,9 @@ SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
 TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
+UPGRADE_IMAGE_TIMEOUT = 15
+UPGRADE_IMAGE_ATTEMPTS = 2
+UPGRADE_IMAGE_MAX_BYTES = 8 * 1024 * 1024
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 GEM_BOX_CHANCE = 0.01
 SET_COMMAND_OWNER_ID = 459126084428890113
@@ -1490,18 +1494,43 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     )
 
 
-async def _check_upgrade_image(url):
+async def _fetch_upgrade_image(url):
     if not url.startswith(("https://", "http://")):
-        return False
-    try:
-        timeout = aiohttp.ClientTimeout(total=5)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(url, allow_redirects=True) as response:
-                if response.status != 200 or not response.headers.get("Content-Type", "").lower().startswith("image/"):
-                    return False
-                return bool(await response.content.read(32))
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
-        return False
+        return None, None, True
+    timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        for attempt in range(UPGRADE_IMAGE_ATTEMPTS):
+            try:
+                async with session.get(url, allow_redirects=True) as response:
+                    if response.status in (404, 410):
+                        return None, None, True
+                    if response.status != 200:
+                        log.warning("Upgrade image request returned HTTP %s for %s", response.status, url)
+                        continue
+                    if not response.headers.get("Content-Type", "").lower().startswith("image/"):
+                        return None, None, True
+                    data = bytearray()
+                    async for chunk in response.content.iter_chunked(65536):
+                        data.extend(chunk)
+                        if len(data) > UPGRADE_IMAGE_MAX_BYTES:
+                            return None, None, False
+                    data = bytes(data)
+                    if not data:
+                        return None, None, True
+                    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+                        extension = "png"
+                    elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+                        extension = "webp"
+                    elif data.startswith(b"\xff\xd8\xff"):
+                        extension = "jpg"
+                    elif data.startswith((b"GIF87a", b"GIF89a")):
+                        extension = "gif"
+                    else:
+                        return None, None, False
+                    return data, extension, False
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+                log.warning("Upgrade image request failed for %s on attempt %s: %s", url, attempt + 1, type(exc).__name__)
+    return None, None, False
 
 
 def _build_batch_upgrade_entries(outcomes):
@@ -1562,21 +1591,34 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
         if url:
             urls[url] = None
     if urls:
-        results = await asyncio.gather(*(_check_upgrade_image(url) for url in urls))
+        semaphore = asyncio.Semaphore(4)
+        async def fetch(url):
+            async with semaphore:
+                return await _fetch_upgrade_image(url)
+        results = await asyncio.gather(*(fetch(url) for url in urls))
         urls.update(zip(urls, results))
-    embeds = []
-    for embed, item, target_level in entries:
+    for index, (embed, item, target_level) in enumerate(entries):
         base = upgrade_system._base_name(item)
         url = image_urls[item, target_level]
+        files = []
         if url:
-            if urls[url]:
+            data, extension, broken = urls[url]
+            if data and interaction.app_permissions.attach_files:
+                filename = f"upgrade_{index}.{extension}"
+                files.append(discord.File(io.BytesIO(data), filename=filename))
+                embed.set_image(url=f"attachment://{filename}")
+            elif not broken:
                 embed.set_image(url=url)
             else:
                 embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
-        embeds.append(embed)
-    await interaction.edit_original_response(content=None, embed=embeds[0], view=None)
-    for embed in embeds[1:]:
-        await interaction.followup.send(embed=embed, ephemeral=False)
+        try:
+            if index == 0:
+                await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=files)
+            else:
+                await interaction.followup.send(embed=embed, ephemeral=False, files=files)
+        finally:
+            for file in files:
+                file.close()
 
 
 def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> discord.Embed:
