@@ -22,6 +22,7 @@ Total Capital Gold,Statistic,integer
 Total Shiny Ore,Statistic,integer
 Total Glowy Ore,Statistic,integer
 Total Starry Ore,Statistic,integer
+Obstacles cleared,Statistic,short
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
