@@ -36,25 +36,12 @@ RESEARCHER_CATEGORIES = {
 EQUIPMENT_CATEGORY = "Equipment Level"
 TABLE_NAME_ALIASES = {"Electric Owl": "Electro Owl"}
 TOWN_HALL_WEAPONS = {
-    12: "Town Hall 12 Weapon",
-    13: "Town Hall 13 Weapon",
-    14: "Town Hall 14 Weapon",
-    15: "Town Hall 15 Weapon",
     17: "Town Hall 17 Weapon",
 }
 TOWN_HALL_COST_ROWS = {
-    12: "TH12 Giga Tesla 1",
-    13: "TH13 Giga Inferno 1",
-    14: "TH14 Giga Inferno 1",
-    15: "TH15 Giga Inferno 1",
-    16: "TH16 Giga Inferno 1",
     17: "TH17 Inferno Artillery 1",
 }
 WEAPON_COST_ALIASES = {
-    "TH12 Giga Tesla": "Town Hall 12 Weapon",
-    "TH13 Giga Inferno": "Town Hall 13 Weapon",
-    "TH14 Giga Inferno": "Town Hall 14 Weapon",
-    "TH15 Giga Inferno": "Town Hall 15 Weapon",
     "TH17 Inferno Artillery": "Town Hall 17 Weapon",
 }
 CRAFTED_DEFENSES = [
