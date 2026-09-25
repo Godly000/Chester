@@ -728,7 +728,7 @@ async def build_loot_embed(
     if xp_reward is not None:
         embed.add_field(name="XP Gained", value=f"+{xp_reward:,} XP", inline=False)
 
-    embed.set_footer(text="Made by <@459126084428890113>")
+    embed.set_footer(text="Made by __godly__")
     return embed
 
 
@@ -1656,7 +1656,7 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
             value="\n".join(refreshed.warnings),
             inline=False,
         )
-    embed.set_footer(text="Made by <@459126084428890113>")
+    embed.set_footer(text="Made by __godly__")
     return embed
 
 
@@ -2058,7 +2058,7 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
         )
     if not report.completed and not report.active and not report.warnings:
         embed.description = "No upgrades are currently in progress."
-    embed.set_footer(text="Made by <@459126084428890113>")
+    embed.set_footer(text="Made by __godly__")
     if report.completed:
         entries = [(embed, report.completed[0].item, report.completed[0].new_level)]
         for completed in report.completed[1:]:
@@ -2507,15 +2507,15 @@ async def collect_loot_slash(interaction: discord.Interaction):
         with save_store.transaction(interaction.user.id) as (village, collection):
             received = resource_system.collect(village, now)
     except ResourceRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(str(error), ephemeral=False)
         return
     except Exception as error:
         log.exception("Unexpected error in /collect_loot: %s", error)
-        await interaction.response.send_message("Your resources could not be collected.", ephemeral=True)
+        await interaction.response.send_message("Your resources could not be collected.", ephemeral=False)
         return
     embed = discord.Embed(title="Resources collected", description=_format_resource_receipt(received), color=discord.Color.green())
     embed.set_footer(text="Overflow fills the treasury at five percent efficiency")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="collect_treasury", description="Move treasury resources into available main storage space.")
@@ -2714,7 +2714,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester Alpha v0.0.1 created by <@459126084428890113> on August 30, 2026. "
+            "Chester Alpha v0.0.1 created by __godly__ on August 30, 2026. "
             "Please submit bugs through her direct messages and use the "
             "/help command to see a list of all commands"
         ),
@@ -2905,13 +2905,15 @@ async def profile_slash(
         return
 
     important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
-    treasury_capacities = {}
+    profile_capacities = {}
     if resolved_category.casefold() in {"currency", "treasury"}:
         village, _ = save_store.player_values(target.id)
-        _, capacities = resource_system.capacities(village)
-        treasury_capacities = {TREASURY_FIELDS[resource]: capacity for resource, capacity in capacities.items()}
+        main_capacities, treasury_capacities = resource_system.capacities(village)
+        profile_capacities = {TREASURY_FIELDS[resource]: capacity for resource, capacity in treasury_capacities.items()}
+        if resolved_category.casefold() == "currency":
+            profile_capacities.update(main_capacities)
     pages = _profile_pages(
-        values, capacities=treasury_capacities,
+        values, capacities=profile_capacities,
         show_empty_capacity=resolved_category.casefold() == "treasury",
     )
     if not pages:
@@ -2936,7 +2938,7 @@ async def profile_slash(
         )
         if page_number == 1:
             embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text="Made by <@459126084428890113>")
+        embed.set_footer(text="Made by __godly__")
         if page_number == 1:
             await interaction.response.send_message(embed=embed)
         else:
