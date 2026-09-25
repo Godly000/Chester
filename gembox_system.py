@@ -59,7 +59,17 @@ class GemBoxSystem:
             return None
         if self.rng.random() >= self.chance or interaction.user.id in self.active:
             return None
-        view = GemBoxView(self, interaction.user.id, self.rng.randrange(len(GEM_BOX_IMAGES)))
+        return await self.offer(interaction)
+
+    async def offer(self, interaction, answer=None, practice=False):
+        if interaction.user.id in self.active:
+            await interaction.followup.send("Finish your current Gem Box encounter first.", ephemeral=True)
+            return None
+        if answer is None:
+            answer = self.rng.randrange(len(GEM_BOX_IMAGES))
+        if answer not in range(len(GEM_BOX_IMAGES)):
+            raise ValueError("Gem Box image must be from one through four")
+        view = GemBoxView(self, interaction.user.id, answer, practice=practice)
         self.active[interaction.user.id] = view
         try:
             view.message = await interaction.followup.send(
@@ -75,11 +85,12 @@ class GemBoxSystem:
 
 
 class GemBoxView(discord.ui.View):
-    def __init__(self, system, user_id, answer):
+    def __init__(self, system, user_id, answer, practice=False):
         super().__init__(timeout=None)
         self.system = system
         self.user_id = user_id
         self.answer = answer
+        self.practice = practice
         self.deadline = time.monotonic() + GEM_BOX_TIMEOUT_SECONDS
         self.expires_at = int(time.time()) + GEM_BOX_TIMEOUT_SECONDS
         self.lock = asyncio.Lock()
@@ -99,7 +110,8 @@ class GemBoxView(discord.ui.View):
             description=(
                 "Which way is this Gem Box flipped? Choose an option below.\n"
                 "Hint: You may look up an image of a Gem Box if necessary.\n"
-                f"Answer before <t:{self.expires_at}:R> to win **25–50 Gems**."
+                + (f"Answer before <t:{self.expires_at}:R>. Practice encounter: no Gem rewards or failure logs."
+                   if self.practice else f"Answer before <t:{self.expires_at}:R> to win **25–50 Gems**.")
             ),
             color=discord.Color.gold(),
         )
@@ -108,11 +120,13 @@ class GemBoxView(discord.ui.View):
 
     def finish(self, success):
         if success:
-            gems = self.system.award(self.user_id)
-            embed = discord.Embed(title="You caught the Goblin Builder!", description=f"Correct! You received **{gems:,} Gems** from the Gem Box.", color=discord.Color.green())
+            gems = 0 if self.practice else self.system.award(self.user_id)
+            description = "Correct! Practice encounter complete. No Gems were awarded." if self.practice else f"Correct! You received **{gems:,} Gems** from the Gem Box."
+            embed = discord.Embed(title="You caught the Goblin Builder!", description=description, color=discord.Color.green())
             embed.set_image(url=PUNCHED_GOBLIN_BUILDER_IMAGE)
         else:
-            self.system.record_failure(self.user_id)
+            if not self.practice:
+                self.system.record_failure(self.user_id)
             embed = discord.Embed(title="The Goblin Builder stole the Gems!", description="You answered incorrectly or ran out of time. The Goblin Builder stole all the Gems from this Gem Box.", color=discord.Color.red())
             embed.set_image(url=GOBLIN_BUILDER_IMAGE)
         self.finished = True
@@ -134,7 +148,7 @@ class GemBoxView(discord.ui.View):
                 await interaction.response.send_message("This Gem Box has already been resolved.", ephemeral=True)
                 return
             success = time.monotonic() <= self.deadline and selected == self.answer
-            if success and self.system.migration_active():
+            if success and not self.practice and self.system.migration_active():
                 await interaction.response.send_message("Saves are being updated. Please try your answer again shortly.", ephemeral=True)
                 return
             await interaction.response.defer()
