@@ -2236,6 +2236,19 @@ def _magic_result_embed(result):
     )
 
 
+def _magic_sale_embed(result):
+    embed = _magic_result_embed(result)
+    for directory in (TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables", DATA_DIR):
+        path = _find_data_csv("images", directory, warn_missing=False)
+        if path is None:
+            continue
+        image_url = next((url for name, url in load_images(path).items() if name.casefold() == result.item.casefold()), None)
+        if image_url:
+            embed.set_image(url=image_url)
+            break
+    return embed
+
+
 async def magic_item_autocomplete(interaction: discord.Interaction, current: str):
     if not save_store.player_path(interaction.user.id).is_file():
         return []
@@ -2387,7 +2400,7 @@ async def sell_slash(interaction: discord.Interaction, item: Optional[str] = Non
         log.exception("Unexpected error in /sell: %s", error)
         await interaction.response.send_message("The magic item could not be sold.", ephemeral=True)
         return
-    await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=True)
+    await interaction.response.send_message(embed=_magic_sale_embed(result), ephemeral=True)
 
 
 def _format_resource_receipt(receipt: ResourceReceipt) -> str:
