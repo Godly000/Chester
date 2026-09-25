@@ -104,8 +104,27 @@ SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
 TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
+TOWN_HALL_PROFILE_IMAGES = {
+    1: 'https://static.wikia.nocookie.net/clashofclans/images/f/fd/Town_Hall1.png',
+    2: 'https://static.wikia.nocookie.net/clashofclans/images/7/7d/Town_Hall2.png',
+    3: 'https://static.wikia.nocookie.net/clashofclans/images/d/dd/Town_Hall3.png',
+    4: 'https://static.wikia.nocookie.net/clashofclans/images/e/e7/Town_Hall4.png',
+    5: 'https://static.wikia.nocookie.net/clashofclans/images/a/a3/Town_Hall5.png',
+    6: 'https://static.wikia.nocookie.net/clashofclans/images/5/52/Town_Hall6.png',
+    7: 'https://static.wikia.nocookie.net/clashofclans/images/7/75/Town_Hall7.png',
+    8: 'https://static.wikia.nocookie.net/clashofclans/images/f/fa/Town_Hall8.png',
+    9: 'https://static.wikia.nocookie.net/clashofclans/images/e/e0/Town_Hall9.png',
+    10: 'https://static.wikia.nocookie.net/clashofclans/images/5/5c/Town_Hall10.png',
+    11: 'https://static.wikia.nocookie.net/clashofclans/images/9/96/Town_Hall11.png',
+    12: 'https://static.wikia.nocookie.net/clashofclans/images/b/b7/Town_Hall12.png',
+    13: 'https://static.wikia.nocookie.net/clashofclans/images/7/73/Town_Hall13.png',
+    14: 'https://static.wikia.nocookie.net/clashofclans/images/b/b6/Town_Hall14.png',
+    15: 'https://static.wikia.nocookie.net/clashofclans/images/d/d4/Town_Hall15.png',
+    16: 'https://static.wikia.nocookie.net/clashofclans/images/5/53/Town_Hall16.png',
+    17: 'https://static.wikia.nocookie.net/clashofclans/images/2/24/Town_Hall17-1.png',
+    18: 'https://static.wikia.nocookie.net/clashofclans/images/7/76/Town_Hall18.png',
+}
 UPGRADE_IMAGE_TIMEOUT = 15
-UPGRADE_IMAGE_ATTEMPTS = 2
 UPGRADE_IMAGE_MAX_BYTES = 8 * 1024 * 1024
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 GEM_BOX_CHANCE = 0.01
@@ -1499,37 +1518,36 @@ async def _fetch_upgrade_image(url):
         return None, None, True
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        for attempt in range(UPGRADE_IMAGE_ATTEMPTS):
-            try:
-                async with session.get(url, allow_redirects=True) as response:
-                    if response.status in (404, 410):
-                        return None, None, True
-                    if response.status != 200:
-                        log.warning("Upgrade image request returned HTTP %s for %s", response.status, url)
-                        continue
-                    if not response.headers.get("Content-Type", "").lower().startswith("image/"):
-                        return None, None, True
-                    data = bytearray()
-                    async for chunk in response.content.iter_chunked(65536):
-                        data.extend(chunk)
-                        if len(data) > UPGRADE_IMAGE_MAX_BYTES:
-                            return None, None, False
-                    data = bytes(data)
-                    if not data:
-                        return None, None, True
-                    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-                        extension = "png"
-                    elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
-                        extension = "webp"
-                    elif data.startswith(b"\xff\xd8\xff"):
-                        extension = "jpg"
-                    elif data.startswith((b"GIF87a", b"GIF89a")):
-                        extension = "gif"
-                    else:
+        try:
+            async with session.get(url, allow_redirects=True) as response:
+                if response.status in (404, 410):
+                    return None, None, True
+                if response.status != 200:
+                    log.warning("Upgrade image request returned HTTP %s for %s", response.status, url)
+                    return None, None, False
+                if not response.headers.get("Content-Type", "").lower().startswith("image/"):
+                    return None, None, True
+                data = bytearray()
+                async for chunk in response.content.iter_chunked(65536):
+                    data.extend(chunk)
+                    if len(data) > UPGRADE_IMAGE_MAX_BYTES:
                         return None, None, False
-                    return data, extension, False
-            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
-                log.warning("Upgrade image request failed for %s on attempt %s: %s", url, attempt + 1, type(exc).__name__)
+                data = bytes(data)
+                if not data:
+                    return None, None, True
+                if data.startswith(b"\x89PNG\r\n\x1a\n"):
+                    extension = "png"
+                elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+                    extension = "webp"
+                elif data.startswith(b"\xff\xd8\xff"):
+                    extension = "jpg"
+                elif data.startswith((b"GIF87a", b"GIF89a")):
+                    extension = "gif"
+                else:
+                    return None, None, False
+                return data, extension, False
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+            log.warning("Upgrade image request failed for %s: %s", url, type(exc).__name__)
     return None, None, False
 
 
@@ -1589,8 +1607,8 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
     for embed, item, target_level in entries:
         url = image_urls[item, target_level]
         if url:
-            urls[url] = None
-    if urls:
+            urls[url] = (None, None, False)
+    if urls and interaction.app_permissions.attach_files:
         semaphore = asyncio.Semaphore(4)
         async def fetch(url):
             async with semaphore:
@@ -1607,9 +1625,9 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
                 filename = f"upgrade_{index}.{extension}"
                 files.append(discord.File(io.BytesIO(data), filename=filename))
                 embed.set_image(url=f"attachment://{filename}")
-            elif not broken:
+            elif not interaction.app_permissions.attach_files:
                 embed.set_image(url=url)
-            else:
+            elif broken:
                 embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
         try:
             if index == 0:
@@ -2335,14 +2353,17 @@ async def use_slash(interaction: discord.Interaction, item: str):
     await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=True)
 
 
-@bot.tree.command(name="sell", description="View magic item sell values or sell one magic item for Gems.")
-@app_commands.describe(item="The type to sell or leave blank to view your inventory")
+@bot.tree.command(name="sell", description="View magic item sell values or sell magic items for Gems.")
+@app_commands.describe(item="The type to sell or leave blank to view your inventory", quantity="How many to sell defaults to one")
 @app_commands.autocomplete(item=magic_item_autocomplete)
-async def sell_slash(interaction: discord.Interaction, item: Optional[str] = None):
+async def sell_slash(interaction: discord.Interaction, item: Optional[str] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
         if item is None:
+            if quantity is not None:
+                await interaction.response.send_message("Choose a magic item when specifying a quantity.", ephemeral=True)
+                return
             village, _ = save_store.player_values(interaction.user.id)
             lines = [
                 f"**{definition.name}:** {village.get(definition.name, 0):,} owned | {definition.sell:,} Gems each | {village.get(definition.name, 0) * definition.sell:,} Gems total"
@@ -2354,11 +2375,11 @@ async def sell_slash(interaction: discord.Interaction, item: Optional[str] = Non
             chunks = [lines[index:index + 15] for index in range(0, len(lines), 15)] or [[]]
             for number, chunk in enumerate(chunks):
                 embed = discord.Embed(title="Magic item sell values", description=f"**Current Gems:** {village.get('Gems', 0):,}\n\n" + "\n".join(chunk), color=discord.Color.blue())
-                embed.set_footer(text=f"Page {number + 1}/{len(chunks)} · Use /sell with an item to sell one")
+                embed.set_footer(text=f"Page {number + 1}/{len(chunks)} · Use /sell with an item and optional quantity")
                 send = interaction.response.send_message if number == 0 else interaction.followup.send
-                await send(embed=embed, ephemeral=True)
+                await send(embed=embed, ephemeral=False)
             return
-        result = magic_system.sell(interaction.user.id, item)
+        result = magic_system.sell(interaction.user.id, item, quantity if quantity is not None else 1)
     except MagicRejected as error:
         await interaction.response.send_message(str(error), ephemeral=True)
         return
@@ -2753,7 +2774,7 @@ async def help_slash(
         ("remove_obstacle", "Spends resources to remove obstacles and earn Gems."),
         ("collect_treasury", "Moves treasury loot into available main storage space."),
         ("use", "Uses a magic item and prompts for a target when required."),
-        ("sell", "Shows magic item counts and sell values, or sells one selected item for Gems."),
+        ("sell", "Shows magic item counts and sell values, or sells the selected quantity for Gems."),
     ]
     if mod_only == "Yes":
         commands.extend([
@@ -2904,6 +2925,8 @@ async def profile_slash(
         )
         return
 
+    village, _ = save_store.player_values(target.id)
+    town_hall_icon = TOWN_HALL_PROFILE_IMAGES.get(village.get("Town Hall", 0))
     important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
     profile_capacities = {}
     if resolved_category.casefold() in {"currency", "treasury"}:
@@ -2924,6 +2947,8 @@ async def profile_slash(
                 description=important_text,
                 color=discord.Color.blue(),
             )
+            if town_hall_icon:
+                kwargs["embed"].set_thumbnail(url=town_hall_icon)
         await interaction.response.send_message(
             "You haven't upgraded anything in this section yet.",
             **kwargs,
@@ -2936,8 +2961,8 @@ async def profile_slash(
             description=f"{important_text}\n\n{page}" if important_text else page,
             color=discord.Color.blue(),
         )
-        if page_number == 1:
-            embed.set_thumbnail(url=target.display_avatar.url)
+        if town_hall_icon:
+            embed.set_thumbnail(url=town_hall_icon)
         embed.set_footer(text="Made by __godly__")
         if page_number == 1:
             await interaction.response.send_message(embed=embed)
