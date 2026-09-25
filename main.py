@@ -836,7 +836,7 @@ def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[s
         return None
     if _find_chester_channel(guild) is not None:
         return "Please use Chester only in the #chester channel"
-    return "As an Admin to set up Chester by creating a #chester channel."
+    return "Ask an Admin to set up Chester by creating a #chester channel."
 
 
 async def _require_chest_first(interaction: discord.Interaction) -> bool:
