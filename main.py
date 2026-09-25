@@ -1214,6 +1214,30 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
         await interaction.response.send_message(f"⚠️ Something went wrong: {error}", ephemeral=True)
 
 
+@bot.tree.command(name="fight", description="[Moderator] Practice the Gem Box encounter without rewards or failure logs.")
+@app_commands.describe(image="Gem Box image from 1 to 4 or leave blank for a random image")
+@app_commands.default_permissions(moderate_members=True)
+@app_commands.checks.has_permissions(moderate_members=True)
+async def fight_slash(interaction: discord.Interaction, image: Optional[app_commands.Range[int, 1, 4]] = None):
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    if interaction.user.id in gembox_system.active or interaction.user.id in gembox_system.rolling:
+        await interaction.response.send_message("Finish your current chest or Gem Box encounter first.", ephemeral=True)
+        return
+    await interaction.response.defer()
+    await gembox_system.offer(interaction, answer=image - 1 if image is not None else None, practice=True)
+
+
+@fight_slash.error
+async def fight_slash_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    message = "You need Moderator permissions (Moderate Members) to use /fight."
+    if not isinstance(error, app_commands.MissingPermissions):
+        log.exception("Unexpected error in /fight: %s", error)
+        message = "The Gem Box encounter could not be started."
+    send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
+    await send(message, ephemeral=True)
+
+
 def _upgrade_group_name(field):
     if field.category in STRUCTURE_CATEGORIES:
         return "Walls" if re.fullmatch(r"Wall #\d+", field.name) else re.sub(r" #\d+$", "", field.name)
@@ -2792,6 +2816,7 @@ async def help_slash(
     if mod_only == "Yes":
         commands.extend([
             ("test", "Moderator only. Tests a rarity from a selected Town Hall loot table."),
+            ("fight", "Moderator only. Practices the Gem Box encounter with optional image 1–4, without rewards or failure logs."),
             ("reload_loot", "Moderator only. Reloads loot tables and XP thresholds from CSV."),
             ("update_saves", "Moderator only. Migrates saves after progression CSV changes."),
         ])
