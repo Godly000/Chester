@@ -14,4 +14,4 @@ Don't leave your Collectors, Mines, and Drills full! "/collect_loot" will genera
 Need resources in a pinch? Transfer some of your Treasury resources to your storages with "/collect_treasury".
 Use the "/view_collectors" command to see how well your Resource generators are doing without collecting right away.
 Type "/help" to see a list of all the commands.
-Do you enjoy playing Chester? Donnations are accepted through "/support"!
+Do you enjoy playing Chester? Donations are accepted through "/support"!
