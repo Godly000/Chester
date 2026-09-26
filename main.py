@@ -64,6 +64,8 @@ from typing import Dict, List, Optional, Tuple
 
 import aiohttp
 import discord
+
+from image_proxy import proxy_image_url
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -740,7 +742,7 @@ async def build_loot_embed(
             inline=False,
         )
     else:
-        embed.set_image(url=image_url)
+        embed.set_image(url=proxy_image_url(image_url))
 
     # xp_reward is only passed in for real /chest rolls, not /test (which is
     # an admin debugging tool, not real gameplay, so it doesn't grant XP).
@@ -1604,7 +1606,7 @@ async def _fetch_upgrade_image(url):
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         try:
-            async with session.get(url, allow_redirects=True) as response:
+            async with session.get(proxy_image_url(url), allow_redirects=True) as response:
                 if response.status in (404, 410):
                     return None, None, True
                 if response.status != 200:
@@ -1709,9 +1711,9 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
             if data and interaction.app_permissions.attach_files:
                 filename = f"upgrade_{index}.{extension}"
                 files.append(discord.File(io.BytesIO(data), filename=filename))
-                embed.set_image(url=f"attachment://{filename}")
+                embed.set_image(url=proxy_image_url(f"attachment://{filename}"))
             elif not interaction.app_permissions.attach_files:
-                embed.set_image(url=url)
+                embed.set_image(url=proxy_image_url(url))
             elif broken:
                 embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
         try:
@@ -2329,7 +2331,7 @@ def _magic_sale_embed(result):
             continue
         image_url = next((url for name, url in load_images(path).items() if name.casefold() == result.item.casefold()), None)
         if image_url:
-            embed.set_image(url=image_url)
+            embed.set_image(url=proxy_image_url(image_url))
             break
     return embed
 
@@ -2839,7 +2841,7 @@ async def about_slash(interaction: discord.Interaction):
         ),
         color=discord.Color.blue(),
     )
-    embed.set_image(url="https://media.ffycdn.net/eu/supercell/cE9WaY3WgjeuJ9ChgYkU.png?width=2400")
+    embed.set_image(url=proxy_image_url("https://media.ffycdn.net/eu/supercell/cE9WaY3WgjeuJ9ChgYkU.png?width=2400"))
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -3048,7 +3050,7 @@ async def profile_slash(
                 color=discord.Color.blue(),
             )
             if town_hall_icon:
-                kwargs["embed"].set_thumbnail(url=town_hall_icon)
+                kwargs["embed"].set_thumbnail(url=proxy_image_url(town_hall_icon))
         await interaction.response.send_message(
             "You haven't upgraded anything in this section yet.",
             **kwargs,
@@ -3062,7 +3064,7 @@ async def profile_slash(
             color=discord.Color.blue(),
         )
         if town_hall_icon:
-            embed.set_thumbnail(url=town_hall_icon)
+            embed.set_thumbnail(url=proxy_image_url(town_hall_icon))
         embed.set_footer(text="Made by __godly__")
         if page_number == 1:
             await interaction.response.send_message(embed=embed)
