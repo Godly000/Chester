@@ -2342,7 +2342,7 @@ async def sell_slash(interaction: discord.Interaction, item: Optional[str] = Non
         log.exception("Unexpected error in /sell: %s", error)
         await interaction.response.send_message("The magic item could not be sold.", ephemeral=True)
         return
-    await interaction.response.send_message(embed=_magic_sale_embed(result), ephemeral=True)
+    await interaction.response.send_message(embed=_magic_sale_embed(result), ephemeral=False)
 
 
 def _format_resource_receipt(receipt: ResourceReceipt) -> str:
