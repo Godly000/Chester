@@ -148,6 +148,7 @@ _TOKEN_ENV_KEYS = ("DISCORD_TOKEN", "TOKEN", "BOT_TOKEN", "DISCORD_BOT_TOKEN")
 
 # Only a channel literally named this responds to commands.
 CHESTER_CHANNEL_NAME = "chester"
+EXACT_CHESTER_COMMANDS = frozenset({"chest", "test", "fight"})
 VILLAGE_WELCOME_MESSAGE = (
     "Welcome, Chief! Your village has been created, have fun opening chests!"
 )
@@ -807,38 +808,26 @@ def xp_to_level(xp: int) -> int:
     return level
 
 
-# ---------------------------------------------------------------------------
-# #chester channel restriction
-# ---------------------------------------------------------------------------
-#
-# Commands only respond inside a channel named "chester". Elsewhere:
-#   - if a #chester channel exists in the server, the user gets a private,
-#     dismissable notice telling them to use it there
-#   - if no #chester channel exists at all, they get a private notice
-#     telling an admin to create one
-
-
-def _find_chester_channel(guild: Optional[discord.Guild]):
-    """Look for a channel literally named 'chester' (case-insensitive) in the guild."""
+def _find_chester_channel(guild: Optional[discord.Guild], exact: bool = False):
     if guild is None:
         return None
-    for ch in guild.channels:
-        if getattr(ch, "name", "").lower() == CHESTER_CHANNEL_NAME:
-            return ch
+    for channel in guild.channels:
+        name = getattr(channel, "name", "").casefold()
+        if name == CHESTER_CHANNEL_NAME or (not exact and CHESTER_CHANNEL_NAME in name):
+            return channel
     return None
 
 
-def _channel_gate_message(guild: Optional[discord.Guild], channel) -> Optional[str]:
-    """
-    Returns None if `channel` is the #chester channel (command allowed to
-    proceed). Otherwise returns the notice message that should be shown.
-    """
-    current_name = getattr(channel, "name", "").lower()
-    if current_name == CHESTER_CHANNEL_NAME:
+def _channel_gate_message(guild: Optional[discord.Guild], channel, command_name: str = "") -> Optional[str]:
+    exact = command_name in EXACT_CHESTER_COMMANDS
+    current_name = getattr(channel, "name", "").casefold()
+    if current_name == CHESTER_CHANNEL_NAME or (not exact and CHESTER_CHANNEL_NAME in current_name):
         return None
-    if _find_chester_channel(guild) is not None:
-        return "Please use Chester only in the #chester channel"
-    return "Ask an Admin to set up Chester by creating a #chester channel."
+    if exact:
+        if _find_chester_channel(guild, exact=True) is not None:
+            return f"Please use /{command_name} only in the #chester channel."
+        return "Ask an Admin to set up Chester by creating a #chester channel."
+    return 'Please use this command in a channel whose name contains "chester".'
 
 
 async def _require_chest_first(interaction: discord.Interaction) -> bool:
@@ -862,11 +851,6 @@ async def enforce_chester_channel(
     initialize_obstacles: bool = True,
     create_save: bool = False,
 ) -> bool:
-    """
-    For slash commands. Sends an ephemeral notice (private to the user,
-    with Discord's built-in dismiss button) and returns False if this
-    isn't the #chester channel.
-    """
     if save_migration_active:
         message = "⚠️ Player saves are being updated. Please try again shortly."
         if interaction.response.is_done():
@@ -906,7 +890,8 @@ async def enforce_chester_channel(
                 await interaction.response.send_message(message, ephemeral=True)
             return False
 
-    message = _channel_gate_message(interaction.guild, interaction.channel)
+    command_name = getattr(interaction.command, "name", "")
+    message = _channel_gate_message(interaction.guild, interaction.channel, command_name)
     if message is None:
         return True
     if interaction.response.is_done():
