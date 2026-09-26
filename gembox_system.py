@@ -7,6 +7,8 @@ import time
 
 import discord
 
+from image_proxy import proxy_image_url
+
 
 GEM_BOX_TIMEOUT_SECONDS = 60
 GEM_BOX_MIN_GEMS = 25
@@ -115,7 +117,7 @@ class GemBoxView(discord.ui.View):
             ),
             color=discord.Color.gold(),
         )
-        embed.set_image(url=GEM_BOX_IMAGES[self.answer][1])
+        embed.set_image(url=proxy_image_url(GEM_BOX_IMAGES[self.answer][1]))
         return embed
 
     def finish(self, success):
@@ -123,12 +125,12 @@ class GemBoxView(discord.ui.View):
             gems = 0 if self.practice else self.system.award(self.user_id)
             description = "Correct! Practice encounter complete. No Gems were awarded." if self.practice else f"Correct! You received **{gems:,} Gems** from the Gem Box."
             embed = discord.Embed(title="You caught the Goblin Builder!", description=description, color=discord.Color.green())
-            embed.set_image(url=PUNCHED_GOBLIN_BUILDER_IMAGE)
+            embed.set_image(url=proxy_image_url(PUNCHED_GOBLIN_BUILDER_IMAGE))
         else:
             if not self.practice:
                 self.system.record_failure(self.user_id)
             embed = discord.Embed(title="The Goblin Builder stole the Gems!", description="You answered incorrectly or ran out of time. The Goblin Builder stole all the Gems from this Gem Box.", color=discord.Color.red())
-            embed.set_image(url=GOBLIN_BUILDER_IMAGE)
+            embed.set_image(url=proxy_image_url(GOBLIN_BUILDER_IMAGE))
         self.finished = True
         if self.system.active.get(self.user_id) is self:
             self.system.active.pop(self.user_id)
