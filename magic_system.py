@@ -7,10 +7,18 @@ from typing import Dict, List, Optional, Tuple
 
 from player_saves import FORMAT_DETAILS
 from resource_system import LAST_RESOURCE_CHECK, RESOURCE_CODES, RESOURCE_TYPES
-from upgrade_system import UpgradeRejected
+from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRejected
 
 
-WORKER_TARGETS = {"Builder", "Researcher", "All Builders", "All Researchers"}
+ALL_WORKER_TARGETS = {"All Builders", "All Researchers"}
+WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Hero Level", "Troop Level", "Spell Level", "Siege Level", "Pet Level"}
+
+
+def remaining_after_magic(remaining, strength):
+    remaining = max(0, remaining)
+    if 3600 <= strength < 172800 and remaining < strength + 3600:
+        return (remaining * 3600 + strength - 1) // strength
+    return max(0, remaining - strength)
 
 
 class MagicRejected(Exception):
@@ -84,7 +92,9 @@ class MagicSystem:
         before = village["Gems"]
         village["Gems"] = self.store._bounded_add(before, amount, field.data_type)
         credited = village["Gems"] - before
-        village["Total Gems"] += credited
+        if "Total Gems" in village:
+            total_field = self.store.village_by_name["Total Gems"]
+            village["Total Gems"] = self.store._bounded_add(village["Total Gems"], credited, total_field.data_type)
         return credited
 
     def award(self, village, name: str, amount: int):
@@ -113,13 +123,33 @@ class MagicSystem:
         if village[item.name] < count:
             raise MagicRejected(f"You need {count:,} {item.name}; you have {village[item.name]:,}")
 
+    def can_target_upgrade(self, item, field):
+        if item.name == "Pet Potion" and field.category != "Pet Level":
+            return False
+        builder = field.name == "Town Hall" or field.category in BUILDER_CATEGORIES
+        researcher = field.category in RESEARCHER_CATEGORIES
+        if item.target in {"Builder", "All Builders"}:
+            return builder
+        if item.target in {"Researcher", "All Researchers"}:
+            return researcher
+        if item.target == "Upgrader":
+            return builder or researcher
+        if item.target == "Troop Level":
+            return field.category in {"Troop Level", "Siege Level"}
+        return item.target in WORKER_TARGETS and field.category == item.target
+
     def _worker_options(self, item, village, now):
-        builder = item.target in {"Builder", "All Builders"}
-        slots = self.upgrades.builder_slots if builder else self.upgrades.researcher_slots
+        if item.target in {"Builder", "All Builders"}:
+            slots = self.upgrades.builder_slots
+        elif item.target in {"Researcher", "All Researchers"}:
+            slots = self.upgrades.researcher_slots
+        else:
+            slots = list(self.upgrades.builder_slots) + list(self.upgrades.researcher_slots)
         options = []
         status = []
         seen = set()
         for slot, clock in slots:
+            builder = (slot, clock) in self.upgrades.builder_slots
             prefix = slot.removesuffix(" Upgrade")
             serial, finish = village[slot], village[clock]
             name = self.upgrades.name_by_serial.get(serial) if finish > now else None
@@ -132,7 +162,7 @@ class MagicSystem:
                 status.append(f"{prefix}: {'Idle' if unlocked else 'Locked'}")
                 continue
             status.append(f"{prefix}: {name}, level {village[name]} to {village[name] + 1}, finishes <t:{finish}:R>")
-            if item.name == "Pet Potion" and field.category != "Pet Level":
+            if not self.can_target_upgrade(item, field):
                 continue
             if serial in seen:
                 raise MagicRejected("Duplicate active upgrades need to be repaired before using magic items")
@@ -144,16 +174,16 @@ class MagicSystem:
 
     def _wall_option(self, item, village, collection, level):
         matches = []
+        pending = self.upgrades._pending_serials(village)
         for field in self.upgrades.level_fields:
             match = re.fullmatch(r"Wall #(\d+)", field.name)
-            if match and village[field.name] == level:
+            if match and village[field.name] == level and self.upgrades.serial_for(field) not in pending:
                 matches.append((int(match.group(1)), field))
         if not matches:
-            raise MagicRejected(f"No Wall is at level {level}")
+            raise MagicRejected(f"No available Wall is at level {level}")
         field = min(matches, key=lambda pair: pair[0])[1]
         if self.upgrades.serial_for(field) in self.upgrades._pending_serials(village):
             raise MagicRejected(f"{field.name} is already upgrading")
-        self.upgrades._check_instance_order(field, village)
         self.upgrades._availability(field, village, collection)
         price = self.upgrades._price_for(field, level + 1)
         cost = sum(price.fixed_costs.values()) + price.choice_cost
@@ -170,7 +200,7 @@ class MagicSystem:
         self.upgrades.refresh(user_id, now)
         village, collection = self.store.player_values(user_id)
         self._owned(village, item)
-        if item.target in {"Builder", "Researcher"}:
+        if item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
             options, status = self._worker_options(item, village, now)
         elif item.target == "Wall":
             levels = sorted({village[field.name] for field in self.upgrades.level_fields if re.fullmatch(r"Wall #\d+", field.name)})
@@ -225,7 +255,7 @@ class MagicSystem:
             self._owned(village, item)
             lines = []
             consumed = 1
-            if item.name == "Research Potion" or item.target == "Resources":
+            if item.target == "Resources":
                 if item.strength <= 0:
                     raise MagicRejected("This item has no production time skip configured")
                 previous = village[LAST_RESOURCE_CHECK] or now
@@ -253,7 +283,7 @@ class MagicSystem:
                 lines.append(f"{wall} upgraded from level {level} to {level + 1} using {consumed:,} Wall Rings.")
             elif item.target in WORKER_TARGETS:
                 options, _ = self._worker_options(item, village, now)
-                if item.target in {"Builder", "Researcher"}:
+                if item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
                     if option is None:
                         raise MagicRejected("Choose a worker first")
                     options = [entry for entry in options if entry.value == option.value and entry.token == option.token]
@@ -267,7 +297,8 @@ class MagicSystem:
                     clock = slot.removesuffix(" Upgrade") + " Time"
                     name = self.upgrades.name_by_serial[village[slot]]
                     credited, refund_lines = self._reduce_cost(item, village, slot, name)
-                    seconds = min(item.strength, max(0, village[clock] - now))
+                    remaining = max(0, village[clock] - now)
+                    seconds = remaining - remaining_after_magic(remaining, item.strength)
                     village[clock] -= seconds
                     changed = changed or seconds > 0 or credited > 0
                     lines.append(f"{entry.label}: {name}, reduced by {seconds:,} seconds.")
