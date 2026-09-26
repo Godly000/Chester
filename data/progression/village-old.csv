@@ -608,7 +608,7 @@ Army Camp #2,Army Level,byte
 Army Camp #3,Army Level,byte
 Army Camp #4,Army Level,byte
 Barracks,Army Level,byte
-Clan Castle,Army Level,byte
+Clan Castle,Resource Level,byte
 Laboratory,Army Level,byte
 Hero Hall,Army Level,byte
 Dark Barracks,Army Level,byte
