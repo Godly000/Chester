@@ -1252,6 +1252,67 @@ def _upgrade_groups(category):
     return groups
 
 
+def _upgradeinfo_items(category):
+    result = {}
+    for group, fields in _upgrade_groups(category).items():
+        for field in fields:
+            name = field.name if re.fullmatch(r"Builder's Hut #\d+", field.name) else group
+            result.setdefault(name, field)
+    return result
+
+
+async def upgradeinfo_category_autocomplete(interaction: discord.Interaction, current: str):
+    categories = dict.fromkeys(field.category for field in upgrade_system.level_fields)
+    return [app_commands.Choice(name=name, value=name) for name in categories if current.casefold() in name.casefold()][:25]
+
+
+async def upgradeinfo_item_autocomplete(interaction: discord.Interaction, current: str):
+    category = getattr(interaction.namespace, "category", "") or ""
+    return [app_commands.Choice(name=name, value=name) for name in _upgradeinfo_items(category) if current.casefold() in name.casefold()][:25]
+
+
+def _upgradeinfo_embed(category, item, level):
+    options = _upgradeinfo_items(category)
+    match = next((name for name in options if name.casefold() == item.strip().casefold()), None)
+    if match is None:
+        raise UpgradeRejected("Choose an upgradeable item from the selected category.")
+    field = options[match]
+    if level < 1:
+        raise UpgradeRejected("The target level must be at least 1.")
+    if field.category == "Equipment Level" and level > upgrade_system._equipment_cap(field):
+        raise UpgradeRejected(f"{match} has a maximum level of {upgrade_system._equipment_cap(field)}.")
+    price = upgrade_system._price_for(field, level)
+    costs = _format_upgrade_costs(price.fixed_costs) if price.fixed_costs else ""
+    if price.choice_resources:
+        alternatives = " or ".join(f"**{price.choice_cost:,} {resource}**" for resource in price.choice_resources)
+        costs = f"{costs}\n{alternatives}" if costs else alternatives
+    remaining = price.duration
+    parts = []
+    for seconds, label in ((86400, "d"), (3600, "h"), (60, "m"), (1, "s")):
+        amount, remaining = divmod(remaining, seconds)
+        if amount:
+            parts.append(f"{amount}{label}")
+    embed = discord.Embed(title=f"{match} — Level {level}", description=f"Upgrade from level {level - 1} to level {level}", color=discord.Color.blue())
+    embed.add_field(name="Cost", value=costs or "Free", inline=False)
+    embed.add_field(name="Upgrade time", value=" ".join(parts) or "Instant", inline=False)
+    embed.set_footer(text="Upgrade requirements still apply")
+    return embed, field.name, level
+
+
+@bot.tree.command(name="upgradeinfo", description="Show the costs, time, and image for a target upgrade level.")
+@app_commands.describe(category="The upgrade category", item="The item to look up", level="The resulting level after the upgrade")
+@app_commands.autocomplete(category=upgradeinfo_category_autocomplete, item=upgradeinfo_item_autocomplete)
+async def upgradeinfo_slash(interaction: discord.Interaction, category: str, item: str, level: app_commands.Range[int, 1]):
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    try:
+        entry = _upgradeinfo_embed(category, item, level)
+    except UpgradeRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    await _publish_upgrade_embeds(interaction, [entry])
+
+
 def _upgrade_snapshot(user_id):
     village, collection = save_store.player_values(user_id)
     village, collection = dict(village), dict(collection)
@@ -2812,6 +2873,7 @@ async def help_slash(
         ("collect_treasury", "Moves treasury loot into available main storage space."),
         ("use", "Uses a magic item and prompts for a target when required."),
         ("sell", "Shows magic item counts and sell values, or sells the selected quantity for Gems."),
+        ("upgradeinfo", "Shows costs, time, and the image for an item's target upgrade level."),
     ]
     if mod_only == "Yes":
         commands.extend([
