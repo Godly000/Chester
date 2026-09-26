@@ -1311,12 +1311,13 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
     if quantity < 1:
         raise UpgradeRejected("Choose at least one building.")
     fields = _upgrade_groups(category).get(group, [])
+    pending = upgrade_system._pending_serials(village)
     fields = sorted(
-        (field for field in fields if village[field.name] == level),
+        (field for field in fields if village[field.name] == level and upgrade_system.serial_for(field) not in pending),
         key=lambda field: int(re.search(r" #(\d+)$", field.name).group(1)) if re.search(r" #(\d+)$", field.name) else 0,
     )
     if quantity > len(fields):
-        raise UpgradeRejected(f"Only {len(fields):,} {group} buildings are at level {level}.")
+        raise UpgradeRejected(f"Only {len(fields):,} {group} buildings at level {level} are available and not already upgrading.")
     working, owned = dict(village), dict(collection)
     if hammer is not None:
         if hammer not in _upgrade_hammers(fields[0]):
@@ -1354,20 +1355,14 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
 def _upgrade_hammers(field):
     if field.name.startswith("Builder's Hut") or field.category in {"Wall Level", "Equipment Level"}:
         return []
-    if field.name == "Town Hall" or field.category in STRUCTURE_CATEGORIES:
-        name = "Hammer of Building"
-    else:
-        name = {
-            "Hero Level": "Hammer of Heroes", "Troop Level": "Hammer of Fighting",
-            "Siege Level": "Hammer of Fighting", "Pet Level": "Hammer of Fighting",
-            "Spell Level": "Hammer of Spells",
-        }.get(field.category)
-    return [magic_system.items[name]] if name in magic_system.items else []
+    return [item for item in magic_system.items.values()
+            if item.name.startswith("Hammer of ") and magic_system.can_target_upgrade(item, field)]
 
 
 def _building_payment_options(village, collection, category, group, level, quantity):
     fields = _upgrade_groups(category).get(group, [])
-    first = next((field for field in fields if village[field.name] == level), None)
+    pending = upgrade_system._pending_serials(village)
+    first = next((field for field in fields if village[field.name] == level and upgrade_system.serial_for(field) not in pending), None)
     if first is None:
         raise UpgradeRejected("No matching items remain at this level.")
     price = upgrade_system._price_for(first, level + 1)
@@ -1732,14 +1727,15 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
 def _wall_quote(village, collection, level, quantity):
     if quantity < 1:
         raise UpgradeRejected("Choose at least one wall.")
+    pending = upgrade_system._pending_serials(village)
     walls = sorted(
         (int(match.group(1)), field)
         for field in upgrade_system.level_fields
         if (match := re.fullmatch(r"Wall #(\d+)", field.name))
-        and village[field.name] == level
+        and village[field.name] == level and upgrade_system.serial_for(field) not in pending
     )
     if quantity > len(walls):
-        raise UpgradeRejected(f"Only {len(walls):,} walls are at level {level}.")
+        raise UpgradeRejected(f"Only {len(walls):,} walls at level {level} are available and not already upgrading.")
     working = dict(village)
     pending = upgrade_system._pending_serials(working)
     names = []
@@ -1750,7 +1746,6 @@ def _wall_quote(village, collection, level, quantity):
     for _, field in walls[:quantity]:
         if upgrade_system.serial_for(field) in pending:
             raise UpgradeRejected(f"{field.name} is already upgrading.")
-        upgrade_system._check_instance_order(field, working)
         upgrade_system._availability(field, working, collection)
         price = upgrade_system._price_for(field, level + 1)
         if price.duration:
@@ -1950,7 +1945,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
                 _format_upgrade_costs(quote["costs"]) + f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
                 for quote in options
             )
-        embed = discord.Embed(title="Confirm upgrade payment", description=f"**{amount:,} {group}**: Level {current} → {target}\n\n{costs}\n\nThe lowest numbered eligible items at this level will be upgraded.", color=discord.Color.blue())
+        embed = discord.Embed(title="Confirm upgrade payment", description=f"**{amount:,} {group}**: Level {current} → {target}\n\n{costs}\n\nAvailable items at this level will be upgraded. Items already upgrading are skipped.", color=discord.Color.blue())
         image_item = quote["names"][0] if group == "Walls" else options[0]["names"][0]
         image_url = _upgrade_image_url(image_item, target)
         if image_url:
