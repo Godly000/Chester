@@ -73,7 +73,7 @@ from dotenv import load_dotenv
 from magic_system import MagicRejected, MagicSystem
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
-from player_saves import FORMAT_DETAILS, MigrationReport, SaveSchemaMismatch, SaveStore
+from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
 from resource_system import RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
     STRUCTURE_CATEGORIES,
@@ -1354,7 +1354,7 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
 def _upgrade_hammers(field):
     if field.name.startswith("Builder's Hut") or field.category in {"Wall Level", "Equipment Level"}:
         return []
-    if field.category in STRUCTURE_CATEGORIES:
+    if field.name == "Town Hall" or field.category in STRUCTURE_CATEGORIES:
         name = "Hammer of Building"
     else:
         name = {
@@ -1895,6 +1895,22 @@ async def upgrade_quantity_autocomplete(interaction: discord.Interaction, curren
         return []
 
 
+def _upgrade_payment_duration(quote):
+    hammer = quote.get("hammer")
+    reduction = hammer.strength if hammer else 0
+    durations = sorted({max(0, price.duration - reduction) for price in quote["prices"]})
+    labels = []
+    for duration in durations:
+        remaining = duration
+        parts = []
+        for seconds, label in ((86400, "d"), (3600, "h"), (60, "m"), (1, "s")):
+            amount, remaining = divmod(remaining, seconds)
+            if amount:
+                parts.append(f"{amount}{label}")
+        labels.append(" ".join(parts) or "Instant")
+    return ", ".join(labels)
+
+
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
 @app_commands.describe(category="The upgrade category", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
@@ -1926,11 +1942,19 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
                     currency = button.label.removeprefix("Use ")
                     button.disabled = village.get(currency, 0) < quote["costs"][currency]
             costs = "\n".join(f"**{name}:** {cost:,}" for name, cost in quote["costs"].items())
+            costs += f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
         else:
             options = _building_payment_options(village, collection, category, group, current, amount)
             view = BuildingPaymentView(interaction.user.id, options)
-            costs = "\n\nOR\n\n".join(_format_upgrade_costs(quote["costs"]) for quote in options)
+            costs = "\n\nOR\n\n".join(
+                _format_upgrade_costs(quote["costs"]) + f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
+                for quote in options
+            )
         embed = discord.Embed(title="Confirm upgrade payment", description=f"**{amount:,} {group}**: Level {current} → {target}\n\n{costs}\n\nThe lowest numbered eligible items at this level will be upgraded.", color=discord.Color.blue())
+        image_item = quote["names"][0] if group == "Walls" else options[0]["names"][0]
+        image_url = _upgrade_image_url(image_item, target)
+        if image_url:
+            embed.set_image(url=proxy_image_url(image_url))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
     except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
         await interaction.response.send_message(str(error), ephemeral=True)
@@ -2718,6 +2742,7 @@ async def help_slash(
         return
     commands = [
         ("chest", "Opens a Treasure Chest using your Town Hall loot table."),
+        ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
         ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
         ("refresh_upgrades", "Applies finished upgrades and shows active upgrade slots."),
@@ -2748,6 +2773,75 @@ async def help_slash(
         color=discord.Color.blue(),
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+def _leaderboard_statistics():
+    return [field for field in save_store.fields if field.source == "village" and field.category.casefold() == "statistic"]
+
+
+async def leaderboard_category_autocomplete(interaction: discord.Interaction, current: str):
+    return [app_commands.Choice(name=field.name, value=field.name)
+            for field in _leaderboard_statistics() if current.casefold() in field.name.casefold()][:25]
+
+
+def _leaderboard_rows(statistic):
+    scores = []
+    skipped = 0
+    with save_store.lock:
+        field = save_store.village_by_name[statistic]
+        for path in save_store.saves_dir.glob("*.sav"):
+            if not path.stem.isdigit() or int(path.stem) <= 0:
+                continue
+            try:
+                values, _ = save_store._decode_raw(path.read_bytes())
+                scores.append((int(path.stem), values[field.index]))
+            except (OSError, ValueError, SaveError) as error:
+                skipped += 1
+                log.warning("Leaderboard skipped save %s: %s", path.name, error)
+    scores.sort(key=lambda row: (-row[1], row[0]))
+    ranked = []
+    rank = 0
+    previous = None
+    for position, (user_id, value) in enumerate(scores, 1):
+        if previous is None or value != previous:
+            rank = position
+        ranked.append((rank, user_id, value))
+        previous = value
+    return ranked, skipped
+
+
+@bot.tree.command(name="leaderboard", description="Show the top ten players and your rank for a village statistic.")
+@app_commands.describe(category="The statistic to rank players by")
+@app_commands.autocomplete(category=leaderboard_category_autocomplete)
+async def leaderboard_slash(interaction: discord.Interaction, category: str):
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    field = next((field for field in _leaderboard_statistics() if field.name.casefold() == category.strip().casefold()), None)
+    if field is None:
+        await interaction.response.send_message("Choose a statistic from the category suggestions.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=False, thinking=True)
+    try:
+        ranked, skipped = await asyncio.to_thread(_leaderboard_rows, field.name)
+    except Exception:
+        log.exception("Could not load leaderboard for %s", field.name)
+        await interaction.edit_original_response(content="The leaderboard could not be loaded. Please try again shortly.")
+        return
+    top = ranked[:10]
+    lines = [f"**#{rank}** <@{user_id}> — **{_profile_value(field.name, value)}**" for rank, user_id, value in top]
+    embed = discord.Embed(title=f"Leaderboard: {field.name}", description="\n".join(lines) or "No player scores are available yet.", color=discord.Color.gold())
+    if interaction.user.id not in {user_id for _, user_id, _ in top}:
+        own = next((row for row in ranked if row[1] == interaction.user.id), None)
+        if own:
+            rank, _, value = own
+            embed.add_field(name="Your placement", value=f"**#{rank}** of {len(ranked):,} players — **{_profile_value(field.name, value)}**", inline=False)
+        else:
+            embed.add_field(name="Your placement", value="Your save could not be ranked. It may need /update_saves.", inline=False)
+    footer = f"All {len(ranked):,} players with readable saves · Equal scores share a rank"
+    if skipped:
+        footer += f" · {skipped:,} unreadable saves excluded"
+    embed.set_footer(text=footer)
+    await interaction.edit_original_response(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
 
 def _profile_categories():
