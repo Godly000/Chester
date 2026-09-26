@@ -44,20 +44,9 @@ TOWN_HALL_COST_ROWS = {
 WEAPON_COST_ALIASES = {
     "TH17 Inferno Artillery": "Town Hall 17 Weapon",
 }
-CRAFTED_DEFENSES = [
-    "Crafted Defense AA",
-    "Crafted Defense AB",
-    "Crafted Defense AC",
-    "Crafted Defense BA",
-    "Crafted Defense BB",
-    "Crafted Defense BC",
-    "Crafted Defense CA",
-    "Crafted Defense CB",
-    "Crafted Defense CC",
-]
 INSTANCE_PATTERN = re.compile(r"^(.*) #(\d+)$")
 UPGRADE_ROW_PATTERN = re.compile(r"^(.*) (\d+)(?:\.(\d+))?$")
-CRAFTED_ROW_PATTERN = re.compile(r"^Crafted Defense ([1-9])([1-9])$")
+CRAFTED_ROW_PATTERN = re.compile(r"^(Crafted Defense [A-C][A-C])([1-9][0-9]*)$")
 
 
 class UpgradeRejected(Exception):
@@ -273,9 +262,9 @@ class UpgradeSystem:
         for row in rows:
             crafted = CRAFTED_ROW_PATTERN.match(row["Name"])
             if crafted:
-                group = int(crafted.group(1))
-                target_level = int(crafted.group(2)) + 1
-                key = CRAFTED_DEFENSES[group - 1], target_level
+                base_name = crafted.group(1)
+                target_level = int(crafted.group(2))
+                key = base_name, target_level
                 if key in prices:
                     raise ValueError(
                         f"Duplicate upgrade price for {key[0]} level {target_level}"
@@ -769,28 +758,6 @@ class UpgradeSystem:
             if name in village:
                 village[name] = 0
 
-    def _check_instance_order(self, field: SaveField, village: Mapping[str, int], batch_started=()) -> None:
-        match = INSTANCE_PATTERN.match(field.name)
-        if field.category not in STRUCTURE_CATEGORIES or match is None:
-            return
-        base, number = match.group(1), int(match.group(2))
-        alternatives = []
-        for candidate in self.level_fields:
-            if candidate.name in batch_started:
-                continue
-            other = INSTANCE_PATTERN.match(candidate.name)
-            if candidate.category != field.category or other is None:
-                continue
-            if other.group(1) == base and int(other.group(2)) < number:
-                if village[candidate.name] == village[field.name]:
-                    alternatives.append((int(other.group(2)), candidate.name))
-        if alternatives:
-            lowest = min(alternatives)[1]
-            raise UpgradeRejected(
-                f"Upgrade {lowest} first because it is the lowest numbered {base} "
-                f"at level {village[field.name]}. If it is upgrading, wait for it to finish."
-            )
-
     def refresh(self, user_id: int, now: Optional[int] = None) -> RefreshReport:
         now = int(time.time()) if now is None else int(now)
         with self.save_store.transaction(user_id) as (village, collection):
@@ -859,7 +826,7 @@ class UpgradeSystem:
 
     def _start_values(
         self, village, collection, item, now, currency, expected_level,
-        expected_price, refresh_report, batch_started=(),
+        expected_price, refresh_report, batch_started=(), cost_reduction=0, time_reduction=0,
     ):
         field = self.resolve_item(item)
         current_level = village[field.name]
@@ -874,7 +841,6 @@ class UpgradeSystem:
                 f"{field.name} is already upgrading in {pending[serial]}"
             )
 
-        self._check_instance_order(field, village, batch_started)
         maximum = self._availability(field, village, collection)
         target_level = current_level + 1
 
@@ -891,6 +857,15 @@ class UpgradeSystem:
         if expected_price is not None and price != expected_price:
             raise UpgradeRejected(
                 "The upgrade cost or duration changed while you were choosing. Use /upgrade again."
+            )
+        if cost_reduction or time_reduction:
+            if cost_reduction < 0 or time_reduction < 0:
+                raise UpgradeRejected("Upgrade reductions cannot be negative")
+            price = UpgradePrice(
+                max(0, price.duration - time_reduction),
+                {resource: max(0, amount - cost_reduction) for resource, amount in price.fixed_costs.items()},
+                price.choice_resources,
+                max(0, price.choice_cost - cost_reduction),
             )
         set_values: Dict[str, int] = {}
         slot_name: Optional[str] = None
