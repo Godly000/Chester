@@ -2198,15 +2198,12 @@ async def remaining_slash(interaction: discord.Interaction):
 
 
 def _magic_result_embed(result):
-    return discord.Embed(
+    embed = discord.Embed(
         title=result.item,
         description="\n".join(result.lines)[:4000],
         color=discord.Color.green(),
     )
 
-
-def _magic_sale_embed(result):
-    embed = _magic_result_embed(result)
     for directory in (TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables", DATA_DIR):
         path = _find_data_csv("images", directory, warn_missing=False)
         if path is None:
@@ -2216,6 +2213,10 @@ def _magic_sale_embed(result):
             embed.set_image(url=proxy_image_url(image_url))
             break
     return embed
+
+
+def _magic_sale_embed(result):
+    return _magic_result_embed(result)
 
 
 async def magic_item_autocomplete(interaction: discord.Interaction, current: str):
@@ -2282,7 +2283,8 @@ class MagicItemView(discord.ui.View):
             log.exception("Magic item selection failed: %s", error)
             await interaction.response.edit_message(content="The magic item could not be used.", embed=None, view=None)
             return
-        await interaction.response.edit_message(content=None, embed=_magic_result_embed(result), view=None)
+        await interaction.response.edit_message(content="Selection closed.", embed=None, view=None)
+        await interaction.followup.send(embed=_magic_result_embed(result), ephemeral=False)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2332,7 +2334,7 @@ async def use_slash(interaction: discord.Interaction, item: str):
         log.exception("Unexpected error in /use: %s", error)
         await interaction.response.send_message("The magic item could not be used.", ephemeral=True)
         return
-    await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=True)
+    await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=False)
 
 
 @bot.tree.command(name="sell", description="View magic item sell values or sell magic items for Gems.")
