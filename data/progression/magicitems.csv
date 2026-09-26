@@ -16,16 +16,16 @@ Builder Star Jar,,,,10,25
 Clock Tower Potion,,,,10,25
 Shovel of Obstacles,,,,50,25
 Book of Building,Builder,0,2147483647,50,1
-Book of Heroes,Builder,0,2147483647,50,1
-Book of Fighting,Builder,0,2147483647,50,1
-Book of Spells,Builder,0,2147483647,50,1
-Book of Everything,Builder,0,2147483647,75,1
+Book of Heroes,Hero Level,0,2147483647,50,1
+Book of Fighting,Troop Level,0,2147483647,50,1
+Book of Spells,Spell Level,0,2147483647,50,1
+Book of Everything,Upgrader,0,2147483647,75,1
 Rune of Builder Gold,,,,50,5
 Rune of Builder Elixir,,,,50,5
 Hammer of Building,Builder,2147483647,2147483647,100,1
-Hammer of Heroes,Builder,2147483647,2147483647,100,1
-Hammer of Fighting,Builder,2147483647,2147483647,100,1
-Hammer of Spells,Builder,2147483647,2147483647,100,1
+Hammer of Heroes,Hero Level,2147483647,2147483647,100,1
+Hammer of Fighting,Troop Level,2147483647,2147483647,100,1
+Hammer of Spells,Spell Level,2147483647,2147483647,100,1
 Rune of Gold,Gold,0,2147483647,50,1
 Rune of Elixir,Elixir,0,2147483647,50,1
 Rune of Dark Elixir,Dark Elixir,0,2147483647,50,1
