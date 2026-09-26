@@ -2011,77 +2011,83 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
 
 
 def _remaining_display_rows(entries):
-    walls = sorted(
-        (int(match.group(1)), entry)
-        for entry in entries
-        if (match := re.fullmatch(r"Wall #(\d+)", entry.item))
-    )
-    wall_rows = []
-    index = 0
-    while index < len(walls):
-        first, entry = walls[index]
-        last = first
-        count = entry.count
-        index += 1
-        while index < len(walls) and entry.slot is None:
-            number, candidate = walls[index]
-            if (
-                number != last + 1
-                or candidate.slot is not None
-                or candidate.current_level != entry.current_level
-                or candidate.target_level != entry.target_level
-            ):
-                break
-            last = number
-            count += candidate.count
-            index += 1
-        label = entry.item if first == last else f"Walls #{first}-#{last}"
-        wall_rows.append((label, entry, count))
-    rows = []
-    walls_added = False
+    groups = {}
     for entry in entries:
-        if re.fullmatch(r"Wall #\d+", entry.item):
-            if not walls_added:
-                rows.extend(wall_rows)
-                walls_added = True
+        match = re.fullmatch(r"(.+) #(\d+)", entry.item)
+        if match:
+            groups.setdefault(match.group(1), []).append((int(match.group(2)), entry))
+    grouped_rows = {}
+    for base, numbered in groups.items():
+        numbered.sort(key=lambda pair: pair[0])
+        rows = []
+        index = 0
+        while index < len(numbered):
+            first, entry = numbered[index]
+            last = first
+            members = [entry]
+            index += 1
+            while index < len(numbered) and entry.slot is None:
+                number, candidate = numbered[index]
+                if (number != last + 1 or candidate.slot is not None
+                        or candidate.current_level != entry.current_level
+                        or candidate.target_level != entry.target_level):
+                    break
+                last = number
+                members.append(candidate)
+                index += 1
+            name = "Walls" if base == "Wall" else base
+            label = entry.item if first == last else f"{name} #{first}-#{last}"
+            rows.append((label, members))
+        grouped_rows[base] = rows
+    rows = []
+    added = set()
+    for entry in entries:
+        match = re.fullmatch(r"(.+) #(\d+)", entry.item)
+        if match:
+            base = match.group(1)
+            if base not in added:
+                rows.extend(grouped_rows[base])
+                added.add(base)
         else:
-            rows.append((entry.item, entry, entry.count))
+            rows.append((entry.item, [entry]))
     return rows
 
 
-def _remaining_cost_time(entry, count, now):
-    field = upgrade_system.fields_by_name.get(entry.item)
-    if field is None:
-        return "Cost and time unavailable for this saved upgrade."
-    multiplier = count // entry.count if entry.count else 1
+def _remaining_cost_time(members, now):
     fixed, choices = {}, {}
     seconds = 0
-    first_level = entry.current_level + 1
-    if entry.slot:
-        first_level += 1
-        if not entry.finish_time or entry.finish_time <= 0:
-            return "Cost and time unavailable until the active upgrade data is repaired."
-        seconds += max(0, entry.finish_time - now)
+    already_paid = True
     try:
-        for level in range(first_level, entry.target_level + 1):
-            price = upgrade_system._price_for(field, level)
-            seconds += price.duration
-            for resource, amount in price.fixed_costs.items():
-                fixed[resource] = fixed.get(resource, 0) + amount * multiplier
-            if price.choice_resources and price.choice_cost:
-                currencies = tuple(price.choice_resources)
-                choices[currencies] = choices.get(currencies, 0) + price.choice_cost * multiplier
+        for entry in members:
+            field = upgrade_system.fields_by_name.get(entry.item)
+            if field is None:
+                return "Cost and time unavailable for this saved upgrade."
+            first_level = entry.current_level + 1
+            if entry.slot:
+                first_level += 1
+                if not entry.finish_time or entry.finish_time <= 0:
+                    return "Cost and time unavailable until the active upgrade data is repaired."
+                seconds += max(0, entry.finish_time - now)
+            if not entry.slot or first_level <= entry.target_level:
+                already_paid = False
+            for level in range(first_level, entry.target_level + 1):
+                price = upgrade_system._price_for(field, level)
+                seconds += price.duration
+                for resource, amount in price.fixed_costs.items():
+                    fixed[resource] = fixed.get(resource, 0) + amount
+                if price.choice_resources and price.choice_cost:
+                    currencies = tuple(price.choice_resources)
+                    choices[currencies] = choices.get(currencies, 0) + price.choice_cost
     except UpgradeRejected as error:
         return f"Cost and time unavailable: {error}"
     costs = [f"{amount:,} {resource}" for resource, amount in fixed.items() if amount]
     costs.extend("(" + " or ".join(f"{amount:,} {resource}" for resource in currencies) + ")" for currencies, amount in choices.items())
-    seconds *= multiplier
     parts = []
     for unit, label in ((86400, "d"), (3600, "h"), (60, "m"), (1, "s")):
         amount, seconds = divmod(seconds, unit)
         if amount:
             parts.append(f"{amount}{label}")
-    cost_text = " + ".join(costs) if costs else ("Already paid" if entry.slot and first_level > entry.target_level else "Free")
+    cost_text = " + ".join(costs) if costs else ("Already paid" if already_paid else "Free")
     return f"Cost remaining: **{cost_text}**\nTime remaining: **{' '.join(parts) or 'Instant'}**"
 
 
@@ -2092,9 +2098,11 @@ def _remaining_pages(entries, town_hall):
     heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times total all levels and items in each row. Paid upgrades are excluded from costs; time includes their remaining duration and is summed, not a parallel completion estimate.\n\n"
     chunks, lines = [], []
     length = len(heading)
-    for label, entry, count in rows:
+    for label, members in rows:
+        entry = members[0]
+        count = sum(member.count for member in members)
         line = f"**{label}**: level {entry.current_level} to {entry.target_level} ({count:,} remaining)"
-        line += "\n" + _remaining_cost_time(entry, count, now)
+        line += "\n" + _remaining_cost_time(members, now)
         if entry.slot:
             worker = entry.slot.removesuffix(" Upgrade")
             if entry.finish_time and entry.finish_time > 0:
