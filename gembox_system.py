@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import time
+import tempfile
 
 import discord
 
@@ -14,10 +15,10 @@ GEM_BOX_TIMEOUT_SECONDS = 60
 GEM_BOX_MIN_GEMS = 25
 GEM_BOX_MAX_GEMS = 50
 GEM_BOX_IMAGES = (
-    ("Not Flipped", "https://i.imgur.com/2hV7gTP.png"),
-    ("Flipped Horizontally", "https://i.imgur.com/yqbcCrb.png"),
-    ("Flipped Vertically", "https://i.imgur.com/qju8XK9.png"),
-    ("Flipped on Both Axes", "https://i.imgur.com/vVCWo8l.png"),
+    ("Top Right", "https://i.imgur.com/2hV7gTP.png"),
+    ("Top Left", "https://i.imgur.com/yqbcCrb.png"),
+    ("Bottom Right", "https://i.imgur.com/qju8XK9.png"),
+    ("Bottom Left", "https://i.imgur.com/vVCWo8l.png"),
 )
 GOBLIN_BUILDER_IMAGE = "https://static.wikia.nocookie.net/clashofclans/images/9/9a/Goblin_Builder_info.png"
 PUNCHED_GOBLIN_BUILDER_IMAGE = "https://i.imgur.com/Ft9zPsM.png"
@@ -34,13 +35,35 @@ class GemBoxSystem:
         self.active = {}
         self.rolling = set()
 
-    def record_failure(self, user_id):
+    def record_failure(self, user_id, reason):
+        if reason not in {"timeout", "incorrect_answer"}:
+            raise ValueError("Unknown Gem Box failure reason")
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        header = ["Discord User ID", "Timestamp", "Reason"]
+        if self.log_path.exists() and self.log_path.stat().st_size:
+            with self.log_path.open(newline="", encoding="utf-8") as file:
+                reader = csv.reader(file)
+                previous_header = next(reader, [])
+                old_rows = list(reader) if previous_header == header[:2] else None
+            if old_rows is not None:
+                temporary_path = None
+                try:
+                    with tempfile.NamedTemporaryFile(mode="w", newline="", encoding="utf-8", dir=self.log_path.parent, delete=False) as file:
+                        temporary_path = file.name
+                        writer = csv.writer(file)
+                        writer.writerow(header)
+                        writer.writerows(row + ["unknown"] if len(row) == 2 else row for row in old_rows)
+                        file.flush()
+                        os.fsync(file.fileno())
+                    os.replace(temporary_path, self.log_path)
+                finally:
+                    if temporary_path and os.path.exists(temporary_path):
+                        os.unlink(temporary_path)
         with self.log_path.open("a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
-                writer.writerow(["Discord User ID", "Timestamp"])
-            writer.writerow([user_id, int(time.time())])
+                writer.writerow(header)
+            writer.writerow([user_id, int(time.time()), reason])
             file.flush()
             os.fsync(file.fileno())
 
@@ -110,8 +133,7 @@ class GemBoxView(discord.ui.View):
         embed = discord.Embed(
             title="You found a Gem Box!",
             description=(
-                "Which way is this Gem Box flipped? Choose an option below.\n"
-                "Hint: You may look up an image of a Gem Box if necessary.\n"
+                "Where does the Gem Box's Rainbow come from?\n"
                 + (f"Answer before <t:{self.expires_at}:R>. Practice encounter: no Gem rewards or failure logs."
                    if self.practice else f"Answer before <t:{self.expires_at}:R> to win **25–50 Gems**.")
             ),
@@ -120,7 +142,7 @@ class GemBoxView(discord.ui.View):
         embed.set_image(url=proxy_image_url(GEM_BOX_IMAGES[self.answer][1]))
         return embed
 
-    def finish(self, success):
+    def finish(self, success, reason="incorrect_answer"):
         if success:
             gems = 0 if self.practice else self.system.award(self.user_id)
             description = "Correct! Practice encounter complete. No Gems were awarded." if self.practice else f"Correct! You received **{gems:,} Gems** from the Gem Box."
@@ -128,8 +150,8 @@ class GemBoxView(discord.ui.View):
             embed.set_image(url=proxy_image_url(PUNCHED_GOBLIN_BUILDER_IMAGE))
         else:
             if not self.practice:
-                self.system.record_failure(self.user_id)
-            embed = discord.Embed(title="The Goblin Builder stole the Gems!", description="You answered incorrectly or ran out of time. The Goblin Builder stole all the Gems from this Gem Box.", color=discord.Color.red())
+                self.system.record_failure(self.user_id, reason)
+            embed = discord.Embed(title="The Goblin Builder stole the Gems!", description=("You ran out of time." if reason == "timeout" else "You answered incorrectly.") + " The Goblin Builder stole all the Gems from this Gem Box.", color=discord.Color.red())
             embed.set_image(url=proxy_image_url(GOBLIN_BUILDER_IMAGE))
         self.finished = True
         if self.system.active.get(self.user_id) is self:
@@ -149,12 +171,13 @@ class GemBoxView(discord.ui.View):
             if self.finished:
                 await interaction.response.send_message("This Gem Box has already been resolved.", ephemeral=True)
                 return
-            success = time.monotonic() <= self.deadline and selected == self.answer
+            timed_out = time.monotonic() >= self.deadline
+            success = not timed_out and selected == self.answer
             if success and not self.practice and self.system.migration_active():
                 await interaction.response.send_message("Saves are being updated. Please try your answer again shortly.", ephemeral=True)
                 return
             await interaction.response.defer()
-            embed = self.finish(success)
+            embed = self.finish(success, reason="timeout" if timed_out else "incorrect_answer")
             await interaction.edit_original_response(embed=embed, view=self)
 
     async def expire(self):
@@ -163,7 +186,7 @@ class GemBoxView(discord.ui.View):
             async with self.lock:
                 if self.finished:
                     return
-                embed = self.finish(False)
+                embed = self.finish(False, reason="timeout")
                 await self.message.edit(embed=embed, view=self)
         except asyncio.CancelledError:
             pass
