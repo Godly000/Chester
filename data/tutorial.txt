@@ -1,7 +1,7 @@
 Check your resources and other currencies with "/profile currency".
 Check your stats with "/profile statistics".
 Obstacles randomly spawn around your village. "/check_obstacles" saves them to your village, "/profile obstacles" shows how many of each type there are, and "/remove_obstacle" removes them for a small amount of Gems.
-Ran out of space to store loot? Build and upgrade a Clan Castle (Resources category) to store extra loot in your Treasury and use "profile treasury" to check how full it is.
+Ran out of space to store loot? Either upgrade your storages or Clan Castle (Resources category).
 Magic items are quite valuable. "/profile Magic Item" shows you what Magic Items you have, "/sell" shows how much they can be sold for, and "/use [Magic Item name]" uses one of your choice.
 Want to see how your Buliders and Researchers are doing? "/profile upgrade" shows what all your Upgraders are working on and when they will finish.
 How upgraded is your village? Use "/profile [Category name] Level" to find out!
@@ -13,4 +13,4 @@ Don't leave your Collectors, Mines, and Drills full! "/collect_loot" will genera
 Need resources in a pinch? Transfer some of your Treasury resources to your storages with "/collect_treasury".
 Use the "/view_collectors" command to see how well your Resource generators are doing without collecting right away.
 Type "/help" to see a list of all the commands.
-Do you enjoy playing Chester? Temporarily discount your upgrades by "/support"ing!
+Do you enjoy playing Chester? Donnations are accepted through "/support"!
