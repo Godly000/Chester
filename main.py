@@ -1013,7 +1013,7 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         received = resource_system.deposit(values, resource_amounts)
         for name, amount in village_additions.items():
             field = save_store.village_by_name[name]
-            if field.category == "Magic Item":
+            if name in magic_system.items:
                 stored, sold, gems = magic_system.award(values, name, amount)
                 magic_awards.append((name, stored, sold, gems))
             else:
@@ -1036,7 +1036,7 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         description = f"Stored {stored:,} {name}."
         if sold:
             description += f" Automatically sold {sold:,} excess for {gems:,} Gems."
-        embed.add_field(name="Magic item inventory", value=description, inline=False)
+        embed.add_field(name="Magic item overflow sold" if sold else "Magic item inventory", value=description, inline=False)
     leveled_up_to = new_level if new_level > old_level else None
     return embed, leveled_up_to, category.name
 
@@ -1307,7 +1307,7 @@ def _upgrade_snapshot(user_id):
     return village, collection
 
 
-def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None):
+def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None):
     if quantity < 1:
         raise UpgradeRejected("Choose at least one building.")
     fields = _upgrade_groups(category).get(group, [])
@@ -1318,6 +1318,10 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
     if quantity > len(fields):
         raise UpgradeRejected(f"Only {len(fields):,} {group} buildings are at level {level}.")
     working, owned = dict(village), dict(collection)
+    if hammer is not None:
+        if hammer not in _upgrade_hammers(fields[0]):
+            raise UpgradeRejected("That Hammer cannot be used for this upgrade.")
+        magic_system._owned(working, hammer, quantity)
     now = int(time.time())
     report = RefreshReport([], [], [])
     started = set()
@@ -1325,9 +1329,15 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
     for field in fields[:quantity]:
         price = upgrade_system._price_for(field, level + 1)
         outcome, _ = upgrade_system._start_values(
-            working, owned, field.name, now, currency, level, price, report,
-            batch_started=started,
+            working, owned, field.name, now,
+            (price.choice_resources[0] if hammer and price.choice_resources else currency),
+            level, price, report, batch_started=started,
+            cost_reduction=hammer.cost if hammer else 0,
+            time_reduction=hammer.strength if hammer else 0,
         )
+        if hammer:
+            working[hammer.name] -= 1
+            outcome.costs[hammer.name] = 1
         started.add(field.name)
         prices.append(price)
         outcomes.append(outcome)
@@ -1336,24 +1346,40 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
     quote = {
         "category": category, "group": group, "level": level, "quantity": quantity,
         "currency": currency, "names": [field.name for field in fields[:quantity]],
-        "prices": prices, "costs": costs,
+        "prices": prices, "costs": costs, "hammer": hammer,
     }
     return quote, working, outcomes
+
+
+def _upgrade_hammers(field):
+    if field.name.startswith("Builder's Hut") or field.category in {"Wall Level", "Equipment Level"}:
+        return []
+    if field.category in STRUCTURE_CATEGORIES:
+        name = "Hammer of Building"
+    else:
+        name = {
+            "Hero Level": "Hammer of Heroes", "Troop Level": "Hammer of Fighting",
+            "Siege Level": "Hammer of Fighting", "Pet Level": "Hammer of Fighting",
+            "Spell Level": "Hammer of Spells",
+        }.get(field.category)
+    return [magic_system.items[name]] if name in magic_system.items else []
 
 
 def _building_payment_options(village, collection, category, group, level, quantity):
     fields = _upgrade_groups(category).get(group, [])
     first = next((field for field in fields if village[field.name] == level), None)
     if first is None:
-        raise UpgradeRejected("No matching buildings remain at this level.")
+        raise UpgradeRejected("No matching items remain at this level.")
     price = upgrade_system._price_for(first, level + 1)
-    currencies = price.choice_resources or (None,)
+    methods = [(currency, None) for currency in price.choice_resources or (None,)]
+    if price.duration or price.choice_cost or any(price.fixed_costs.values()):
+        methods.extend((None, hammer) for hammer in _upgrade_hammers(first))
     options, errors = [], []
-    for currency in currencies:
+    for currency, hammer in methods:
         try:
-            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency)
+            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer)
             options.append(quote)
-        except UpgradeRejected as error:
+        except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
             errors.append(str(error))
     if not options:
         raise UpgradeRejected("\n".join(dict.fromkeys(errors)))
@@ -1362,24 +1388,23 @@ def _building_payment_options(village, collection, category, group, level, quant
 
 def _available_group_levels(village, collection, category, group):
     fields = _upgrade_groups(category).get(group, [])
-    levels = sorted({village[field.name] for field in fields})
     result = {}
-    for level in levels:
-        count = sum(village[field.name] == level for field in fields)
-        maximum = 0
-        for quantity in range(1, count + 1):
+    for level in sorted({village[field.name] for field in fields}):
+        low, high = 0, sum(village[field.name] == level for field in fields)
+        while low < high:
+            quantity = (low + high + 1) // 2
             try:
                 if group == "Walls":
                     quote = _wall_quote(village, collection, level, quantity)
                     if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
-                        break
+                        raise UpgradeRejected("Not enough resources or Wall Rings.")
                 else:
                     _building_payment_options(village, collection, category, group, level, quantity)
+                low = quantity
             except (UpgradeRejected, MagicRejected, ResourceRejected):
-                break
-            maximum = quantity
-        if maximum:
-            result[level] = maximum
+                high = quantity - 1
+        if low:
+            result[level] = low
     return result
 
 
@@ -1443,7 +1468,7 @@ def _commit_building_batch(user_id, quote):
     with save_store.transaction(user_id) as (village, collection):
         current, working, outcomes = _simulate_building_batch(
             village, collection, quote["category"], quote["group"], quote["level"],
-            quote["quantity"], quote["currency"],
+            quote["quantity"], quote["currency"], quote.get("hammer"),
         )
         if current != quote:
             raise UpgradeRejected("The buildings or prices changed. Open /upgrade again.")
@@ -1457,7 +1482,7 @@ class BuildingPaymentView(discord.ui.View):
         self.user_id = user_id
         self.used = False
         for quote in options:
-            label = f"Use {quote['currency']}" if quote["currency"] else "Confirm upgrades"
+            label = f"Use {quote['hammer'].name}" if quote.get("hammer") else (f"Use {quote['currency']}" if quote["currency"] else "Use resources")
             button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
             async def pay(interaction, selected=quote):
                 if not await self.interaction_check(interaction):
@@ -1466,7 +1491,7 @@ class BuildingPaymentView(discord.ui.View):
                     return
                 try:
                     outcomes = _commit_building_batch(self.user_id, selected)
-                except (UpgradeRejected, ResourceRejected) as error:
+                except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
                     await interaction.response.send_message(str(error), ephemeral=True)
                     return
                 self.used = True
@@ -1484,55 +1509,6 @@ class BuildingPaymentView(discord.ui.View):
             await interaction.response.edit_message(content="Upgrade cancelled. Nothing was spent.", embed=None, view=None)
         cancel.callback = cancel_upgrade
         self.add_item(cancel)
-
-    async def interaction_check(self, interaction):
-        if interaction.user.id != self.user_id or self.used or self.is_finished():
-            await interaction.response.send_message("This upgrade selection is unavailable. Open your own /upgrade.", ephemeral=True)
-            return False
-        return True
-
-
-class BuildingQuantityModal(discord.ui.Modal, title="How many buildings?"):
-    quantity = discord.ui.TextInput(label="Number of buildings", min_length=1, max_length=4)
-
-    def __init__(self, parent, level):
-        super().__init__(timeout=180)
-        self.parent = parent
-        self.level = level
-
-    async def on_submit(self, interaction):
-        if not await self.parent.interaction_check(interaction):
-            return
-        if not await enforce_chester_channel(interaction):
-            return
-        try:
-            quantity = int(str(self.quantity))
-            village, collection = save_store.player_values(interaction.user.id)
-            options = _building_payment_options(village, collection, self.parent.category, self.parent.group, self.level, quantity)
-        except ValueError:
-            await interaction.response.send_message("Enter a positive whole number.", ephemeral=True)
-            return
-        except (UpgradeRejected, ResourceRejected) as error:
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        self.parent.used = True
-        self.parent.stop()
-        costs = "\n\n".join(_format_upgrade_costs(quote["costs"]) for quote in options)
-        embed = discord.Embed(title=f"Upgrade {self.parent.group}", description=f"**{quantity} buildings:** Level {self.level} to {self.level + 1}\n\n{costs}\n\nThe lowest numbered buildings at this level will be upgraded.", color=discord.Color.blue())
-        await interaction.response.edit_message(embed=embed, view=BuildingPaymentView(interaction.user.id, options))
-
-
-class BuildingLevelView(discord.ui.View):
-    def __init__(self, user_id, category, group, levels):
-        super().__init__(timeout=180)
-        self.user_id, self.category, self.group = user_id, category, group
-        self.used = False
-        select = discord.ui.Select(placeholder="Choose the current building level", options=[discord.SelectOption(label=f"Level {level}: up to {count} upgrades", value=str(level)) for level, count in levels.items()])
-        async def choose(interaction):
-            if await self.interaction_check(interaction):
-                await interaction.response.send_modal(BuildingQuantityModal(self, int(select.values[0])))
-        select.callback = choose
-        self.add_item(select)
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.user_id or self.used or self.is_finished():
@@ -1562,20 +1538,6 @@ def _unavailable_upgrade_reason(village, collection, category, group, rings_only
     action = "use any Wall Rings" if rings_only else f"upgrade any {group}"
     return f"You can't {action}.\n{reason}"[:1900]
 
-
-async def _open_building_upgrades(interaction, category, group):
-    upgrade_system.refresh(interaction.user.id)
-    village, collection = save_store.player_values(interaction.user.id)
-    levels = _available_group_levels(village, collection, category, group)
-    if not levels:
-        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
-    lines = []
-    fields = _upgrade_groups(category)[group]
-    for level, maximum in levels.items():
-        total = sum(village[field.name] == level for field in fields)
-        lines.append(f"**Level {level}:** {total} buildings; up to {maximum} can be upgraded now")
-    embed = discord.Embed(title=f"Upgrade {group}", description="\n".join(lines) + "\n\nChoose the current level. Level 0 buildings have not been built.", color=discord.Color.blue())
-    await interaction.response.send_message(embed=embed, view=BuildingLevelView(interaction.user.id, category, group, levels), ephemeral=False)
 
 def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     if not costs:
@@ -1624,23 +1586,30 @@ async def _fetch_upgrade_image(url):
 
 
 def _build_batch_upgrade_entries(outcomes):
-    entries = [
-        (_build_upgrade_embed(outcome, RefreshReport([], [], [])), outcome.item, outcome.target_level)
-        for outcome in outcomes
-    ]
-    timed = [outcome for outcome in outcomes if not outcome.instant and outcome.slot and outcome.finish_time]
-    if len(timed) > 1:
-        summary = entries[0][0]
-        lines = []
-        for outcome in timed:
-            worker = outcome.slot.removesuffix(" Upgrade")
-            line = f"**{worker}:** {outcome.item} — finishes <t:{outcome.finish_time}:R>"
-            if lines and len("\n".join(lines + [line])) > 1024:
-                summary.add_field(name="All assigned upgraders", value="\n".join(lines), inline=False)
-                lines = []
-            lines.append(line)
-        if lines:
-            summary.add_field(name="All assigned upgraders", value="\n".join(lines), inline=False)
+    groups = {}
+    for outcome in outcomes:
+        key = _upgrade_image_url(outcome.item, outcome.target_level) or (upgrade_system._base_name(outcome.item), outcome.target_level)
+        groups.setdefault(key, []).append(outcome)
+    entries = []
+    for group in groups.values():
+        first = group[0]
+        if len(group) == 1:
+            embed = _build_upgrade_embed(first, RefreshReport([], [], []))
+        else:
+            embed = discord.Embed(
+                title="Upgrades complete" if all(outcome.instant for outcome in group) else "Upgrades started",
+                description="\n".join(f"**{outcome.item}:** Level {outcome.previous_level} → {outcome.target_level}" for outcome in group),
+                color=discord.Color.green(),
+            )
+            costs = {}
+            for outcome in group:
+                for resource, amount in outcome.costs.items():
+                    costs[resource] = costs.get(resource, 0) + amount
+                if outcome.slot and outcome.finish_time:
+                    embed.add_field(name=outcome.slot.removesuffix(" Upgrade"), value=f"{outcome.item}: finishes <t:{outcome.finish_time}:R>", inline=False)
+            embed.add_field(name="Total cost", value=_format_upgrade_costs(costs), inline=False)
+            embed.set_footer(text="Made by __godly__")
+        entries.append((embed, first.item, first.target_level))
     return entries
 
 
@@ -1687,7 +1656,17 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
                 return await _fetch_upgrade_image(url)
         results = await asyncio.gather(*(fetch(url) for url in urls))
         urls.update(zip(urls, results))
-    for index, (embed, item, target_level) in enumerate(entries):
+    grouped_entries = {}
+    for embed, item, target_level in entries:
+        key = image_urls[item, target_level] or (upgrade_system._base_name(item), target_level)
+        if key not in grouped_entries:
+            grouped_entries[key] = (embed, item, target_level)
+            continue
+        combined = grouped_entries[key][0]
+        combined.description = "\n\n".join(text for text in (combined.description, embed.description) if text)
+        for field in embed.fields:
+            combined.add_field(name=field.name, value=field.value, inline=field.inline)
+    for index, (embed, item, target_level) in enumerate(grouped_entries.values()):
         base = upgrade_system._base_name(item)
         url = image_urls[item, target_level]
         files = []
@@ -1748,107 +1727,6 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
         )
     embed.set_footer(text="Made by __godly__")
     return embed
-
-
-class UpgradeCurrencyView(discord.ui.View):
-    def __init__(self, user_id: int, choice: UpgradeCurrencyChoiceRequired):
-        super().__init__(timeout=120)
-        self.user_id = user_id
-        self.choice = choice
-        self.used = False
-        self.message: Optional[discord.InteractionMessage] = None
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "Only the player who requested this upgrade can choose its currency.",
-                ephemeral=True,
-            )
-            return False
-        if self.used or self.is_finished():
-            await interaction.response.send_message(
-                "This currency choice is no longer active. Use /upgrade again.",
-                ephemeral=True,
-            )
-            return False
-        return True
-
-    async def _choose(self, interaction: discord.Interaction, currency: str):
-        if not await self.interaction_check(interaction):
-            return
-        self.used = True
-        self.stop()
-        if not await enforce_chester_channel(interaction):
-            if self.message is not None:
-                await self.message.edit(view=None)
-            return
-        try:
-            outcome, refreshed = upgrade_system.start_upgrade(
-                self.user_id,
-                self.choice.item,
-                currency=currency,
-                expected_level=self.choice.current_level,
-                expected_price=self.choice.price,
-            )
-        except (WorkerUnavailable, TownHallUpgradeBlocked) as error:
-            await interaction.response.edit_message(content=str(error), embed=None, view=None)
-            return
-        except UpgradeRejected as error:
-            await interaction.response.edit_message(
-                content=f"⚠️ Upgrade rejected: {error}", embed=None, view=None
-            )
-            return
-        except Exception as error:
-            log.exception("Unexpected error choosing upgrade currency: %s", error)
-            await interaction.response.edit_message(
-                content=f"⚠️ The upgrade could not be started: {error}",
-                embed=None,
-                view=None,
-            )
-            return
-        combined = RefreshReport(
-            completed=self.choice.refreshed.completed + refreshed.completed,
-            active=refreshed.active,
-            warnings=list(dict.fromkeys(self.choice.refreshed.warnings + refreshed.warnings)),
-        )
-        await _publish_upgrade_embeds(
-            interaction, [(_build_upgrade_embed(outcome, combined), outcome.item, outcome.target_level)], component=True
-        )
-
-    @discord.ui.button(label="Use Gold", style=discord.ButtonStyle.primary)
-    async def use_gold(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._choose(interaction, "Gold")
-
-    @discord.ui.button(label="Use Elixir", style=discord.ButtonStyle.primary)
-    async def use_elixir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._choose(interaction, "Elixir")
-
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.interaction_check(interaction):
-            return
-        self.used = True
-        self.stop()
-        await interaction.response.edit_message(
-            content="Upgrade cancelled. No upgrade resources were spent.",
-            embed=None,
-            view=None,
-        )
-
-    async def on_timeout(self):
-        if self.used:
-            return
-        self.used = True
-        self.stop()
-        if self.message is not None:
-            try:
-                await self.message.edit(
-                    content="This currency choice expired. Use /upgrade again.",
-                    embed=None,
-                    view=None,
-                )
-            except discord.HTTPException:
-                log.debug("Could not clear an expired upgrade currency prompt")
 
 
 def _wall_quote(village, collection, level, quantity):
@@ -1969,138 +1847,93 @@ class WallPaymentView(discord.ui.View):
         await interaction.response.edit_message(content="Wall upgrade cancelled. Nothing was spent.", embed=None, view=None)
 
 
-class WallQuantityModal(discord.ui.Modal, title="How many walls?"):
-    quantity = discord.ui.TextInput(label="Number of walls", min_length=1, max_length=6)
-
-    def __init__(self, parent, level):
-        super().__init__(timeout=180)
-        self.parent = parent
-        self.level = level
-
-    async def on_submit(self, interaction):
-        if not await self.parent.interaction_check(interaction):
-            return
-        if not await enforce_chester_channel(interaction):
-            return
-        try:
-            quantity = int(str(self.quantity))
-            village, collection = save_store.player_values(interaction.user.id)
-            quote = _wall_quote(village, collection, self.level, quantity)
-        except ValueError:
-            await interaction.response.send_message("Enter a positive whole number of walls.", ephemeral=True)
-            return
-        except (UpgradeRejected, MagicRejected) as error:
-            await interaction.response.send_message(str(error), ephemeral=True)
-            return
-        self.parent.used = True
-        self.parent.stop()
-        costs = "\n".join(f"**{name}:** {amount:,}" for name, amount in quote["costs"].items())
-        embed = discord.Embed(
-            title="Choose wall upgrade payment",
-            description=f"Upgrade **{quantity:,} walls** from level **{self.level}** to **{self.level + 1}**.\n\n{costs}\n\nThe lowest numbered walls at this level will be upgraded.",
-            color=discord.Color.blue(),
-        )
-        await interaction.response.edit_message(content=None, embed=embed, view=WallPaymentView(interaction.user.id, quote))
-
-
-class WallLevelView(discord.ui.View):
-    def __init__(self, user_id, counts):
-        super().__init__(timeout=180)
-        self.user_id = user_id
-        self.used = False
-        select = discord.ui.Select(
-            placeholder="Choose the current wall level",
-            options=[discord.SelectOption(label=f"Level {level}: {count:,} walls", value=str(level)) for level, count in sorted(counts.items())],
-        )
-        async def choose(interaction):
-            if await self.interaction_check(interaction):
-                await interaction.response.send_modal(WallQuantityModal(self, int(select.values[0])))
-        select.callback = choose
-        self.add_item(select)
-
-    async def interaction_check(self, interaction):
-        if interaction.user.id != self.user_id or self.used or self.is_finished():
-            await interaction.response.send_message("This wall selection is unavailable. Open your own /upgrade category:Wall Level item:Walls.", ephemeral=True)
-            return False
-        return True
-
-
 async def _open_wall_upgrades(interaction, rings_only=False):
-    upgrade_system.refresh(interaction.user.id)
-    village, collection = save_store.player_values(interaction.user.id)
-    wall = next((field for field in upgrade_system.level_fields if re.fullmatch(r"Wall #\d+", field.name)), None)
-    counts = _available_group_levels(village, collection, wall.category, "Walls") if wall else {}
-    if rings_only:
-        counts = {level: count for level, count in counts.items() if village.get("Wall Rings", 0) >= _wall_quote(village, collection, level, 1)["costs"]["Wall Rings"]}
-    if not counts:
-        reason = _unavailable_upgrade_reason(village, collection, wall.category, "Walls", rings_only) if wall else "You can't upgrade any Walls: there are no Wall items configured."
-        await interaction.response.send_message(reason, ephemeral=True)
-        return
-    description = "\n".join(f"**Level {level}:** {count:,} walls" for level, count in sorted(counts.items()))
-    embed = discord.Embed(title="Upgrade walls", description=description + "\n\nCounts show how many can be upgraded now. Choose the current wall level. Level 0 walls have not been built.", color=discord.Color.blue())
-    await interaction.response.send_message(embed=embed, view=WallLevelView(interaction.user.id, counts), ephemeral=False)
+    await interaction.response.send_message(
+        "Use /upgrade with the Wall category, item Walls, target level, and quantity. Choose Wall Rings on the payment screen.",
+        ephemeral=True,
+    )
 
 
-@bot.tree.command(name="upgrade", description="Upgrade an unlocked village item.")
-@app_commands.describe(category="The upgrade category", item="An upgradeable item or building type in this category")
-@app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, category: str, item: str):
+def _upgrade_argument_options(interaction):
+    if save_migration_active or not save_store.player_path(interaction.user.id).is_file():
+        return {}, None
+    category = getattr(interaction.namespace, "category", "") or ""
+    item = getattr(interaction.namespace, "item", "") or ""
+    groups = _upgrade_groups(category)
+    group = next((name for name in groups if name.casefold() == item.strip().casefold()), None)
+    if group is None:
+        return {}, None
+    village, collection = _upgrade_snapshot(interaction.user.id)
+    levels = _available_group_levels(village, collection, category, group)
+    return {level + 1: count for level, count in levels.items()}, group
+
+
+async def upgrade_level_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        levels, _ = _upgrade_argument_options(interaction)
+        quantity = getattr(interaction.namespace, "quantity", None) or 1
+        return [app_commands.Choice(name=f"Level {level} — up to {count} upgrades", value=level)
+                for level, count in levels.items() if str(current) in str(level) and count >= quantity][:25]
+    except Exception:
+        log.exception("Could not load upgrade level suggestions")
+        return []
+
+
+async def upgrade_quantity_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        levels, _ = _upgrade_argument_options(interaction)
+        level = getattr(interaction.namespace, "level", None)
+        if level is None:
+            level = min(levels, default=0)
+        maximum = levels.get(level, 0)
+        numbers = [count for count in range(1, maximum + 1) if str(count).startswith(str(current))]
+        if len(numbers) > 25:
+            numbers = numbers[:24] + [numbers[-1]]
+        return [app_commands.Choice(name=f"{count} (maximum)" if count == maximum else str(count), value=count) for count in numbers]
+    except Exception:
+        log.exception("Could not load upgrade quantity suggestions")
+        return []
+
+
+@bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
+@app_commands.describe(category="The upgrade category", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
+@app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
+async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
         groups = _upgrade_groups(category)
         group = next((name for name in groups if name.casefold() == item.strip().casefold()), None)
         if group is None:
-            field = upgrade_system.resolve_item(item)
-            if field.category.casefold() != category.strip().casefold():
-                raise UpgradeRejected("That item does not belong to the selected category.")
-            group = _upgrade_group_name(field)
-        if group not in groups:
             raise UpgradeRejected("Choose a valid upgrade category and item.")
+        upgrade_system.refresh(interaction.user.id)
+        village, collection = save_store.player_values(interaction.user.id)
+        levels = _available_group_levels(village, collection, category, group)
+        if not levels:
+            raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
+        target = level if level is not None else min(levels) + 1
+        amount = quantity if quantity is not None else 1
+        current = target - 1
+        if current not in levels:
+            raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
+        if amount < 1 or amount > levels[current]:
+            raise UpgradeRejected(f"You can upgrade at most {levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
         if group == "Walls":
-            await _open_wall_upgrades(interaction)
-            return
-        fields = groups[group]
-        if fields[0].category in STRUCTURE_CATEGORIES and any(re.search(r" #\d+$", field.name) for field in fields):
-            await _open_building_upgrades(interaction, fields[0].category, group)
-            return
-        item = fields[0].name
-        outcome, refreshed = upgrade_system.start_upgrade(
-            interaction.user.id,
-            item,
-        )
-    except UpgradeCurrencyChoiceRequired as choice:
-        view = UpgradeCurrencyView(interaction.user.id, choice)
-        embed = discord.Embed(
-            title="Choose upgrade currency",
-            description=(
-                f"**{choice.item}**\n"
-                f"Level {choice.current_level:,} → {choice.current_level + 1:,}\n\n"
-                f"Pay **{choice.price.choice_cost:,} Gold** or "
-                f"**{choice.price.choice_cost:,} Elixir**.\n"
-                "Choose one below. This choice expires in two minutes."
-            ),
-            color=discord.Color.blue(),
-        )
+            quote = _wall_quote(village, collection, current, amount)
+            view = WallPaymentView(interaction.user.id, quote)
+            for button in view.children:
+                if button.label.startswith("Use "):
+                    currency = button.label.removeprefix("Use ")
+                    button.disabled = village.get(currency, 0) < quote["costs"][currency]
+            costs = "\n".join(f"**{name}:** {cost:,}" for name, cost in quote["costs"].items())
+        else:
+            options = _building_payment_options(village, collection, category, group, current, amount)
+            view = BuildingPaymentView(interaction.user.id, options)
+            costs = "\n\nOR\n\n".join(_format_upgrade_costs(quote["costs"]) for quote in options)
+        embed = discord.Embed(title="Confirm upgrade payment", description=f"**{amount:,} {group}**: Level {current} → {target}\n\n{costs}\n\nThe lowest numbered eligible items at this level will be upgraded.", color=discord.Color.blue())
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
-        view.message = await interaction.original_response()
-        return
-    except (WorkerUnavailable, TownHallUpgradeBlocked) as error:
+    except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
         await interaction.response.send_message(str(error), ephemeral=True)
-        return
-    except UpgradeRejected as error:
-        await interaction.response.send_message(
-            str(error) if str(error).startswith("You can't") else f"You can't upgrade any {item}: {error}", ephemeral=True
-        )
-        return
-    except Exception as error:
-        log.exception("Unexpected error in /upgrade: %s", error)
-        await interaction.response.send_message(
-            f"⚠️ The upgrade could not be started: {error}", ephemeral=True
-        )
-        return
-    embed = _build_upgrade_embed(outcome, refreshed)
-    await _publish_upgrade_embeds(interaction, [(embed, outcome.item, outcome.target_level)])
 
 
 @bot.tree.command(
@@ -2121,15 +1954,6 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(title="Upgrade status", color=discord.Color.blue())
-    if report.completed:
-        embed.add_field(
-            name="Completed",
-            value="\n".join(
-                f"**{entry.item}:** level {entry.new_level:,}"
-                for entry in report.completed
-            ),
-            inline=False,
-        )
     if report.active:
         embed.add_field(
             name="In progress",
@@ -2150,10 +1974,13 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
         embed.description = "No upgrades are currently in progress."
     embed.set_footer(text="Made by __godly__")
     if report.completed:
-        entries = [(embed, report.completed[0].item, report.completed[0].new_level)]
-        for completed in report.completed[1:]:
+        entries = []
+        for completed in report.completed:
             result = discord.Embed(title="Upgrade complete", description=f"**{completed.item}**\nLevel {completed.new_level - 1} → {completed.new_level}", color=discord.Color.green())
+            result.add_field(name=completed.slot.removesuffix(" Upgrade"), value=f"Completed {completed.item}", inline=False)
             entries.append((result, completed.item, completed.new_level))
+        for field in embed.fields:
+            entries[0][0].add_field(name=field.name, value=field.value, inline=field.inline)
         await _publish_upgrade_embeds(interaction, entries)
     else:
         await interaction.response.send_message(embed=embed)
@@ -2198,26 +2025,69 @@ def _remaining_display_rows(entries):
     return rows
 
 
+def _remaining_cost_time(entry, count, now):
+    field = upgrade_system.fields_by_name.get(entry.item)
+    if field is None:
+        return "Cost and time unavailable for this saved upgrade."
+    multiplier = count // entry.count if entry.count else 1
+    fixed, choices = {}, {}
+    seconds = 0
+    first_level = entry.current_level + 1
+    if entry.slot:
+        first_level += 1
+        if not entry.finish_time or entry.finish_time <= 0:
+            return "Cost and time unavailable until the active upgrade data is repaired."
+        seconds += max(0, entry.finish_time - now)
+    try:
+        for level in range(first_level, entry.target_level + 1):
+            price = upgrade_system._price_for(field, level)
+            seconds += price.duration
+            for resource, amount in price.fixed_costs.items():
+                fixed[resource] = fixed.get(resource, 0) + amount * multiplier
+            if price.choice_resources and price.choice_cost:
+                currencies = tuple(price.choice_resources)
+                choices[currencies] = choices.get(currencies, 0) + price.choice_cost * multiplier
+    except UpgradeRejected as error:
+        return f"Cost and time unavailable: {error}"
+    costs = [f"{amount:,} {resource}" for resource, amount in fixed.items() if amount]
+    costs.extend("(" + " or ".join(f"{amount:,} {resource}" for resource in currencies) + ")" for currencies, amount in choices.items())
+    seconds *= multiplier
+    parts = []
+    for unit, label in ((86400, "d"), (3600, "h"), (60, "m"), (1, "s")):
+        amount, seconds = divmod(seconds, unit)
+        if amount:
+            parts.append(f"{amount}{label}")
+    cost_text = " + ".join(costs) if costs else ("Already paid" if entry.slot and first_level > entry.target_level else "Free")
+    return f"Cost remaining: **{cost_text}**\nTime remaining: **{' '.join(parts) or 'Instant'}**"
+
+
 def _remaining_pages(entries, town_hall):
     total = sum(entry.count for entry in entries)
     rows = _remaining_display_rows(entries)
-    chunks = [rows[index:index + 10] for index in range(0, len(rows), 10)] or [[]]
+    now = int(time.time())
+    heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times total all levels and items in each row. Paid upgrades are excluded from costs; time includes their remaining duration and is summed, not a parallel completion estimate.\n\n"
+    chunks, lines = [], []
+    length = len(heading)
+    for label, entry, count in rows:
+        line = f"**{label}**: level {entry.current_level} to {entry.target_level} ({count:,} remaining)"
+        line += "\n" + _remaining_cost_time(entry, count, now)
+        if entry.slot:
+            worker = entry.slot.removesuffix(" Upgrade")
+            if entry.finish_time and entry.finish_time > 0:
+                line += f"\nIn progress with {worker}; finishes <t:{entry.finish_time}:R>."
+            else:
+                line += f"\n{worker} has invalid upgrade data; contact a moderator."
+        if lines and (len(lines) >= 10 or length + len(line) + 2 > 3900):
+            chunks.append(lines)
+            lines = []
+            length = len(heading)
+        lines.append(line)
+        length += len(line) + 2
+    if lines or not chunks:
+        chunks.append(lines)
     pages = []
     for number, chunk in enumerate(chunks, 1):
-        lines = []
-        for label, entry, count in chunk:
-            line = f"**{label}**: level {entry.current_level} to {entry.target_level} ({count:,} remaining)"
-            if entry.slot:
-                worker = entry.slot.removesuffix(" Upgrade")
-                if entry.finish_time and entry.finish_time > 0:
-                    line += f"\nIn progress with {worker}; finishes <t:{entry.finish_time}:R>."
-                else:
-                    line += f"\n{worker} has invalid upgrade data; contact a moderator."
-            lines.append(line)
-        description = (
-            f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\n\n"
-            + "\n\n".join(lines)
-        ) if total else "All required upgrades are complete. You can upgrade your Town Hall once you have the resources and a free Builder."
+        description = heading + "\n\n".join(chunk) if total else "All required upgrades are complete. You can upgrade your Town Hall once you have the resources and a free Builder."
         embed = discord.Embed(title="Remaining Town Hall upgrades", description=description, color=discord.Color.blue())
         embed.set_footer(text=f"Page {number}/{len(chunks)} · Use /remaining again to refresh")
         pages.append(embed)
@@ -2849,7 +2719,7 @@ async def help_slash(
     commands = [
         ("chest", "Opens a Treasure Chest using your Town Hall loot table."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
-        ("upgrade", "Starts or instantly applies an eligible item upgrade."),
+        ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
         ("refresh_upgrades", "Applies finished upgrades and shows active upgrade slots."),
         ("remaining", "Lists remaining Town Hall requirements with page controls."),
         ("cancel_upgrade", "Cancels an active item or slot and refunds half its cost."),
