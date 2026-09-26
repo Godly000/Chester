@@ -7,6 +7,7 @@ Want to see how your Buliders and Researchers are doing? "/profile upgrade" show
 How upgraded is your village? Use "/profile [Category name] Level" to find out!
 Which Cosmetics and Hero Equipments you own, and which are you still looking for? Check it with "/profile [Category name]".
 Nowhere to spend your hard-earned resources? Upgrade some buildings using the "/upgrade [Category name] [Item name]" command.
+If you want to check how much an upgrade costs or how long it takes, use the "/upgradeinfo" command.
 Want to upgrade your Town Hall? Use the "/remaining" command to check which upgrades are left.
 Started the wrong upgrade? Use the "/cancel" command to get half of your resources back.
 Don't leave your Collectors, Mines, and Drills full! "/collect_loot" will generate passive resources for you.
