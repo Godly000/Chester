@@ -14,6 +14,7 @@ from image_proxy import proxy_image_url
 GEM_BOX_TIMEOUT_SECONDS = 60
 GEM_BOX_MIN_GEMS = 25
 GEM_BOX_MAX_GEMS = 50
+GEM_BOX_SUCCESS_STAT = "Goblin Builders Defeated"
 GEM_BOX_IMAGES = (
     ("Top Right", "https://i.imgur.com/2hV7gTP.png"),
     ("Top Left", "https://i.imgur.com/yqbcCrb.png"),
@@ -70,6 +71,8 @@ class GemBoxSystem:
     def award(self, user_id):
         rolled = self.rng.randint(GEM_BOX_MIN_GEMS, GEM_BOX_MAX_GEMS)
         with self.store.transaction(user_id) as (village, collection):
+            field = self.store.village_by_name[GEM_BOX_SUCCESS_STAT]
+            village[GEM_BOX_SUCCESS_STAT] = self.store._bounded_add(village[GEM_BOX_SUCCESS_STAT], 1, field.data_type)
             before = village["Gems"]
             field = self.store.village_by_name["Gems"]
             village["Gems"] = self.store._bounded_add(before, rolled, field.data_type)
