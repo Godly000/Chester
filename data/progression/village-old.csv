@@ -121,10 +121,6 @@ Researcher #2 Cost,Upgrade,integer
 Researcher #3 Currency,Upgrade,byte
 Researcher #3 Cost,Upgrade,integer
 Town Hall,Important,byte
-Town Hall 12 Weapon,Defense Level,byte
-Town Hall 13 Weapon,Defense Level,byte
-Town Hall 14 Weapon,Defense Level,byte
-Town Hall 15 Weapon,Defense Level,byte
 Town Hall 17 Weapon,Defense Level,byte
 Smasher,Defense Level,byte
 Longshot,Defense Level,byte
