@@ -26,6 +26,7 @@ Obstacles cleared,Statistic,short
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
+Goblin Builders Defeated,Statistic,short
 Last Resource Check,Statistic,integer
 Last Obstacle Check,Statistic,integer
 Mushroom,Obstacle,byte
