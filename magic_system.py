@@ -17,7 +17,8 @@ WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Her
 def remaining_after_magic(remaining, strength):
     remaining = max(0, remaining)
     if 3600 <= strength < 172800 and remaining < strength + 3600:
-        return (remaining * 3600 + strength - 1) // strength
+        factor_seconds = strength + 3600
+        return (remaining * 3600 + factor_seconds - 1) // factor_seconds
     return max(0, remaining - strength)
 
 
