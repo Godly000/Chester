@@ -20,14 +20,17 @@ TH17 Inferno Artillery 3,604800,12000000,Gold,https://static.wikia.nocookie.net/
 TH17 Inferno Artillery 4,691200,14000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Inferno_Artillery4.png
 TH17 Inferno Artillery 5,864000,18000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Inferno_Artillery5.png
 Town Hall 18,1036800,25000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/7/76/Town_Hall18.png
+Smasher 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardians_Smasher_info2.png
 Smasher 2,604800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardians_Smasher_info2.png
 Smasher 3,777600,22000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardians_Smasher_info2.png
 Smasher 4,950400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardians_Smasher_info2.png
 Smasher 5,1123200,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardians_Smasher_info2.png
+Longshot 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Guardians_Longshot_info2.png
 Longshot 2,604800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Guardians_Longshot_info2.png
 Longshot 3,777600,22000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Guardians_Longshot_info2.png
 Longshot 4,950400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Guardians_Longshot_info2.png
 Longshot 5,1123200,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Guardians_Longshot_info2.png
+Logger 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/03/Guardians_Logger_info2.png
 Logger 2,604800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/03/Guardians_Logger_info2.png
 Logger 3,777600,22000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/03/Guardians_Logger_info2.png
 Logger 4,950400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/03/Guardians_Logger_info2.png
@@ -265,91 +268,100 @@ Super Wizard Tower 1,1123200,29000000,Gold,https://static.wikia.nocookie.net/cla
 Super Wizard Tower 2,1209600,30000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/98/Super_Wizard_Tower2.png
 Super Wizard Tower 3,518400,12000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/98/Super_Wizard_Tower2.png
 Super Wizard Tower 4,604800,14000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/98/Super_Wizard_Tower2.png
-Crafted Defense AA1,21600,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA2,28800,4500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA3,36000,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA4,43200,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA5,64800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA6,154800,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA7,288000,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA8,496800,11500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AA9,734400,13000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB1,28800,4000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB2,36000,5000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB3,39600,6000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB4,46800,7500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB5,68400,9000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB6,165600,10500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB7,298800,12000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB8,532800,13500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AB9,864000,15000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC1,14400,30000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC2,21600,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC3,28800,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC4,36000,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC5,57600,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC6,144000,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC7,266400,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC8,453600,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense AC9,777600,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
-Crafted Defense BA1,14400,3000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA2,21600,4000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA3,28800,5000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA4,36000,6000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA5,57600,7000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA6,144000,8000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA7,266400,9000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA8,453600,10000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BA9,777600,11000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB1,21600,35000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB2,28800,45000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB3,36000,55000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB4,43200,65000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB5,64800,75000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB6,154800,85000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB7,288000,95000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB8,496800,105000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BB9,820800,115000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC1,28800,4000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC2,36000,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC3,39600,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC4,46800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC5,68400,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC6,165600,10500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC7,298800,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC8,532800,13500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense BC9,864000,15000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
-Crafted Defense CA1,28800,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA2,36000,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA3,39600,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA4,46800,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA5,68400,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA6,165600,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA7,298800,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA8,532800,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CA9,864000,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB1,14400,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB2,21600,4000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB3,28800,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB4,36000,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB5,57600,7000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB6,144000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB7,266400,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB8,453600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CB9,777600,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC1,21600,3500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC2,28800,4500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC3,36000,5500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC4,43200,6500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC5,64800,7500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC6,154800,8500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC7,288000,10000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC8,496800,11500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
-Crafted Defense CC9,820800,13000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense AA1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA2,21600,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA3,28800,4500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA4,36000,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA5,43200,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA6,64800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA7,154800,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA8,288000,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA9,496800,11500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AA10,734400,13000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB1,0,0,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB2,28800,4000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB3,36000,5000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB4,39600,6000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB5,46800,7500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB6,68400,9000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB7,165600,10500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB8,298800,12000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB9,532800,13500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AB10,864000,15000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC2,14400,30000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC3,21600,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC4,28800,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC5,36000,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC6,57600,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC7,144000,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC8,266400,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC9,453600,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense AC10,777600,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hot_Candle4-1.png
+Crafted Defense BA1,0,0,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA2,14400,3000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA3,21600,4000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA4,28800,5000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA5,36000,6000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA6,57600,7000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA7,144000,8000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA8,266400,9000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA9,453600,10000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BA10,777600,11000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB2,21600,35000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB3,28800,45000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB4,36000,55000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB5,43200,65000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB6,64800,75000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB7,154800,85000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB8,288000,95000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB9,496800,105000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BB10,820800,115000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC2,28800,4000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC3,36000,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC4,39600,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC5,46800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC6,68400,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC7,165600,10500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC8,298800,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC9,532800,13500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense BC10,864000,15000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/97/Hero_Hunter4.png
+Crafted Defense CA1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA2,28800,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA3,36000,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA4,39600,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA5,46800,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA6,68400,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA7,165600,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA8,298800,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA9,532800,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CA10,864000,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB2,14400,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB3,21600,4000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB4,28800,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB5,36000,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB6,57600,7000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB7,144000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB8,266400,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB9,453600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CB10,777600,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC1,0,0,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC2,21600,3500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC3,28800,4500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC4,36000,5500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC5,43200,6500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC6,64800,7500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC7,154800,8500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC8,288000,10000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC9,496800,11500000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
+Crafted Defense CC10,820800,13000000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/ff/Cake-A-Pult4.png
 Wall 1,0,0,Gold,https://static.wikia.nocookie.net/clashofclans/images/7/74/Wall1.png
-Wall 2,0,1000,Both,https://static.wikia.nocookie.net/clashofclans/images/9/97/Wall2.png
-Wall 3,0,5000,Both,https://static.wikia.nocookie.net/clashofclans/images/f/f5/Wall3.png
-Wall 4,0,10000,Both,https://static.wikia.nocookie.net/clashofclans/images/6/62/Wall4.png
+Wall 2,0,1000,Gold,https://static.wikia.nocookie.net/clashofclans/images/9/97/Wall2.png
+Wall 3,0,5000,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/f5/Wall3.png
+Wall 4,0,10000,Gold,https://static.wikia.nocookie.net/clashofclans/images/6/62/Wall4.png
 Wall 5,0,20000,Both,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Wall5.png
 Wall 6,0,30000,Both,https://static.wikia.nocookie.net/clashofclans/images/c/c7/Wall6.png
 Wall 7,0,50000,Both,https://static.wikia.nocookie.net/clashofclans/images/b/be/Wall7.png
@@ -576,7 +588,7 @@ Barracks 16,648000,11000000,Elixir,https://static.wikia.nocookie.net/clashofclan
 Barracks 17,691200,12600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barracks17.png
 Barracks 18,777600,15000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/b/b5/Barracks18.png
 Barracks 19,907200,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/41/Barracks19.png
-Clan Castle 1,0,2500,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4f/Clan_Castle1.png
+Clan Castle 1,0,10000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4f/Clan_Castle1.png
 Clan Castle 2,7200,50000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/40/Clan_Castle2.png
 Clan Castle 3,43200,600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Clan_Castle3.png
 Clan Castle 4,86400,1200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/9c/Clan_Castle4.png
@@ -607,18 +619,17 @@ Laboratory 14,777600,13000000,Elixir,https://static.wikia.nocookie.net/clashofcl
 Laboratory 15,864000,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7a/Laboratory15.png
 Laboratory 16,1382400,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Laboratory16.png
 Hero Hall 1,3600,30000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/57/Hero_Hall1.png
-Hero Hall 2,86400,800000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/57/Hero_Hall1.png
-Hero Hall 3,172800,1600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/49/Hero_Hall2.png
-Hero Hall 4,259200,2300000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/48/Hero_Hall3.png
-Hero Hall 5,345600,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Hero_Hall4.png
-Hero Hall 6,388800,4500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3c/Hero_Hall5.png
-Hero Hall 7,432000,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/1b/Hero_Hall6.png
-Hero Hall 8,518400,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/6/6f/Hero_Hall7.png
-Hero Hall 9,561600,9500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/df/Hero_Hall8.png
-Hero Hall 10,604800,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4d/Hero_Hall9.png
-Hero Hall 11,691200,13000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hero_Hall10.png
-Hero Hall 12,777600,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/eb/Hero_Hall11.png
-Hero Hall 13,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ed/Hero_Hall12.png
+Hero Hall 2,172800,1600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/49/Hero_Hall2.png
+Hero Hall 3,259200,2300000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/48/Hero_Hall3.png
+Hero Hall 4,345600,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Hero_Hall4.png
+Hero Hall 5,388800,4500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/3c/Hero_Hall5.png
+Hero Hall 6,432000,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/1b/Hero_Hall6.png
+Hero Hall 7,518400,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/6/6f/Hero_Hall7.png
+Hero Hall 8,561600,9500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/df/Hero_Hall8.png
+Hero Hall 9,604800,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4d/Hero_Hall9.png
+Hero Hall 10,691200,13000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hero_Hall10.png
+Hero Hall 11,777600,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/eb/Hero_Hall11.png
+Hero Hall 12,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ed/Hero_Hall12.png
 Dark Barracks 1,28800,170000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f6/Dark_Barracks1.png
 Dark Barracks 2,86400,500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Dark_Barracks2.png
 Dark Barracks 3,129600,800000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f0/Dark_Barracks3.png
@@ -900,6 +911,7 @@ Archer Queen 107,691200,470000,DE,https://static.wikia.nocookie.net/clashofclans
 Archer Queen 108,691200,475000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4b/Archer_Queen_info.png
 Archer Queen 109,691200,485000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4b/Archer_Queen_info.png
 Archer Queen 110,691200,490000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4b/Archer_Queen_info.png
+Minion Prince 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/8/81/Minion_Prince_info.png
 Minion Prince 2,7200,5000,DE,https://static.wikia.nocookie.net/clashofclans/images/8/81/Minion_Prince_info.png
 Minion Prince 3,14400,5500,DE,https://static.wikia.nocookie.net/clashofclans/images/8/81/Minion_Prince_info.png
 Minion Prince 4,28800,6000,DE,https://static.wikia.nocookie.net/clashofclans/images/8/81/Minion_Prince_info.png
@@ -1134,6 +1146,32 @@ Royal Champion 52,691200,410000,DE,https://static.wikia.nocookie.net/clashofclan
 Royal Champion 53,691200,420000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/b0/Royal_Champion_info.png
 Royal Champion 54,691200,430000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/b0/Royal_Champion_info.png
 Royal Champion 55,691200,450000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/b0/Royal_Champion_info.png
+Dragon Duke 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 2,21600,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 3,43200,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 4,86400,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 5,86400,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 6,172800,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 7,172800,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 8,172800,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 9,259200,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 10,259200,130000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 11,345600,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 12,432000,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 13,432000,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 14,518400,225000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 15,518400,250000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 16,604800,275000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 17,604800,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 18,691200,325000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 19,691200,350000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 20,691200,375000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 21,691200,400000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 22,691200,420000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 23,691200,440000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 24,691200,460000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Dragon Duke 25,691200,480000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/2e/Dragon_Duke_info.png
+Barbarian 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
 Barbarian 2,1800,10000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
 Barbarian 3,3600,50000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
 Barbarian 4,7200,130000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
@@ -1146,6 +1184,7 @@ Barbarian 10,172800,4300000,Elixir,https://static.wikia.nocookie.net/clashofclan
 Barbarian 11,259200,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
 Barbarian 12,345600,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
 Barbarian 13,1080000,24000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/4e/Barbarian_info.png
+Archer 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
 Archer 2,3600,20000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
 Archer 3,7200,80000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
 Archer 4,10800,200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
@@ -1159,6 +1198,7 @@ Archer 11,345600,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/i
 Archer 12,388800,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
 Archer 13,777600,14000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
 Archer 14,1166400,25000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/29/Archer.png
+Giant 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
 Giant 2,7200,40000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
 Giant 3,14400,150000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
 Giant 4,21600,400000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
@@ -1172,6 +1212,7 @@ Giant 11,345600,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/im
 Giant 12,432000,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
 Giant 13,820800,15000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
 Giant 14,1166400,25000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/35/Giant_info.png
+Goblin 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
 Goblin 2,7200,45000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
 Goblin 3,10800,100000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
 Goblin 4,21600,500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
@@ -1181,6 +1222,7 @@ Goblin 7,129600,2200000,Elixir,https://static.wikia.nocookie.net/clashofclans/im
 Goblin 8,194400,3700000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
 Goblin 9,432000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
 Goblin 10,1209600,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fa/Goblin_info.png
+Wall Breaker 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
 Wall Breaker 2,10800,80000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
 Wall Breaker 3,14400,200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
 Wall Breaker 4,43200,450000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
@@ -1194,6 +1236,7 @@ Wall Breaker 11,475200,9500000,Elixir,https://static.wikia.nocookie.net/clashofc
 Wall Breaker 12,518400,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
 Wall Breaker 13,864000,15500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
 Wall Breaker 14,1209600,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/70/Wall_Breaker_info.png
+Balloon 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
 Balloon 2,14400,100000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
 Balloon 3,21600,400000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
 Balloon 4,64800,720000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
@@ -1206,6 +1249,7 @@ Balloon 10,604800,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans
 Balloon 11,734400,14000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
 Balloon 12,950400,17500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
 Balloon 13,1274400,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/2f/Balloon_info.png
+Wizard 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
 Wizard 2,14400,120000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
 Wizard 3,18000,300000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
 Wizard 4,43200,600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
@@ -1219,6 +1263,7 @@ Wizard 11,475200,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/
 Wizard 12,604800,11500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
 Wizard 13,907200,16000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
 Wizard 14,1209600,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Wizard_info.png
+Healer 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
 Healer 2,43200,450000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
 Healer 3,86400,900000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
 Healer 4,172800,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
@@ -1229,6 +1274,7 @@ Healer 8,604800,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/i
 Healer 9,626400,13000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
 Healer 10,950400,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
 Healer 11,1296000,28500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/ca/Healer_info.png
+Dragon 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
 Dragon 2,64800,1000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
 Dragon 3,129600,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
 Dragon 4,172800,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
@@ -1241,6 +1287,7 @@ Dragon 10,691200,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/
 Dragon 11,734400,14000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
 Dragon 12,864000,18500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
 Dragon 13,1296000,28500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Dragon_info.png
+P.E.K.K.A. 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
 P.E.K.K.A. 2,43200,600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
 P.E.K.K.A. 3,64800,1300000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
 P.E.K.K.A. 4,86400,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
@@ -1253,6 +1300,7 @@ P.E.K.K.A. 10,475200,10500000,Elixir,https://static.wikia.nocookie.net/clashofcl
 P.E.K.K.A. 11,604800,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
 P.E.K.K.A. 12,864000,16000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
 P.E.K.K.A. 13,1252800,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/54/P.E.K.K.A_info.png
+Baby Dragon 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
 Baby Dragon 2,86400,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
 Baby Dragon 3,129600,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
 Baby Dragon 4,172800,2800000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
@@ -1264,6 +1312,7 @@ Baby Dragon 9,604800,11000000,Elixir,https://static.wikia.nocookie.net/clashofcl
 Baby Dragon 10,626400,13500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
 Baby Dragon 11,864000,16500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
 Baby Dragon 12,1317600,29000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/44/Baby_Dragon_info.png
+Miner 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
 Miner 2,86400,1500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
 Miner 3,172800,2600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
 Miner 4,194400,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
@@ -1275,6 +1324,7 @@ Miner 9,561600,10500000,Elixir,https://static.wikia.nocookie.net/clashofclans/im
 Miner 10,604800,12500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
 Miner 11,820800,16500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
 Miner 12,1252800,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/56/Miner_info.png
+Electro Dragon 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
 Electro Dragon 2,345600,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
 Electro Dragon 3,388800,7000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
 Electro Dragon 4,604800,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
@@ -1283,6 +1333,7 @@ Electro Dragon 6,734400,14000000,Elixir,https://static.wikia.nocookie.net/clasho
 Electro Dragon 7,777600,16000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
 Electro Dragon 8,864000,20000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
 Electro Dragon 9,1382400,30000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/00/Electro_Dragon_info.png
+Yeti 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
 Yeti 2,259200,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
 Yeti 3,388800,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
 Yeti 4,604800,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
@@ -1290,23 +1341,29 @@ Yeti 5,648000,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/ima
 Yeti 6,712800,14500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
 Yeti 7,864000,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
 Yeti 8,1339200,27500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e2/Yeti_info.png
+Dragon Rider 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
 Dragon Rider 2,518400,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
 Dragon Rider 3,691200,12000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
 Dragon Rider 4,820800,14500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
 Dragon Rider 5,950400,22500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
 Dragon Rider 6,1339200,29500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e0/Dragon_Rider_info.png
+Electro Titan 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Electro_Titan_info.png
 Electro Titan 2,691200,14000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Electro_Titan_info.png
 Electro Titan 3,777600,16000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Electro_Titan_info.png
 Electro Titan 4,1036800,18500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Electro_Titan_info.png
 Electro Titan 5,1382400,30000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/1/14/Electro_Titan_info.png
+Root Rider 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7b/Root_Rider_info.png
 Root Rider 2,691200,15000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7b/Root_Rider_info.png
 Root Rider 3,864000,17600000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7b/Root_Rider_info.png
 Root Rider 4,1382400,30000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7b/Root_Rider_info.png
+Thrower 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/07/Thrower_info.png
 Thrower 2,820800,16000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/07/Thrower_info.png
 Thrower 3,907200,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/07/Thrower_info.png
 Thrower 4,1296000,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/0/07/Thrower_info.png
+Meteor Golem 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/21/Meteor_Golem_info.png
 Meteor Golem 2,1209600,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/21/Meteor_Golem_info.png
 Meteor Golem 3,1382400,30000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/21/Meteor_Golem_info.png
+Minion 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
 Minion 2,21600,1000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
 Minion 3,28800,2500,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
 Minion 4,43200,5000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
@@ -1320,6 +1377,7 @@ Minion 11,388800,115000,DE,https://static.wikia.nocookie.net/clashofclans/images
 Minion 12,432000,160000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
 Minion 13,777600,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
 Minion 14,1209600,335000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Minion_info.png
+Hog Rider 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
 Hog Rider 2,36000,2000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
 Hog Rider 3,64800,3500,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
 Hog Rider 4,86400,5000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
@@ -1334,6 +1392,7 @@ Hog Rider 12,475200,125000,DE,https://static.wikia.nocookie.net/clashofclans/ima
 Hog Rider 13,561600,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
 Hog Rider 14,864000,240000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
 Hog Rider 15,1252800,340000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/54/Hog_Rider_info.png
+Valkyrie 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
 Valkyrie 2,28800,3000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
 Valkyrie 3,86400,5000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
 Valkyrie 4,129600,10000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
@@ -1345,6 +1404,7 @@ Valkyrie 9,388800,105000,DE,https://static.wikia.nocookie.net/clashofclans/image
 Valkyrie 10,432000,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
 Valkyrie 11,518400,170000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
 Valkyrie 12,1209600,340000,DE,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Valkyrie_info.png
+Golem 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
 Golem 2,57600,4000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
 Golem 3,129600,6000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
 Golem 4,172800,10000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
@@ -1359,6 +1419,7 @@ Golem 12,475200,122500,DE,https://static.wikia.nocookie.net/clashofclans/images/
 Golem 13,518400,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
 Golem 14,864000,230000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
 Golem 15,1252800,350000,DE,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Golem_info.png
+Witch 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Witch 2,172800,20000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
 Witch 3,259200,29000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
 Witch 4,302400,45000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
@@ -1366,6 +1427,7 @@ Witch 5,345600,62500,DE,https://static.wikia.nocookie.net/clashofclans/images/4/
 Witch 6,475200,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
 Witch 7,626400,180000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
 Witch 8,1339200,335000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/4a/Witch_info.png
+Lava Hound 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Lava Hound 2,172800,14000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Lava Hound 3,216000,21500,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Lava Hound 4,259200,42500,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
@@ -1373,6 +1435,7 @@ Lava Hound 5,345600,60000,DE,https://static.wikia.nocookie.net/clashofclans/imag
 Lava Hound 6,604800,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Lava Hound 7,691200,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
 Lava Hound 8,1317600,345000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0a/Lava_Hound_info.png
+Bowler 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
 Bowler 2,172800,32500,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
 Bowler 3,216000,44000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
 Bowler 4,259200,62500,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
@@ -1382,6 +1445,7 @@ Bowler 7,604800,145000,DE,https://static.wikia.nocookie.net/clashofclans/images/
 Bowler 8,648000,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
 Bowler 9,864000,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
 Bowler 10,1296000,360000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/da/Bowler_info.png
+Ice Golem 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
 Ice Golem 2,172800,27500,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
 Ice Golem 3,216000,42500,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
 Ice Golem 4,280800,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
@@ -1391,22 +1455,28 @@ Ice Golem 7,648000,140000,DE,https://static.wikia.nocookie.net/clashofclans/imag
 Ice Golem 8,691200,180000,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
 Ice Golem 9,914400,280000,DE,https://static.wikia.nocookie.net/clashofclans/images/1/14/Ice_Golem_info.png
 Headhunter 2,432000,57500,DE,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Headhunter_info.png
+Headhunter 2,432000,57500,DE,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Headhunter_info.png
 Headhunter 3,604800,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Headhunter_info.png
 Headhunter 4,1339200,370000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Headhunter_info.png
+Apprentice Warden 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/2/27/Apprentice_Warden_info.png
 Apprentice Warden 2,518400,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/27/Apprentice_Warden_info.png
 Apprentice Warden 3,648000,135000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/27/Apprentice_Warden_info.png
 Apprentice Warden 4,691200,160000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/27/Apprentice_Warden_info.png
+Druid 2,691200,125000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
 Druid 2,691200,125000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
 Druid 3,777600,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
 Druid 4,950400,187500,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
 Druid 5,1036800,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
 Druid 6,1339200,380000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9a/Druid_info.png
+Furnace 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Furnace_info.png
 Furnace 2,777600,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Furnace_info.png
 Furnace 3,950400,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Furnace_info.png
 Furnace 4,1296000,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Furnace_info.png
+Ruin Witch 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Ruin_Witch_info.png
 Ruin Witch 2,950400,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Ruin_Witch_info.png
 Ruin Witch 3,1036800,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Ruin_Witch_info.png
 Ruin Witch 4,1339200,380000,DE,https://static.wikia.nocookie.net/clashofclans/images/2/23/Ruin_Witch_info.png
+Lightning Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
 Lightning Spell 2,7200,50000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
 Lightning Spell 3,14400,100000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
 Lightning Spell 4,21600,200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
@@ -1419,6 +1489,7 @@ Lightning Spell 10,518400,10000000,Elixir,https://static.wikia.nocookie.net/clas
 Lightning Spell 11,604800,13500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
 Lightning Spell 12,864000,18500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
 Lightning Spell 13,1209600,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c0/Lightning_Spell_info.png
+Healing Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
 Healing Spell 2,10800,75000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
 Healing Spell 3,21600,150000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
 Healing Spell 4,43200,300000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
@@ -1430,16 +1501,19 @@ Healing Spell 9,561600,11000000,Elixir,https://static.wikia.nocookie.net/clashof
 Healing Spell 10,604800,14000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
 Healing Spell 11,907200,19000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
 Healing Spell 12,1296000,29000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f2/Healing_Spell_info.png
+Rage Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 2,21600,400000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 3,43200,800000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 4,86400,1000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 5,172800,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 6,345600,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
 Rage Spell 7,1209600,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/8a/Rage_Spell_info.png
+Jump Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/38/Jump_Spell_info.png
 Jump Spell 2,86400,1000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/38/Jump_Spell_info.png
 Jump Spell 3,172800,2000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/38/Jump_Spell_info.png
 Jump Spell 4,345600,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/38/Jump_Spell_info.png
 Jump Spell 5,432000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/3/38/Jump_Spell_info.png
+Freeze Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
 Freeze Spell 2,86400,1200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
 Freeze Spell 3,129600,1700000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
 Freeze Spell 4,172800,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
@@ -1447,6 +1521,7 @@ Freeze Spell 5,216000,4200000,Elixir,https://static.wikia.nocookie.net/clashofcl
 Freeze Spell 6,302400,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
 Freeze Spell 7,432000,7000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
 Freeze Spell 8,1339200,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/ef/Freeze_Spell_info.png
+Clone Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
 Clone Spell 2,86400,1500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
 Clone Spell 3,172800,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
 Clone Spell 4,194400,3000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
@@ -1455,9 +1530,11 @@ Clone Spell 6,345600,5000000,Elixir,https://static.wikia.nocookie.net/clashofcla
 Clone Spell 7,432000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
 Clone Spell 8,604800,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
 Clone Spell 9,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/9/91/Clone_Spell_info.png
+Invisibility Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/a/a3/Invisibility_Spell_info.png
 Invisibility Spell 2,259200,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/a/a3/Invisibility_Spell_info.png
 Invisibility Spell 3,345600,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/a/a3/Invisibility_Spell_info.png
 Invisibility Spell 4,432000,7000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/a/a3/Invisibility_Spell_info.png
+Recall Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
 Recall Spell 2,604800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
 Recall Spell 3,648000,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
 Recall Spell 4,691200,9000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
@@ -1465,12 +1542,15 @@ Recall Spell 5,777600,13000000,Elixir,https://static.wikia.nocookie.net/clashofc
 Recall Spell 6,950400,19000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
 Recall Spell 7,1382400,29000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Recall_Spell_info.png
 Revive Spell 2,604800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Revive_Spell_info.png
+Revive Spell 2,604800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Revive_Spell_info.png
 Revive Spell 3,691200,19000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Revive_Spell_info.png
 Revive Spell 4,993600,20000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Revive_Spell_info.png
 Revive Spell 5,1382400,29500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Revive_Spell_info.png
+Totem Spell 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Totem_Spell_info.png
 Totem Spell 2,1036800,21000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Totem_Spell_info.png
 Totem Spell 3,1209600,22000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Totem_Spell_info.png
 Totem Spell 4,1382400,23000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Totem_Spell_info.png
+Poison Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
 Poison Spell 2,21600,5000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
 Poison Spell 3,64800,10000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
 Poison Spell 4,172800,21500,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
@@ -1482,6 +1562,7 @@ Poison Spell 9,604800,135000,DE,https://static.wikia.nocookie.net/clashofclans/i
 Poison Spell 10,691200,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
 Poison Spell 11,835200,230000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
 Poison Spell 12,1252800,350000,DE,https://static.wikia.nocookie.net/clashofclans/images/4/49/Poison_Spell_info.png
+Earthquake Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
 Earthquake Spell 2,43200,6000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
 Earthquake Spell 3,86400,12000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
 Earthquake Spell 4,259200,25500,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
@@ -1489,12 +1570,14 @@ Earthquake Spell 5,302400,42000,DE,https://static.wikia.nocookie.net/clashofclan
 Earthquake Spell 6,691200,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
 Earthquake Spell 7,777600,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
 Earthquake Spell 8,1166400,330000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3f/Earthquake_Spell_info.png
+Haste Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 2,86400,8000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 3,172800,17000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 4,259200,30000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 5,345600,38500,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 6,777600,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
 Haste Spell 7,1080000,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/b/be/Haste_Spell_info.png
+Skeleton Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
 Skeleton Spell 2,43200,11000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
 Skeleton Spell 3,86400,17000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
 Skeleton Spell 4,172800,25000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
@@ -1502,6 +1585,7 @@ Skeleton Spell 5,216000,40000,DE,https://static.wikia.nocookie.net/clashofclans/
 Skeleton Spell 6,259200,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
 Skeleton Spell 7,345600,75000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
 Skeleton Spell 8,518400,135000,DE,https://static.wikia.nocookie.net/clashofclans/images/0/0f/Skeleton_Spell_info.png
+Bat Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
 Bat Spell 2,64800,13000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
 Bat Spell 3,129600,25500,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
 Bat Spell 4,194400,35000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
@@ -1509,58 +1593,71 @@ Bat Spell 5,345600,47500,DE,https://static.wikia.nocookie.net/clashofclans/image
 Bat Spell 6,604800,140000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
 Bat Spell 7,734400,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
 Bat Spell 8,1123200,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/3/3d/Bat_Spell_info.png
+Overgrowth Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a6/Overgrowth_Spell_info.png
 Overgrowth Spell 2,432000,62500,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a6/Overgrowth_Spell_info.png
 Overgrowth Spell 3,734400,125000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a6/Overgrowth_Spell_info.png
 Overgrowth Spell 4,864000,175000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a6/Overgrowth_Spell_info.png
 Overgrowth Spell 5,1382400,360000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a6/Overgrowth_Spell_info.png
+Ice Block Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
 Ice Block Spell 2,864000,140000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
 Ice Block Spell 3,950400,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
 Ice Block Spell 4,1036800,280000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
 Ice Block Spell 5,1209600,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
 Ice Block Spell 6,1382400,380000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/66/Ice_Block_Spell_info.png
+Angry Spell 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/92/Angry_Spell_info.png
 Angry Spell 2,806400,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/92/Angry_Spell_info.png
 Angry Spell 3,1036800,250000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/92/Angry_Spell_info.png
 Angry Spell 4,1296000,400000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/92/Angry_Spell_info.png
+Wall Wrecker 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
 Wall Wrecker 2,172800,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
 Wall Wrecker 3,259200,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
 Wall Wrecker 4,604800,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
 Wall Wrecker 5,777600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
 Wall Wrecker 6,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/7f/Wall_Wrecker_info.png
+Battle Blimp 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
 Battle Blimp 2,172800,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
 Battle Blimp 3,259200,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
 Battle Blimp 4,604800,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
 Battle Blimp 5,777600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
 Battle Blimp 6,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/4/43/Battle_Blimp_info.png
+Stone Slammer 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
 Stone Slammer 2,172800,2500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
 Stone Slammer 3,259200,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
 Stone Slammer 4,604800,6500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
 Stone Slammer 5,777600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
 Stone Slammer 6,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f8/Stone_Slammer_info.png
+Siege Barracks 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
 Siege Barracks 2,259200,3500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
 Siege Barracks 3,345600,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
 Siege Barracks 4,604800,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
 Siege Barracks 5,1036800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
 Siege Barracks 6,1296000,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/d/d1/Siege_Barracks_info.png
+Log Launcher 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Log Launcher 2,259200,3200000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Log Launcher 3,345600,4500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Log Launcher 4,604800,7500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Log Launcher 5,1036800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Log Launcher 6,1296000,27000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/27/Log_Launcher_info.png
 Flame Flinger 2,259200,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f4/Flame_Flinger_info.png
+Flame Flinger 2,259200,5500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f4/Flame_Flinger_info.png
 Flame Flinger 3,345600,8000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f4/Flame_Flinger_info.png
 Flame Flinger 4,604800,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f4/Flame_Flinger_info.png
 Flame Flinger 5,1036800,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/f4/Flame_Flinger_info.png
+Battle Drill 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
 Battle Drill 2,345600,6000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
 Battle Drill 3,432000,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
 Battle Drill 4,691200,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
 Battle Drill 5,777600,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
 Battle Drill 6,1339200,28000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c4/Battle_Drill_info.png
+Troop Launcher 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Troop_Launcher_info.png
 Troop Launcher 2,518400,8500000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Troop_Launcher_info.png
 Troop Launcher 3,777600,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Troop_Launcher_info.png
 Troop Launcher 4,777600,17000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/c/c2/Troop_Launcher_info.png
+Sky Wagon 1,0,0,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Sky_Wagon_info.png
 Sky Wagon 2,864000,22000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Sky_Wagon_info.png
 Sky Wagon 3,1166400,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Sky_Wagon_info.png
 Sky Wagon 4,1382400,29000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Sky_Wagon_info.png
+L.A.S.S.I. 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
 L.A.S.S.I. 2,86400,20000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
 L.A.S.S.I. 3,129600,30000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
 L.A.S.S.I. 4,172800,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
@@ -1575,6 +1672,7 @@ L.A.S.S.I. 12,518400,120000,DE,https://static.wikia.nocookie.net/clashofclans/im
 L.A.S.S.I. 13,561600,130000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
 L.A.S.S.I. 14,604800,140000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
 L.A.S.S.I. 15,648000,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/e/eb/L.A.S.S.I_info.png
+Electric Owl 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
 Electric Owl 2,129600,30000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
 Electric Owl 3,172800,45000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
 Electric Owl 4,259200,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
@@ -1589,6 +1687,7 @@ Electric Owl 12,691200,180000,DE,https://static.wikia.nocookie.net/clashofclans/
 Electric Owl 13,691200,195000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
 Electric Owl 14,691200,210000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
 Electric Owl 15,691200,225000,DE,https://static.wikia.nocookie.net/clashofclans/images/a/a1/Electro_Owl_info.png
+Yak 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
 Yak 2,86400,40000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
 Yak 3,129600,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
 Yak 4,172800,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
@@ -1603,6 +1702,7 @@ Yak 12,518400,140000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/
 Yak 13,561600,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
 Yak 14,604800,160000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
 Yak 15,648000,170000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/58/Mighty_Yak_info.png
+Unicorn 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
 Unicorn 2,129600,50000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
 Unicorn 3,172800,65000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
 Unicorn 4,259200,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
@@ -1617,6 +1717,7 @@ Unicorn 12,691200,230000,DE,https://static.wikia.nocookie.net/clashofclans/image
 Unicorn 13,691200,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
 Unicorn 14,691200,290000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
 Unicorn 15,691200,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d2/Unicorn_info.png
+Frosty 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
 Frosty 2,129600,70000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
 Frosty 3,172800,85000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
 Frosty 4,259200,100000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
@@ -1631,6 +1732,7 @@ Frosty 12,691200,230000,DE,https://static.wikia.nocookie.net/clashofclans/images
 Frosty 13,691200,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
 Frosty 14,691200,290000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
 Frosty 15,691200,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/91/Frosty_info.png
+Diggy 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
 Diggy 2,129600,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
 Diggy 3,172800,105000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
 Diggy 4,259200,120000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
@@ -1645,6 +1747,7 @@ Diggy 12,648000,250000,DE,https://static.wikia.nocookie.net/clashofclans/images/
 Diggy 13,691200,280000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
 Diggy 14,691200,310000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
 Diggy 15,691200,350000,DE,https://static.wikia.nocookie.net/clashofclans/images/5/5c/Diggy_info.png
+Poison Lizard 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
 Poison Lizard 2,86400,60000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
 Poison Lizard 3,129600,75000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
 Poison Lizard 4,172800,90000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
@@ -1659,6 +1762,7 @@ Poison Lizard 12,604800,200000,DE,https://static.wikia.nocookie.net/clashofclans
 Poison Lizard 13,691200,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
 Poison Lizard 14,691200,240000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
 Poison Lizard 15,691200,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/6/6e/Poison_Lizard_info.png
+Phoenix 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
 Phoenix 2,129600,80000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
 Phoenix 3,172800,95000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
 Phoenix 4,259200,110000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
@@ -1668,6 +1772,7 @@ Phoenix 7,432000,155000,DE,https://static.wikia.nocookie.net/clashofclans/images
 Phoenix 8,475200,170000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
 Phoenix 9,518400,180000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
 Phoenix 10,561600,190000,DE,https://static.wikia.nocookie.net/clashofclans/images/d/d5/Phoenix_info.png
+Spirit Fox 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
 Spirit Fox 2,259200,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
 Spirit Fox 3,345600,160000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
 Spirit Fox 4,432000,170000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
@@ -1677,6 +1782,7 @@ Spirit Fox 7,561600,200000,DE,https://static.wikia.nocookie.net/clashofclans/ima
 Spirit Fox 8,604800,210000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
 Spirit Fox 9,648000,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
 Spirit Fox 10,691200,230000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/98/Spirit_Fox_info.png
+Angry Jelly 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
 Angry Jelly 2,259200,150000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
 Angry Jelly 3,345600,160000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
 Angry Jelly 4,432000,170000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
@@ -1686,6 +1792,7 @@ Angry Jelly 7,691200,200000,DE,https://static.wikia.nocookie.net/clashofclans/im
 Angry Jelly 8,691200,210000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
 Angry Jelly 9,691200,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
 Angry Jelly 10,691200,230000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/96/Angry_Jelly_info.png
+Sneezy 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
 Sneezy 2,691200,200000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
 Sneezy 3,691200,220000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
 Sneezy 4,691200,240000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
@@ -1695,6 +1802,7 @@ Sneezy 7,691200,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/
 Sneezy 8,691200,320000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
 Sneezy 9,691200,340000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
 Sneezy 10,691200,360000,DE,https://static.wikia.nocookie.net/clashofclans/images/f/f7/Sneezy_info.png
+Greedy Raven 1,0,0,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9b/Greedy_Raven_info.png
 Greedy Raven 2,691200,260000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9b/Greedy_Raven_info.png
 Greedy Raven 3,691200,280000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9b/Greedy_Raven_info.png
 Greedy Raven 4,691200,300000,DE,https://static.wikia.nocookie.net/clashofclans/images/9/9b/Greedy_Raven_info.png
