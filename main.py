@@ -86,6 +86,39 @@ from upgrade_system import (
     TownHallUpgradeBlocked,
 )
 
+def _manual_env_fallback(path: Path) -> None:
+    """
+    Last-resort .env parser, used only if python-dotenv didn't pick
+    anything up (e.g. due to encoding quirks like a UTF-16/BOM save
+    from some text editors, or python-dotenv not being installed).
+    Sets plain KEY=VALUE lines into os.environ if not already set.
+    """
+    if not path.exists():
+        return
+    try:
+        raw = path.read_bytes()
+        # Strip a UTF-8 BOM if present, and try to decode generously.
+        for encoding in ("utf-8-sig", "utf-8", "utf-16"):
+            try:
+                text = raw.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            return
+        for line in text.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception as e:
+        log.warning("Manual .env fallback parse failed: %s", e)
+
+
 # ---------------------------------------------------------------------------
 # Configuration / constants
 # ---------------------------------------------------------------------------
@@ -106,6 +139,16 @@ SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
 TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
+DECORATION_GEM_COST = 500
+CLAN_CAPITAL_HOUSE_GEM_COST = 500
+EPIC_EQUIPMENT_GEM_COST = 1500
+HERO_SKIN_GEM_COST = 1500
+COLLECTION_SHOP_COSTS = {
+    "Decoration": DECORATION_GEM_COST,
+    "Clan Capital House Part": CLAN_CAPITAL_HOUSE_GEM_COST,
+    "Hero Equipment": EPIC_EQUIPMENT_GEM_COST,
+    "Hero Skin": HERO_SKIN_GEM_COST,
+}
 TOWN_HALL_PROFILE_IMAGES = {
     1: 'https://static.wikia.nocookie.net/clashofclans/images/f/fd/Town_Hall1.png',
     2: 'https://static.wikia.nocookie.net/clashofclans/images/7/7d/Town_Hall2.png',
@@ -166,6 +209,28 @@ RARITY_COLORS = {
     "legendary": discord.Color.gold(),
 }
 
+COLLECTION_REWARD_CATEGORIES = {
+    "Capital House": "Clan Capital House Part",
+    "Decoration": "Decoration",
+    "Hero Equipment": "Hero Equipment",
+    "Hero Skin": "Hero Skin",
+}
+
+OBSTACLE_IMAGES = {
+    "Mushroom": "https://static.wikia.nocookie.net/clashofclans/images/2/20/Mushroom_Normal.png",
+    "Bush": "https://static.wikia.nocookie.net/clashofclans/images/3/39/Bush_Normal.png",
+    "Trunk": "https://static.wikia.nocookie.net/clashofclans/images/b/b6/Trunk1_Normal.png",
+    "Small Tree": "https://static.wikia.nocookie.net/clashofclans/images/f/fc/Tree1_Normal.png",
+    "Medium Tree": "https://static.wikia.nocookie.net/clashofclans/images/b/b2/Tree2_Normal.png",
+    "Large Tree": "https://static.wikia.nocookie.net/clashofclans/images/1/1c/Tree3_Normal.png",
+    "Small Stone": "https://static.wikia.nocookie.net/clashofclans/images/b/b0/Stone1_Normal.png",
+    "Pebbles": "https://static.wikia.nocookie.net/clashofclans/images/b/bf/Stone2_Normal.png",
+    "Small Rock": "https://static.wikia.nocookie.net/clashofclans/images/5/51/Stone4_Normal.png",
+    "Tall Stone": "https://static.wikia.nocookie.net/clashofclans/images/8/82/Stone5_Normal.png",
+    "Big Rock": "https://static.wikia.nocookie.net/clashofclans/images/0/06/Stone6_Normal.png"
+}
+
+
 # Load .env from the same folder as this script, regardless of the
 # working directory the process was launched from (panels sometimes
 # launch from a different cwd than the file's location).
@@ -177,37 +242,6 @@ except UnicodeDecodeError:
     pass
 
 
-def _manual_env_fallback(path: Path) -> None:
-    """
-    Last-resort .env parser, used only if python-dotenv didn't pick
-    anything up (e.g. due to encoding quirks like a UTF-16/BOM save
-    from some text editors, or python-dotenv not being installed).
-    Sets plain KEY=VALUE lines into os.environ if not already set.
-    """
-    if not path.exists():
-        return
-    try:
-        raw = path.read_bytes()
-        # Strip a UTF-8 BOM if present, and try to decode generously.
-        for encoding in ("utf-8-sig", "utf-8", "utf-16"):
-            try:
-                text = raw.decode(encoding)
-                break
-            except UnicodeDecodeError:
-                continue
-        else:
-            return
-        for line in text.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
-                os.environ[key] = value
-    except Exception as e:
-        log.warning("Manual .env fallback parse failed: %s", e)
 
 
 if not any(os.getenv(k) for k in _TOKEN_ENV_KEYS):
@@ -584,12 +618,6 @@ def load_town_hall_loot_tables() -> Dict[int, Dict[str, Category]]:
     return loot_tables
 
 
-COLLECTION_REWARD_CATEGORIES = {
-    "Capital House": "Clan Capital House Part",
-    "Decoration": "Decoration",
-    "Hero Equipment": "Hero Equipment",
-    "Hero Skin": "Hero Skin",
-}
 
 
 def resolve_item_display(item: LootItem) -> ResolvedLoot:
@@ -660,7 +688,12 @@ def weighted_choice(names: List[str], weights: List[float]) -> str:
 
 def _unique_reward_options(item, village, collection):
     def available(name):
-        return name in collection and not collection[name] and village.get(name, 0) == 0
+        field = save_store.collection_by_name.get(name)
+        return (
+            name in collection and not collection[name] and village.get(name, 0) == 0
+            and field is not None
+            and (field.category != "Hero Equipment" or upgrade_system.can_unlock_equipment(name, village))
+        )
 
     if item.name in collection:
         field = save_store.collection_by_name[item.name]
@@ -1609,27 +1642,30 @@ def _build_batch_upgrade_entries(outcomes):
 
 
 def _upgrade_image_url(item, target_level):
-    base = upgrade_system._base_name(item)
-    field = save_store.collection_by_name.get(base)
-    if field is not None and field.category == "Hero Equipment":
-        for directory in (DATA_DIR, PROGRESSION_DIR, TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"):
-            path = _find_data_csv("equipment", directory, warn_missing=False)
-            if path is None:
-                continue
-            with path.open(newline="", encoding="utf-8-sig") as image_file:
-                rows = [row for row in csv.reader(image_file) if any(cell.strip() for cell in row)]
-            if not rows:
-                return ""
-            header = [column.strip().casefold() for column in rows[0]]
-            name_index = next((header.index(key) for key in ("name", "item") if key in header), 0)
-            image_index = next((header.index(key) for key in ("image", "image_url", "image link") if key in header), 1)
-            for row in rows:
-                if len(row) > max(name_index, image_index) and row[name_index].strip().casefold() == base.casefold():
-                    url = row[image_index].strip()
-                    match = re.search(r"\.png", url, re.IGNORECASE)
-                    return url[:match.end()] if match else url
-            return ""
-        log.warning("Epic Equipment image file equipment.csv was not found")
+    base = upgrade_system._base_name(item).strip()
+    equipment_names = {
+        field.name.casefold(): field.name
+        for field in save_store.village_by_name.values()
+        if field.category == "Equipment Level"
+    }
+    equipment_name = equipment_names.get(base.casefold())
+    if equipment_name is None:
+        without_level = re.sub(r"\s+(?:[—–-]\s*)?(?:level\s+)?\d+\s*$", "", base, flags=re.IGNORECASE)
+        equipment_name = equipment_names.get(without_level.casefold())
+    if equipment_name is not None:
+        base = equipment_name
+        for filename in ("equipment", "common_equipment"):
+            for directory in (DATA_DIR, PROGRESSION_DIR, TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"):
+                path = _find_data_csv(filename, directory, warn_missing=False)
+                if path is None:
+                    continue
+                with path.open(newline="", encoding="utf-8-sig") as image_file:
+                    for row in csv.DictReader(image_file):
+                        name = (row.get("Item") or row.get("Name") or "").strip()
+                        if name.casefold() == base.casefold():
+                            url = (row.get("Image") or "").strip()
+                            match = re.search(r"\.png", url, re.IGNORECASE)
+                            return url[:match.end()] if match else url
         return ""
     url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
     match = re.search(r"\.png", url, re.IGNORECASE)
@@ -2337,6 +2373,80 @@ async def use_slash(interaction: discord.Interaction, item: str):
     await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=False)
 
 
+def _collection_purchase_cost(field, village, collection):
+    cost = COLLECTION_SHOP_COSTS.get(field.category)
+    if cost is None:
+        raise UpgradeRejected("This collection category is not available to buy.")
+    if collection.get(field.name, 0) or village.get(field.name, 0):
+        raise UpgradeRejected(f"You already own {field.name}.")
+    if field.category == "Hero Equipment":
+        if village.get("Blacksmith", 0) < 1:
+            raise UpgradeRejected("You need a level 1 Blacksmith to buy Epic Equipment.")
+        if not upgrade_system.can_unlock_equipment(field.name, village):
+            raise UpgradeRejected(f"You cannot unlock {field.name} at your current prerequisite level.")
+    return cost
+
+
+async def buy_category_autocomplete(interaction: discord.Interaction, current: str):
+    return [app_commands.Choice(name=name, value=name) for name in COLLECTION_SHOP_COSTS
+            if current.casefold() in name.casefold()]
+
+
+async def buy_item_autocomplete(interaction: discord.Interaction, current: str):
+    if save_migration_active or not save_store.player_path(interaction.user.id).is_file():
+        return []
+    category = getattr(interaction.namespace, "category", None)
+    try:
+        village, collection = save_store.player_values(interaction.user.id)
+        choices = []
+        for field in save_store.collection_by_name.values():
+            if field.category != category or current.casefold() not in field.name.casefold():
+                continue
+            try:
+                cost = _collection_purchase_cost(field, village, collection)
+            except UpgradeRejected:
+                continue
+            choices.append(app_commands.Choice(name=f"{field.name} ({cost:,} Gems)"[:100], value=field.name))
+        return choices[:25]
+    except Exception:
+        log.exception("Could not load collection purchase suggestions")
+        return []
+
+
+@bot.tree.command(name="buy", description="Buy a missing collection item with Gems.")
+@app_commands.describe(category="Collection category", item="The missing collection item to buy")
+@app_commands.autocomplete(category=buy_category_autocomplete, item=buy_item_autocomplete)
+async def buy_slash(interaction: discord.Interaction, category: str, item: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    try:
+        field = next((entry for entry in save_store.collection_by_name.values()
+                      if entry.name.casefold() == item.strip().casefold()
+                      and entry.category.casefold() == category.strip().casefold()), None)
+        if field is None:
+            raise UpgradeRejected("Choose a valid collection category and item.")
+        with save_store.transaction(interaction.user.id) as (village, collection):
+            cost = _collection_purchase_cost(field, village, collection)
+            if village["Gems"] < cost:
+                raise UpgradeRejected(f"You need {cost:,} Gems to buy {field.name}; you have {village['Gems']:,}.")
+            village["Gems"] -= cost
+            collection[field.name] = 1
+            gems_remaining = village["Gems"]
+    except UpgradeRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    embed = discord.Embed(
+        title="Collection item purchased",
+        description=f"Bought **{field.name}** for **{cost:,} Gems**.\nGems remaining: **{gems_remaining:,}**.",
+        color=discord.Color.green(),
+    )
+    if field.category == "Hero Equipment":
+        image_url = _upgrade_image_url(field.name, 1)
+        if image_url:
+            embed.set_image(url=proxy_image_url(image_url))
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="sell", description="View magic item sell values or sell magic items for Gems.")
 @app_commands.describe(item="The type to sell or leave blank to view your inventory", quantity="How many to sell defaults to one")
 @app_commands.autocomplete(item=magic_item_autocomplete)
@@ -2484,6 +2594,8 @@ async def check_obstacles_slash(interaction: discord.Interaction):
     await interaction.response.send_message(embed=discord.Embed(title="Obstacles", description="\n".join(lines), color=discord.Color.green()))
 
 
+
+
 @bot.tree.command(name="remove_obstacle", description="Remove obstacles using resources and receive Gems.")
 @app_commands.describe(obstacle="The obstacle type to remove", amount="Number to remove from one to your current removable maximum")
 @app_commands.autocomplete(obstacle=obstacle_type_autocomplete, amount=obstacle_amount_autocomplete)
@@ -2495,11 +2607,16 @@ async def remove_obstacle_slash(interaction: discord.Interaction, obstacle: str,
     except ObstacleRejected as error:
         await interaction.response.send_message(str(error), ephemeral=True)
         return
-    await interaction.response.send_message(embed=discord.Embed(
+    embed = discord.Embed(
         title="Obstacles removed",
         description=f"Removed **{amount:,} {item.name}**.\nSpent **{cost:,} {item.resource}**.\nReceived **{gems:,} Gems**.",
         color=discord.Color.green(),
-    ))
+    )
+    image_url = OBSTACLE_IMAGES.get(item.name)
+    if image_url:
+        embed.set_image(url=proxy_image_url(image_url))
+    await interaction.response.send_message(embed=embed)
+
 
 
 @bot.tree.command(name="collect_loot", description="Collect resources generated by your Mines, Collectors, and Drills.")
@@ -2759,6 +2876,7 @@ async def help_slash(
         ("remove_obstacle", "Spends resources to remove obstacles and earn Gems."),
         ("collect_treasury", "Moves treasury loot into available main storage space."),
         ("use", "Uses a magic item and prompts for a target when required."),
+        ("buy", "Buy missing collection items with Gems."),
         ("sell", "Shows magic item counts and sell values, or sells the selected quantity for Gems."),
         ("upgradeinfo", "Shows costs, time, and the image for an item's target upgrade level."),
     ]
