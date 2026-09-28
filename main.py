@@ -2161,9 +2161,10 @@ def _remaining_pages(entries, town_hall):
 
 
 class RemainingUpgradesView(discord.ui.View):
-    def __init__(self, user_id, pages):
+    def __init__(self, user_id, pages, command="remaining"):
         super().__init__(timeout=180)
         self.user_id = user_id
+        self.command = command
         self.pages = pages
         self.page = 0
         self.message = None
@@ -2178,7 +2179,7 @@ class RemainingUpgradesView(discord.ui.View):
             await interaction.response.send_message("Only the player who opened this list can change its page.", ephemeral=True)
             return False
         if self.is_finished():
-            await interaction.response.send_message("This list expired. Run /remaining again.", ephemeral=True)
+            await interaction.response.send_message(f"This list expired. Run /{self.command} again.", ephemeral=True)
             return False
         return True
 
@@ -2206,6 +2207,94 @@ class RemainingUpgradesView(discord.ui.View):
                 await self.message.edit(view=self)
             except discord.HTTPException:
                 log.debug("Could not disable an expired remaining upgrades list")
+
+
+def _loot_table_pages(town_hall, rarity=None):
+    categories = town_hall_loot_tables.get(town_hall)
+    if not categories:
+        raise LootRollRejected(f"No loot table is loaded for Town Hall {town_hall}.")
+    active = [(category, [item for item in category.items if item.weight > 0])
+              for category in categories.values() if category.weight > 0]
+    active = [(category, items) for category, items in active if items]
+    if not active:
+        raise LootRollRejected(f"Town Hall {town_hall} has no available loot rewards.")
+    rarity_order = {name: index for index, name in enumerate(XP_REWARDS.keys())}
+    active.sort(key=lambda entry: -rarity_order.get(entry[0].name.lower(), -1))
+    total_weight = sum(category.weight for category, items in active)
+    splits = "\n".join(f"**{category.name.title()}:** {100 * category.weight / total_weight:.4f}%"
+                       for category, items in active
+                       if rarity is None or category.name.casefold() == rarity.casefold())
+    pages = []
+    selected = [(category, items) for category, items in active
+                if rarity is None or category.name.casefold() == rarity.casefold()]
+    if not selected:
+        raise LootRollRejected(f"No {rarity} loot table is loaded for Town Hall {town_hall}.")
+    for category, items in selected:
+        rarity_chance = category.weight / total_weight
+        item_total = sum(item.weight for item in items)
+        prefix = (
+            f"**Rarity splits**\n{splits}\n\n"
+            "Each reward shows its chance within this rarity and its overall chance per Chest.\n"
+            "Base table odds; collection ownership and equipment eligibility can change your actual odds.\n\n"
+        )
+        chunks = []
+        lines = []
+        length = len(prefix)
+        for item in items:
+            detail = ""
+            extra = (item.extra_field or "").strip()
+            if extra in {"common_resources.csv", "rare_resources.csv"}:
+                extra = _chest_resource_range(extra, item.name, Path(f"Town Hall {town_hall}"))
+            bounds = _QUANTITY_RANGE_RE.fullmatch(extra)
+            if bounds:
+                low, high = (int(value.replace(",", "")) for value in bounds.groups())
+                detail = f" × {low:,}–{high:,}" if low != high else f" × {low:,}"
+            elif extra:
+                detail = " (random item from this reward group)"
+            conditional = item.weight / item_total
+            line = (f"**{item.name}{detail}** — {100 * conditional:.4f}% within rarity; "
+                    f"{100 * conditional * rarity_chance:.4f}% overall")
+            if lines and length + len(line) + 1 > 3800:
+                chunks.append(lines)
+                lines = []
+                length = len(prefix)
+            lines.append(line)
+            length += len(line) + 1
+        if lines:
+            chunks.append(lines)
+        for chunk in chunks:
+            pages.append(discord.Embed(
+                title=f"Town Hall {town_hall} Loot Table — {category.name.title()}",
+                description=prefix + "\n".join(chunk),
+                color=RARITY_COLORS.get(category.name.lower(), discord.Color.blue()),
+            ))
+    for index, embed in enumerate(pages, 1):
+        embed.set_footer(text=f"Page {index}/{len(pages)}")
+    return pages
+
+
+@bot.tree.command(name="loot_table", description="Show a Town Hall loot table with rarity and reward percentages.")
+@app_commands.describe(town_hall="Town Hall level from 1 to 18", rarity="Show only this rarity or leave blank for all rarities")
+@app_commands.choices(rarity=[
+    app_commands.Choice(name="Common", value="common"),
+    app_commands.Choice(name="Rare", value="rare"),
+    app_commands.Choice(name="Epic", value="epic"),
+    app_commands.Choice(name="Legendary", value="legendary"),
+])
+async def loot_table_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18], rarity: Optional[str] = None):
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    try:
+        pages = _loot_table_pages(town_hall, rarity)
+    except LootRollRejected as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    if len(pages) == 1:
+        await interaction.response.send_message(embed=pages[0])
+    else:
+        view = RemainingUpgradesView(interaction.user.id, pages, command="loot_table")
+        await interaction.response.send_message(embed=pages[0], view=view)
+        view.message = await interaction.original_response()
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
@@ -2881,6 +2970,7 @@ async def help_slash(
         ("use", "Uses a magic item and prompts for a target when required."),
         ("buy", "Buy missing collection items with Gems."),
         ("sell", "Shows magic item counts and sell values, or sells the selected quantity for Gems."),
+        ("loot_table", "View a Town Hall loot table, optionally filtered by rarity, with reward percentages."),
         ("upgradeinfo", "Shows costs, time, and the image for an item's target upgrade level."),
     ]
     if mod_only == "Yes":
