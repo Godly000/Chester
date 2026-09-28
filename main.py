@@ -1576,27 +1576,31 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
 
 
 async def _fetch_upgrade_image(url):
+    proxy_url = proxy_image_url(url)
+
+    def failed(reason, broken=False):
+        log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
+        return None, None, broken
+
     if not url.startswith(("https://", "http://")):
-        return None, None, True
+        return failed("Invalid image URL scheme", broken=True)
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        try:
-            async with session.get(proxy_image_url(url), allow_redirects=True) as response:
-                if response.status in (404, 410):
-                    return None, None, True
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(proxy_url, allow_redirects=True) as response:
                 if response.status != 200:
-                    log.warning("Upgrade image request returned HTTP %s for %s", response.status, url)
-                    return None, None, False
-                if not response.headers.get("Content-Type", "").lower().startswith("image/"):
-                    return None, None, True
+                    return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
+                content_type = response.headers.get("Content-Type", "")
+                if not content_type.lower().startswith("image/"):
+                    return failed(f"Expected image content but received {content_type or 'no Content-Type'}", broken=True)
                 data = bytearray()
                 async for chunk in response.content.iter_chunked(65536):
                     data.extend(chunk)
                     if len(data) > UPGRADE_IMAGE_MAX_BYTES:
-                        return None, None, False
+                        return failed(f"Image exceeds the {UPGRADE_IMAGE_MAX_BYTES} byte download limit")
                 data = bytes(data)
                 if not data:
-                    return None, None, True
+                    return failed("Empty image response", broken=True)
                 if data.startswith(b"\x89PNG\r\n\x1a\n"):
                     extension = "png"
                 elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
@@ -1606,11 +1610,10 @@ async def _fetch_upgrade_image(url):
                 elif data.startswith((b"GIF87a", b"GIF89a")):
                     extension = "gif"
                 else:
-                    return None, None, False
+                    return failed("Unrecognized or invalid image file signature")
                 return data, extension, False
-        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
-            log.warning("Upgrade image request failed for %s: %s", url, type(exc).__name__)
-    return None, None, False
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+        return failed(f"{type(exc).__name__}: {exc}")
 
 
 def _build_batch_upgrade_entries(outcomes):
@@ -1707,10 +1710,10 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
                 filename = f"upgrade_{index}.{extension}"
                 files.append(discord.File(io.BytesIO(data), filename=filename))
                 embed.set_image(url=proxy_image_url(f"attachment://{filename}"))
-            elif not interaction.app_permissions.attach_files:
+            else:
                 embed.set_image(url=proxy_image_url(url))
-            elif broken:
-                embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
+                if broken:
+                    embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
         try:
             if index == 0:
                 await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=files)
