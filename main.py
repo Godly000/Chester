@@ -129,14 +129,15 @@ log = logging.getLogger("loot_bot")
 SCRIPT_DIR = Path(__file__).parent
 ENV_PATH = SCRIPT_DIR / ".env"
 DATA_DIR = SCRIPT_DIR / "data"
+TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
+LOOT_TABLE_DIR = DATA_DIR / "Town Hall Loot Tables"
 TUTORIAL_FILE = DATA_DIR / "tutorial.txt"
-RARITIES_FILE = DATA_DIR / "rarities.csv"
-IMAGES_FILE = DATA_DIR / "images.csv"
+RARITIES_FILE = LOOT_TABLE_DIR / "rarities.csv"
+IMAGES_FILE = LOOT_TABLE_DIR / "images.csv"
 XP_LEVELS_FILE = DATA_DIR / "xp.csv"
 PROGRESSION_DIR = DATA_DIR / "progression"
 SAVES_DIR = SCRIPT_DIR / "saves"
 SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
-TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
 DECORATION_GEM_COST = 500
@@ -1657,18 +1658,17 @@ def _upgrade_image_url(item, target_level):
         equipment_name = equipment_names.get(without_level.casefold())
     if equipment_name is not None:
         base = equipment_name
-        for filename in ("equipment", "common_equipment"):
-            for directory in (DATA_DIR, PROGRESSION_DIR, TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"):
-                path = _find_data_csv(filename, directory, warn_missing=False)
-                if path is None:
-                    continue
-                with path.open(newline="", encoding="utf-8-sig") as image_file:
-                    for row in csv.DictReader(image_file):
-                        name = (row.get("Item") or row.get("Name") or "").strip()
-                        if name.casefold() == base.casefold():
-                            url = (row.get("Image") or "").strip()
-                            match = re.search(r"\.png", url, re.IGNORECASE)
-                            return url[:match.end()] if match else url
+        path = _find_data_csv("equipment_images", DATA_DIR, warn_missing=True)
+        if path is None:
+            log.info("Could not find equipment_images.csv")
+            return ""
+        with path.open(newline="", encoding="utf-8-sig") as image_file:
+            for row in csv.DictReader(image_file):
+                name = (row.get("Item") or row.get("Name") or "").strip()
+                if name.casefold() == base.casefold():
+                    url = (row.get("Link") or "").strip()
+                    match = re.search(r"\.png", url, re.IGNORECASE)
+                    return url[:match.end()] if match else url
         return ""
     url = getattr(upgrade_system, "upgrade_images", {}).get((base, target_level), "")
     match = re.search(r"\.png", url, re.IGNORECASE)
@@ -2333,7 +2333,7 @@ def _magic_result_embed(result):
     )
 
     for directory in (TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables", DATA_DIR):
-        path = _find_data_csv("images", directory, warn_missing=False)
+        path = _find_data_csv("images", directory, warn_missing=True)
         if path is None:
             continue
         image_url = next((url for name, url in load_images(path).items() if name.casefold() == result.item.casefold()), None)
