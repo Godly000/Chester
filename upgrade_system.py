@@ -456,6 +456,16 @@ class UpgradeSystem:
         prerequisite = self._prerequisite_level(row["Requirement"], village)
         return self._column_value(row, prerequisite)
 
+    def can_unlock_equipment(self, name, village):
+        field = self.fields_by_name.get(name)
+        if field is None or field.category != EQUIPMENT_CATEGORY:
+            return False
+        row = self._table_row(self.level_rows, self._base_name(name))
+        if row is None:
+            return False
+        prerequisite = village.get(row["Requirement"], 0)
+        return self._column_value(row, prerequisite) > village.get(name, 0)
+
     def _allowed_count(
         self,
         field: SaveField,
