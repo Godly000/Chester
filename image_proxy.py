@@ -9,6 +9,8 @@ def proxy_image_url(url):
     if not url:
         return url
     url = str(url).strip()
+    if url.startswith("https://static.wikia.nocookie.net/"):
+        url = url.split("/revision/", 1)[0].split("?", 1)[0] + "/revision/latest/scale-to-width-down/100"
     parsed = urlsplit(url)
     if parsed.scheme.lower() not in ("http", "https"):
         return url
