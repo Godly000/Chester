@@ -6,9 +6,9 @@ Wall Rings,638,2-3
 Dark Elixir,638,rare_resources.csv
 Gold,638,rare_resources.csv
 Elixir,638,rare_resources.csv
-Shiny Ore,638,500-750
-Glowy Ore,638,50-75
-Starry Ore,638,6-7
+Shiny Ore,638,ore_rewards.csv
+Glowy Ore,638,ore_rewards.csv
+Starry Ore,638,ore_rewards.csv
 Builder Potion,426,
 Pet Potion,426,
 Super Potion,426,
