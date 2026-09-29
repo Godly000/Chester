@@ -22,27 +22,17 @@ Total Capital Gold,Statistic,integer
 Total Shiny Ore,Statistic,integer
 Total Glowy Ore,Statistic,integer
 Total Starry Ore,Statistic,integer
-Obstacles cleared,Statistic,short
 Total Raid Medals,Statistic,integer
 Total Clan War League Medals,Statistic,integer
 Total Opened Chests,Statistic,integer
-Goblin Builders Defeated,Statistic,short
 Last Resource Check,Statistic,integer
 Last Obstacle Check,Statistic,integer
-Mushroom,Obstacle,byte
-Bush,Obstacle,byte
-Trunk,Obstacle,byte
-Small Tree,Obstacle,byte
-Medium Tree,Obstacle,byte
-Large Tree,Obstacle,byte
-Small Stone,Obstacle,byte
-Pebbles,Obstacle,byte
-Small Rock,Obstacle,byte
-Tall Stone,Obstacle,byte
-Big Rock,Obstacle,byte
 Treasury Gold,Treasury,integer
 Treasury Elixir,Treasury,integer
 Treasury Dark Elixir,Treasury,integer
+Notification for finished upgrades,Option,boolean
+Notification for full collectors,Option,boolean
+Hide Tutorial,Option,boolean
 Builder Bite,Magic Item,byte
 Clan Castle Cake,Magic Item,byte
 Study Soup,Magic Item,byte
@@ -97,31 +87,11 @@ Researcher #2 Upgrade,Upgrade,short
 Researcher #2 Time,Upgrade,integer
 Researcher #3 Upgrade,Upgrade,short
 Researcher #3 Time,Upgrade,integer
-Builder #1 Currency,Upgrade,byte
-Builder #1 Cost,Upgrade,integer
-Builder #2 Currency,Upgrade,byte
-Builder #2 Cost,Upgrade,integer
-Builder #3 Currency,Upgrade,byte
-Builder #3 Cost,Upgrade,integer
-Builder #4 Currency,Upgrade,byte
-Builder #4 Cost,Upgrade,integer
-Builder #5 Currency,Upgrade,byte
-Builder #5 Cost,Upgrade,integer
-Builder #6 Currency,Upgrade,byte
-Builder #6 Cost,Upgrade,integer
-Builder #7 Currency,Upgrade,byte
-Builder #7 Cost,Upgrade,integer
-Builder #8 Currency,Upgrade,byte
-Builder #8 Cost,Upgrade,integer
-Builder #9 Currency,Upgrade,byte
-Builder #9 Cost,Upgrade,integer
-Researcher #1 Currency,Upgrade,byte
-Researcher #1 Cost,Upgrade,integer
-Researcher #2 Currency,Upgrade,byte
-Researcher #2 Cost,Upgrade,integer
-Researcher #3 Currency,Upgrade,byte
-Researcher #3 Cost,Upgrade,integer
 Town Hall,Important,byte
+Town Hall 12 Weapon,Defense Level,byte
+Town Hall 13 Weapon,Defense Level,byte
+Town Hall 14 Weapon,Defense Level,byte
+Town Hall 15 Weapon,Defense Level,byte
 Town Hall 17 Weapon,Defense Level,byte
 Smasher,Defense Level,byte
 Longshot,Defense Level,byte
@@ -609,7 +579,7 @@ Army Camp #2,Army Level,byte
 Army Camp #3,Army Level,byte
 Army Camp #4,Army Level,byte
 Barracks,Army Level,byte
-Clan Castle,Resource Level,byte
+Clan Castle,Army Level,byte
 Laboratory,Army Level,byte
 Hero Hall,Army Level,byte
 Dark Barracks,Army Level,byte
