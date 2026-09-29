@@ -66,7 +66,7 @@ import aiohttp
 import discord
 
 from notification_system import NotificationSystem
-from image_proxy import proxy_image_url
+from image_proxy import proxy_image_url, proxy_upgrade_image_url
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -402,22 +402,28 @@ def load_images(images_file: Path = IMAGES_FILE) -> Dict[str, str]:
     return images
 
 
-def _chest_resource_range(filename: str, item_name: str, loot_dir: Path) -> str:
-    if filename not in {"common_resources.csv", "rare_resources.csv"}:
+def _chest_resource_range(filename: str, item_name: str, loot_dir: Path, rarity: str = "") -> str:
+    if filename not in {"common_resources.csv", "rare_resources.csv", "ore_rewards.csv"}:
         raise ValueError(f"Invalid chest resource file: {filename}")
     match = re.fullmatch(r"Town Hall\s+(\d+)", loot_dir.name, re.IGNORECASE)
     if match is None or not 1 <= int(match.group(1)) <= 18:
         raise ValueError(f"Cannot determine Town Hall level from {loot_dir}")
     town_hall = int(match.group(1))
+    column = item_name
+    if filename == "ore_rewards.csv":
+        ore = item_name.strip().removesuffix(" Ore").casefold()
+        if ore not in {"shiny", "glowy", "starry"}:
+            raise ValueError(f"Unknown ore reward: {item_name}")
+        column = f"{ore.title()} {rarity.strip().title()}"
     path = DATA_DIR / filename
     with path.open(newline="", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
-        if "Town Hall" not in (reader.fieldnames or []) or item_name not in reader.fieldnames:
-            raise ValueError(f"Missing {item_name} column in {filename}")
+        if "Town Hall" not in (reader.fieldnames or []) or column not in reader.fieldnames:
+            raise ValueError(f"Missing {column} column in {filename}")
         matches = [row for row in reader if row["Town Hall"].strip() == str(town_hall)]
     if len(matches) != 1:
         raise ValueError(f"Expected one row for Town Hall {town_hall} in {filename}")
-    quantity = (matches[0][item_name] or "").strip()
+    quantity = (matches[0][column] or "").strip()
     bounds = _QUANTITY_RANGE_RE.fullmatch(quantity)
     if bounds is None:
         raise ValueError(f"Missing or invalid {item_name} range for Town Hall {town_hall} in {filename}")
@@ -484,8 +490,9 @@ def load_categories(
                 # column was removed). If it's not present, this is simply
                 # None and the item is used as-is (no quantity, no sub-roll).
                 extra_field = item_row[2] if len(item_row) >= 3 else None
-                if extra_field and extra_field.strip() in {"common_resources.csv", "rare_resources.csv"}:
-                    extra_field = _chest_resource_range(extra_field.strip(), item_name, loot_dir)
+                if extra_field and extra_field.strip().casefold().removesuffix(".csv") in {"common_resources", "rare_resources", "ore_rewards"}:
+                    filename = extra_field.strip().casefold().removesuffix(".csv") + ".csv"
+                    extra_field = _chest_resource_range(filename, item_name, loot_dir, name)
 
                 image_url = images.get(item_name)
                 if image_url is None:
@@ -1586,7 +1593,7 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
 
 
 async def _fetch_upgrade_image(url):
-    proxy_url = proxy_image_url(url)
+    proxy_url = proxy_upgrade_image_url(url)
 
     def failed(reason, broken=False):
         log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
@@ -1718,9 +1725,9 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
             if data and interaction.app_permissions.attach_files:
                 filename = f"upgrade_{index}.{extension}"
                 files.append(discord.File(io.BytesIO(data), filename=filename))
-                embed.set_image(url=proxy_image_url(f"attachment://{filename}"))
+                embed.set_image(url=proxy_upgrade_image_url(f"attachment://{filename}"))
             else:
-                embed.set_image(url=proxy_image_url(url))
+                embed.set_image(url=proxy_upgrade_image_url(url))
                 if broken:
                     embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
         try:
@@ -1997,7 +2004,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
         image_item = quote["names"][0] if group == "Walls" else options[0]["names"][0]
         image_url = _upgrade_image_url(image_item, target)
         if image_url:
-            embed.set_image(url=proxy_image_url(image_url))
+            embed.set_image(url=proxy_upgrade_image_url(image_url))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
     except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
         await interaction.response.send_message(str(error), ephemeral=True)
