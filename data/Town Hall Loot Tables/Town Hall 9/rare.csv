@@ -6,9 +6,9 @@ Wall Rings,698,2-3
 Dark Elixir,698,rare_resources.csv
 Gold,698,rare_resources.csv
 Elixir,698,rare_resources.csv
-Shiny Ore,698,300-400
-Glowy Ore,698,30-40
-Starry Ore,698,2-3
+Shiny Ore,698,ore_rewards.csv
+Glowy Ore,698,ore_rewards.csv
+Starry Ore,698,ore_rewards.csv
 Builder Potion,465,
 Capital Gold,465,rare_resources.csv
 Builder Gold,349,rare_resources.csv
