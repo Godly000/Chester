@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import json
 import os
 import shutil
 import struct
@@ -387,6 +388,41 @@ class SaveStore:
             for field in self.fields_by_category[resolved]
         ]
 
+    def _decode_migration_layout(self, raw: bytes) -> Optional[Tuple[List[int], int]]:
+        path = self.progression_dir / "save_migrations.json"
+        if not path.is_file() or not raw.startswith(SAVE_MAGIC) or len(raw) < SAVE_HEADER.size:
+            return None
+        magic, version, digest = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])
+        if magic != SAVE_MAGIC or version != SAVE_VERSION:
+            return None
+        with path.open(encoding="utf-8") as file:
+            layouts = json.load(file)
+        layout = layouts.get(digest.hex())
+        if layout is None:
+            return None
+        payload = raw[SAVE_HEADER.size:]
+        if len(payload) != struct.calcsize(layout["format"]):
+            raise SaveError("Save payload does not match its migration layout")
+        old_values = struct.unpack(layout["format"], payload)
+        values = self._default_values()
+        fields = {field.identity: field for field in self.fields}
+        for source, name, index in layout["fields"]:
+            field = fields.get((source, name))
+            if field is not None:
+                values[field.index] = self._bounded_value(old_values[index], field.data_type)
+        retired = set(layout.get("retired_serials", []))
+        for field in self.fields:
+            if field.source != "village" or not field.name.endswith(" Upgrade"):
+                continue
+            if values[field.index] not in retired:
+                continue
+            prefix = field.name.removesuffix(" Upgrade")
+            for suffix in (" Upgrade", " Time", " Currency", " Cost"):
+                slot_field = self.village_by_name.get(prefix + suffix)
+                if slot_field is not None:
+                    values[slot_field.index] = 0
+        return values, len(old_values) - len(layout["fields"])
+
     def migrate_from(self, old_store: "SaveStore", backups_dir: Path) -> MigrationReport:
         self._require_schema()
         old_store._require_schema()
@@ -425,7 +461,23 @@ class SaveStore:
                     current_saves += 1
                     continue
                 except SaveSchemaMismatch:
-                    old_values, _ = old_store._decode_raw(raw, allow_legacy=True)
+                    layout_values = self._decode_migration_layout(raw)
+                    if layout_values is not None:
+                        migrated_values, retired_count = layout_values
+                        removed_fields = max(removed_fields, retired_count)
+                        self._write_values(staging / source_path.name, migrated_values)
+                        migrated_saves += 1
+                        continue
+                    try:
+                        old_values, _ = old_store._decode_raw(raw, allow_legacy=True)
+                    except SaveSchemaMismatch as error:
+                        digest = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])[2].hex() if raw.startswith(SAVE_MAGIC) and len(raw) >= SAVE_HEADER.size else "legacy"
+                        raise SaveSchemaMismatch(
+                            f"Cannot migrate {source_path.name}: unrecognized schema {digest}. "
+                            "Provide its matching village-old.csv and collection-old.csv, "
+                            "or a verified layout in data/progression/save_migrations.json. "
+                            "No player saves were changed."
+                        ) from error
 
                 migrated_values = self._default_values()
                 for identity in common:
