@@ -1,8 +1,8 @@
 Capital House,1875,cchouse
 Decoration,1250,decoration
-Shiny Ore,1000,1350-2200
-Glowy Ore,1000,135-220
-Starry Ore,1000,23-33
+Shiny Ore,1000,ore_rewards.csv
+Glowy Ore,1000,ore_rewards.csv
+Starry Ore,1000,ore_rewards.csv
 Book of Building,625
 Book of Fighting,625
 Book of Heroes,625
