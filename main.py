@@ -65,6 +65,7 @@ from typing import Dict, List, Optional, Tuple
 import aiohttp
 import discord
 
+from notification_system import NotificationSystem
 from image_proxy import proxy_image_url
 from discord import app_commands
 from discord.ext import commands
@@ -138,6 +139,7 @@ XP_LEVELS_FILE = DATA_DIR / "xp.csv"
 PROGRESSION_DIR = DATA_DIR / "progression"
 SAVES_DIR = SCRIPT_DIR / "saves"
 SAVE_BACKUPS_DIR = SCRIPT_DIR / "save-backups"
+NOTIFICATION_STATE_FILE = SCRIPT_DIR / "notification_state.json"
 COMMON_EQUIPMENT_MAX = 18
 EPIC_EQUIPMENT_MAX = 27
 DECORATION_GEM_COST = 500
@@ -960,6 +962,9 @@ async def on_ready():
         magic_system.load()
         obstacle_system.load()
         xp_levels = load_xp_levels()
+        if not hasattr(bot, "player_notifications"):
+            bot.player_notifications = NotificationSystem(bot, save_store, upgrade_system, resource_system, NOTIFICATION_STATE_FILE, lambda: save_migration_active)
+        bot.player_notifications.start()
         log.info(
             "Loaded %d save fields across %d profile categories.",
             len(save_store.fields),
@@ -1095,7 +1100,10 @@ async def chest_slash(interaction: discord.Interaction):
         gembox_system.rolling.discard(user_id)
 
 
-def _set_chest_footer(embed):
+def _set_chest_footer(embed, hide_tutorial=False):
+    if hide_tutorial:
+        embed.set_footer(text="Made by __godly__")
+        return
     try:
         lines = [line.strip() for line in TUTORIAL_FILE.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
         if not lines:
@@ -1119,7 +1127,7 @@ async def _open_chest(interaction: discord.Interaction):
                 VILLAGE_WELCOME_MESSAGE, ephemeral=True
             )
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
-        _set_chest_footer(embed)
+        _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
         if interaction.response.is_done():
             await interaction.followup.send(embed=embed, ephemeral=False)
         else:
@@ -1130,7 +1138,7 @@ async def _open_chest(interaction: discord.Interaction):
                 description=f"🎉 {interaction.user.mention} leveled up to **Level {leveled_up_to}**!",
                 color=discord.Color.gold(),
             )
-            _set_chest_footer(level_up_embed)
+            level_up_embed.set_footer(text="Made by __godly__")
             await interaction.followup.send(embed=level_up_embed)
     except LootRollRejected as e:
         if interaction.response.is_done():
@@ -1341,7 +1349,7 @@ def _upgrade_snapshot(user_id):
     return village, collection
 
 
-def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None):
+def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None, ignore_workers=False):
     if quantity < 1:
         raise UpgradeRejected("Choose at least one building.")
     fields = _upgrade_groups(category).get(group, [])
@@ -1369,6 +1377,7 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
             level, price, report, batch_started=started,
             cost_reduction=hammer.cost if hammer else 0,
             time_reduction=hammer.strength if hammer else 0,
+            ignore_workers=ignore_workers,
         )
         if hammer:
             working[hammer.name] -= 1
@@ -1393,7 +1402,7 @@ def _upgrade_hammers(field):
             if item.name.startswith("Hammer of ") and magic_system.can_target_upgrade(item, field)]
 
 
-def _building_payment_options(village, collection, category, group, level, quantity):
+def _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=False):
     fields = _upgrade_groups(category).get(group, [])
     pending = upgrade_system._pending_serials(village)
     first = next((field for field in fields if village[field.name] == level and upgrade_system.serial_for(field) not in pending), None)
@@ -1406,7 +1415,7 @@ def _building_payment_options(village, collection, category, group, level, quant
     options, errors = [], []
     for currency, hammer in methods:
         try:
-            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer)
+            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer, ignore_workers=ignore_workers)
             options.append(quote)
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
             errors.append(str(error))
@@ -1415,7 +1424,7 @@ def _building_payment_options(village, collection, category, group, level, quant
     return options
 
 
-def _available_group_levels(village, collection, category, group):
+def _available_group_levels(village, collection, category, group, ignore_workers=False):
     fields = _upgrade_groups(category).get(group, [])
     result = {}
     for level in sorted({village[field.name] for field in fields}):
@@ -1428,7 +1437,7 @@ def _available_group_levels(village, collection, category, group):
                     if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
                         raise UpgradeRejected("Not enough resources or Wall Rings.")
                 else:
-                    _building_payment_options(village, collection, category, group, level, quantity)
+                    _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=ignore_workers)
                 low = quantity
             except (UpgradeRejected, MagicRejected, ResourceRejected):
                 high = quantity - 1
@@ -1446,7 +1455,7 @@ def _group_can_upgrade(village, collection, category, group):
                 if any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
                     return True
             else:
-                _building_payment_options(village, collection, category, group, level, 1)
+                _building_payment_options(village, collection, category, group, level, 1, ignore_workers=True)
                 return True
         except (UpgradeRejected, MagicRejected, ResourceRejected):
             continue
@@ -1898,7 +1907,7 @@ def _upgrade_argument_options(interaction):
     if group is None:
         return {}, None
     village, collection = _upgrade_snapshot(interaction.user.id)
-    levels = _available_group_levels(village, collection, category, group)
+    levels = _available_group_levels(village, collection, category, group, ignore_workers=True)
     return {level + 1: count for level, count in levels.items()}, group
 
 
@@ -2956,6 +2965,7 @@ async def help_slash(
         return
     commands = [
         ("chest", "Opens a Treasure Chest using your Town Hall loot table."),
+        ("option", "Enable or disable notifications and chest tutorial tips."),
         ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
         ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
@@ -2991,30 +3001,61 @@ async def help_slash(
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+def _leaderboard_value(statistic, value):
+    if statistic == "Progress":
+        return f"Town Hall {value[0]:,} · {value[1]:,} completed upgrade levels"
+    return _profile_value(statistic, value)
+
+
+@bot.tree.command(name="option", description="Enable or disable a village option.")
+@app_commands.describe(name="Village option", enabled="Whether the option is enabled")
+@app_commands.choices(name=[
+    app_commands.Choice(name="Notification for finished upgrades", value="Notification for finished upgrades"),
+    app_commands.Choice(name="Notification for full collectors", value="Notification for full collectors"),
+    app_commands.Choice(name="Hide tutorial", value="Hide tutorial"),
+])
+async def option_slash(interaction: discord.Interaction, name: str, enabled: bool):
+    if not await enforce_chester_channel(interaction):
+        return
+    field = save_store.village_by_name.get(name)
+    if field is None or field.category != "Option" or field.data_type != "boolean":
+        await interaction.response.send_message("Choose a valid village option.", ephemeral=True)
+        return
+    with save_store.transaction(interaction.user.id) as (village, collection):
+        village[name] = int(enabled)
+    await interaction.response.send_message(f"{name}: {'Enabled' if enabled else 'Disabled'}.", ephemeral=True)
+
+
 def _leaderboard_statistics():
     return [field for field in save_store.fields if field.source == "village" and field.category.casefold() == "statistic"]
 
 
 async def leaderboard_category_autocomplete(interaction: discord.Interaction, current: str):
-    return [app_commands.Choice(name=field.name, value=field.name)
-            for field in _leaderboard_statistics() if current.casefold() in field.name.casefold()][:25]
+    names = ["Progress"] + [field.name for field in _leaderboard_statistics()]
+    return [app_commands.Choice(name=name, value=name) for name in names if current.casefold() in name.casefold()][:25]
 
 
 def _leaderboard_rows(statistic):
     scores = []
     skipped = 0
     with save_store.lock:
-        field = save_store.village_by_name[statistic]
+        field = save_store.village_by_name.get(statistic)
         for path in save_store.saves_dir.glob("*.sav"):
             if not path.stem.isdigit() or int(path.stem) <= 0:
                 continue
             try:
                 values, _ = save_store._decode_raw(path.read_bytes())
-                scores.append((int(path.stem), values[field.index]))
+                if statistic == "Progress":
+                    town_hall = values[save_store.village_by_name["Town Hall"].index]
+                    completed = sum(values[item.index] for item in upgrade_system.level_fields)
+                    score = (town_hall, completed)
+                else:
+                    score = values[field.index]
+                scores.append((int(path.stem), score))
             except (OSError, ValueError, SaveError) as error:
                 skipped += 1
                 log.warning("Leaderboard skipped save %s: %s", path.name, error)
-    scores.sort(key=lambda row: (-row[1], row[0]))
+    scores.sort(key=lambda row: (tuple(-value for value in row[1]) if isinstance(row[1], tuple) else (-row[1],), row[0]))
     ranked = []
     rank = 0
     previous = None
@@ -3033,24 +3074,25 @@ async def leaderboard_slash(interaction: discord.Interaction, category: str):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     field = next((field for field in _leaderboard_statistics() if field.name.casefold() == category.strip().casefold()), None)
-    if field is None:
+    statistic = "Progress" if category.strip().casefold() == "progress" else field.name if field else None
+    if statistic is None:
         await interaction.response.send_message("Choose a statistic from the category suggestions.", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=False, thinking=True)
     try:
-        ranked, skipped = await asyncio.to_thread(_leaderboard_rows, field.name)
+        ranked, skipped = await asyncio.to_thread(_leaderboard_rows, statistic)
     except Exception:
-        log.exception("Could not load leaderboard for %s", field.name)
+        log.exception("Could not load leaderboard for %s", statistic)
         await interaction.edit_original_response(content="The leaderboard could not be loaded. Please try again shortly.")
         return
     top = ranked[:10]
-    lines = [f"**#{rank}** <@{user_id}> — **{_profile_value(field.name, value)}**" for rank, user_id, value in top]
-    embed = discord.Embed(title=f"Leaderboard: {field.name}", description="\n".join(lines) or "No player scores are available yet.", color=discord.Color.gold())
+    lines = [f"**#{rank}** <@{user_id}> — **{_leaderboard_value(statistic, value)}**" for rank, user_id, value in top]
+    embed = discord.Embed(title=f"Leaderboard: {statistic}", description="\n".join(lines) or "No player scores are available yet.", color=discord.Color.gold())
     if interaction.user.id not in {user_id for _, user_id, _ in top}:
         own = next((row for row in ranked if row[1] == interaction.user.id), None)
         if own:
             rank, _, value = own
-            embed.add_field(name="Your placement", value=f"**#{rank}** of {len(ranked):,} players — **{_profile_value(field.name, value)}**", inline=False)
+            embed.add_field(name="Your placement", value=f"**#{rank}** of {len(ranked):,} players — **{_leaderboard_value(statistic, value)}**", inline=False)
         else:
             embed.add_field(name="Your placement", value="Your save could not be ranked. It may need /update_saves.", inline=False)
     footer = f"All {len(ranked):,} players with readable saves · Equal scores share a rank"
