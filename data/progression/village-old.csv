@@ -45,7 +45,7 @@ Treasury Elixir,Treasury,integer
 Treasury Dark Elixir,Treasury,integer
 Notification for finished upgrades,Option,boolean
 Notification for full collectors,Option,boolean
-Hide Tutorial,Option,boolean
+Hide tutorial,Option,boolean
 Builder Bite,Magic Item,byte
 Clan Castle Cake,Magic Item,byte
 Study Soup,Magic Item,byte
