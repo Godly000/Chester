@@ -59,9 +59,9 @@ class ObstacleSystem:
         if field is None or field.data_type != "integer":
             raise ValueError("Missing Last Obstacle Check integer save field")
         self.items = items
-        field = self.store.village_by_name.get("Obstacles cleared")
+        field = self.store.village_by_name.get("Obstacles Cleared")
         if field is None or field.category != "Statistic" or field.data_type != "short":
-            raise ValueError("Missing Obstacles cleared short statistic")
+            raise ValueError("Missing Obstacles Cleared short statistic")
 
     def _now(self, now):
         now = int(time.time()) if now is None else int(now)
@@ -131,8 +131,8 @@ class ObstacleSystem:
             reward = sum(int(self.rng.choice(item.reward)) for _ in range(amount))
             village[item.resource] -= item.cost * amount
             village[item.name] -= amount
-            field = self.store.village_by_name["Obstacles cleared"]
-            village["Obstacles cleared"] = self.store._bounded_add(village["Obstacles cleared"], amount, field.data_type)
+            field = self.store.village_by_name["Obstacles Cleared"]
+            village["Obstacles Cleared"] = self.store._bounded_add(village["Obstacles Cleared"], amount, field.data_type)
             before = village["Gems"]
             field = self.store.village_by_name["Gems"]
             village["Gems"] = self.store._bounded_add(before, reward, field.data_type)
