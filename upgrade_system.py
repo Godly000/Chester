@@ -326,7 +326,9 @@ class UpgradeSystem:
         return [(upgrade, finish) for _, upgrade, finish in sorted(slots)]
 
     def _load_serials(self) -> None:
-        path = self.progression_dir / "upgrade_ids.csv"
+        path = self.progression_dir.parent / "upgrade_ids.csv"
+        if not path.exists() and (self.progression_dir / "upgrade_ids.csv").exists():
+            path = self.progression_dir / "upgrade_ids.csv"
         rows: List[Tuple[int, str, str]] = []
         if path.exists():
             with path.open(newline="", encoding="utf-8-sig") as file:
@@ -491,6 +493,14 @@ class UpgradeSystem:
         reject_at_maximum: bool = True,
     ) -> int:
         current_level = village[field.name]
+        collection_field = self.save_store.collection_by_name.get(field.name)
+        if (
+            field.category == EQUIPMENT_CATEGORY
+            and collection_field is not None
+            and collection_field.category == "Hero Equipment"
+            and not collection.get(field.name, 0)
+        ):
+            raise UpgradeRejected(f"{field.name} is not unlocked in your collection. Obtain it from a Chest or /buy first.")
         if field.name == "Town Hall":
             if current_level >= 18 and reject_at_maximum:
                 raise UpgradeRejected("Town Hall is already at its maximum level")
@@ -836,7 +846,7 @@ class UpgradeSystem:
 
     def _start_values(
         self, village, collection, item, now, currency, expected_level,
-        expected_price, refresh_report, batch_started=(), cost_reduction=0, time_reduction=0,
+        expected_price, refresh_report, batch_started=(), cost_reduction=0, time_reduction=0, ignore_workers=False,
     ):
         field = self.resolve_item(item)
         current_level = village[field.name]
@@ -889,15 +899,18 @@ class UpgradeSystem:
         else:
             if field.category == EQUIPMENT_CATEGORY:
                 raise UpgradeRejected("Equipment upgrades must be instantaneous")
-            upgrade_name, time_name = self._find_free_slot(field, village)
-            finish_time = now + price.duration
-            time_field = self.save_store.village_by_name[time_name]
-            time_limit = FORMAT_DETAILS[time_field.data_type][2]
-            if finish_time < 1 or finish_time > time_limit:
-                raise UpgradeRejected("Upgrade finish time exceeds the save format limit")
-            set_values[upgrade_name] = serial
-            set_values[time_name] = finish_time
-            slot_name = upgrade_name
+            if ignore_workers:
+                set_values[field.name] = target_level
+            else:
+                upgrade_name, time_name = self._find_free_slot(field, village)
+                finish_time = now + price.duration
+                time_field = self.save_store.village_by_name[time_name]
+                time_limit = FORMAT_DETAILS[time_field.data_type][2]
+                if finish_time < 1 or finish_time > time_limit:
+                    raise UpgradeRejected("Upgrade finish time exceeds the save format limit")
+                set_values[upgrade_name] = serial
+                set_values[time_name] = finish_time
+                slot_name = upgrade_name
 
         affordable = self._affordable_currencies(price, village)
         if currency is None and len(affordable) > 1:
