@@ -5,6 +5,8 @@ import os
 import time
 from pathlib import Path
 
+from player_saves import SaveSchemaMismatch
+
 NOTIFICATION_INTERVAL = 60
 NOTIFICATION_RETRY_SECONDS = 900
 UPGRADE_OPTION = "Notification for finished upgrades"
@@ -103,8 +105,13 @@ class NotificationSystem:
             if not path.stem.isdigit():
                 continue
             user_id = int(path.stem)
+            state = self.state.setdefault(str(user_id), {})
             try:
+                marker = f"{self.store.schema_digest.hex()}:{path.stat().st_mtime_ns}:{path.stat().st_size}"
+                if state.get("schema_mismatch") == marker or state.get("retry", 0) > now:
+                    continue
                 messages = self.check_player(user_id, now)
+                state.pop("schema_mismatch", None)
                 state = self.state[str(user_id)]
                 if not messages or state.get("retry", 0) > now:
                     continue
@@ -118,6 +125,9 @@ class NotificationSystem:
                 if batch:
                     await self.deliver(user, state, batch)
                 state.pop("retry", None)
+            except SaveSchemaMismatch:
+                state["schema_mismatch"] = marker
+                log.warning("Notifications skipped for player %s because the save schema differs from village.csv and collection.csv. Restore matching schema files or run /update_saves with the correct previous files.", user_id)
             except Exception:
                 log.exception("Could not process notifications for player %s", user_id)
                 self.state.setdefault(str(user_id), {})["retry"] = now + NOTIFICATION_RETRY_SECONDS
