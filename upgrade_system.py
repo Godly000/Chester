@@ -462,11 +462,17 @@ class UpgradeSystem:
         field = self.fields_by_name.get(name)
         if field is None or field.category != EQUIPMENT_CATEGORY:
             return False
-        row = self._table_row(self.level_rows, self._base_name(name))
-        if row is None:
+        base_name = self._base_name(name)
+        count_row = self._table_row(self.count_rows, base_name)
+        level_row = self._table_row(self.level_rows, base_name)
+        if count_row is None or level_row is None:
             return False
-        prerequisite = village.get(row["Requirement"], 0)
-        return self._column_value(row, prerequisite) > village.get(name, 0)
+        count_requirement = village.get(count_row["Requirement"], 0)
+        level_requirement = village.get(level_row["Requirement"], 0)
+        return (
+            self._column_value(count_row, count_requirement) >= 1
+            and self._column_value(level_row, level_requirement) >= 1
+        )
 
     def _allowed_count(
         self,
