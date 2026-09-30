@@ -14,6 +14,16 @@ ALL_WORKER_TARGETS = {"All Builders", "All Researchers"}
 WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Hero Level", "Troop Level", "Spell Level", "Siege Level", "Pet Level"}
 
 
+def format_duration(seconds):
+    seconds = max(0, int(seconds))
+    parts = []
+    for unit, label in ((86400, "day"), (3600, "hour"), (60, "minute"), (1, "second")):
+        amount, seconds = divmod(seconds, unit)
+        if amount or parts or unit == 1:
+            parts.append(f"{amount:,} {label}{'' if amount == 1 else 's'}")
+    return " ".join(parts)
+
+
 def remaining_after_magic(remaining, strength):
     remaining = max(0, remaining)
     if 3600 <= strength < 172800 and remaining < strength + 3600:
@@ -261,7 +271,7 @@ class MagicSystem:
                     raise MagicRejected("This item has no production time skip configured")
                 previous = village[LAST_RESOURCE_CHECK] or now
                 village[LAST_RESOURCE_CHECK] = max(1, previous - item.strength)
-                lines.append(f"Production advanced by {previous - village[LAST_RESOURCE_CHECK]:,} seconds. Use /collect_loot to collect it.")
+                lines.append(f"Production advanced by {format_duration(previous - village[LAST_RESOURCE_CHECK])}. Use /collect_loot to collect it.")
             elif item.target in RESOURCE_TYPES:
                 capacities, _ = self.resources.capacities(village)
                 amount = min(item.strength, max(0, capacities[item.target] - village[item.target]))
@@ -302,7 +312,7 @@ class MagicSystem:
                     seconds = remaining - remaining_after_magic(remaining, item.strength)
                     village[clock] -= seconds
                     changed = changed or seconds > 0 or credited > 0
-                    lines.append(f"{entry.label}: {name}, reduced by {seconds:,} seconds.")
+                    lines.append(f"{entry.label}: {name}, reduced by {format_duration(seconds)}.")
                     lines.extend(refund_lines)
                 if not changed:
                     raise MagicRejected("This item would have no effect on those upgrades")
