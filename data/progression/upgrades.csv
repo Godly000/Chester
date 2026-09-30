@@ -1,5 +1,5 @@
 Name,Time,Cost,Resource,Image
-Town Hall 1, 0, 0, Gold,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Town_Hall1.png
+Town Hall 1,0,0,Gold,https://static.wikia.nocookie.net/clashofclans/images/f/fd/Town_Hall1.png
 Town Hall 2,10,1000,Gold,https://static.wikia.nocookie.net/clashofclans/images/7/7d/Town_Hall2.png
 Town Hall 3,1800,4000,Gold,https://static.wikia.nocookie.net/clashofclans/images/d/dd/Town_Hall3.png
 Town Hall 4,10800,25000,Gold,https://static.wikia.nocookie.net/clashofclans/images/e/e7/Town_Hall4.png
@@ -671,6 +671,7 @@ Blacksmith 7,432000,9200000,Elixir,https://static.wikia.nocookie.net/clashofclan
 Blacksmith 8,518400,10000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/7/73/Blacksmith7.png
 Blacksmith 9,604800,11000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e8/Blacksmith9.png
 Blacksmith 10,864000,18000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e8/Blacksmith9.png
+Blacksmith 11,1209600,26000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e8/Blacksmith9.png
 Workshop 1,172800,2400000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/8/84/Workshop1.png
 Workshop 2,259200,3700000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/e/e1/Workshop2.png
 Workshop 3,302400,5000000,Elixir,https://static.wikia.nocookie.net/clashofclans/images/2/28/Workshop3.png
