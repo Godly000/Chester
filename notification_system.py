@@ -52,9 +52,18 @@ class NotificationSystem:
             self.task = asyncio.create_task(self.run())
 
     def save_state(self):
+        now = int(time.time())
+        for user_id, state in list(self.state.items()):
+            for key in ("jobs", "sent", "collectors"):
+                if not state.get(key):
+                    state.pop(key, None)
+            if state.get("retry", 0) <= now:
+                state.pop("retry", None)
+            if not state:
+                self.state.pop(user_id, None)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(".tmp")
-        temporary.write_text(json.dumps(self.state), encoding="utf-8")
+        temporary.write_text(json.dumps(self.state, separators=(",", ":")), encoding="utf-8")
         os.replace(temporary, self.path)
 
     def check_player(self, user_id, now):
@@ -68,15 +77,17 @@ class NotificationSystem:
                 if name and village[finish] > 0:
                     key = f"{slot}:{village[slot]}:{village[finish]}"
                     jobs[key] = {"name": name, "level": village[name] + 1, "finish": village[finish]}
+            active_keys = set(jobs)
+            sent = set(previous.get("sent", []))
             for key, job in previous.get("jobs", {}).items():
-                if key not in jobs and village.get(job["name"], 0) >= job["level"]:
+                if key not in sent and key not in jobs and village.get(job["name"], 0) >= job["level"]:
                     jobs[key] = job
             sent = set(previous.get("sent", []))
             for key, job in jobs.items():
                 if job["finish"] <= now and key not in sent:
                     messages.append(("upgrade", key, f"{job['name']} reached level {job['level']} <t:{job['finish']}:R>. Use /refresh_upgrades to refresh your village."))
-            previous["jobs"] = jobs
-            previous["sent"] = list(sent.intersection(jobs))
+            previous["jobs"] = {key: job for key, job in jobs.items() if key not in sent}
+            previous["sent"] = list(sent.intersection(active_keys))
         else:
             previous["jobs"] = {}
             previous["sent"] = []
@@ -84,7 +95,7 @@ class NotificationSystem:
         if village.get(COLLECTOR_OPTION):
             for collector in self.resources.collector_status(village, now):
                 if collector.capacity > 0 and collector.hourly_rate > 0 and collector.stored >= collector.capacity:
-                    key = f"{collector.item}:{collector.level}:{village['Last Resource Check']}"
+                    key = f"{collector.item}:{collector.resource}:{collector.level}:{village['Last Resource Check']}"
                     full[key] = collector
             sent = set(previous.get("collectors", []))
             for key, collector in full.items():
@@ -137,6 +148,8 @@ class NotificationSystem:
         await user.send("\n".join(message[2] for message in messages))
         for kind, key, _ in messages:
             state.setdefault("sent" if kind == "upgrade" else "collectors", []).append(key)
+            if kind == "upgrade":
+                state.get("jobs", {}).pop(key, None)
         self.save_state()
 
     async def run(self):
