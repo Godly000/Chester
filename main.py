@@ -71,7 +71,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from magic_system import MagicRejected, MagicSystem
+from magic_system import MagicRejected, MagicSystem, format_duration
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
@@ -721,23 +721,24 @@ def _unique_reward_options(item, village, collection):
 
 
 def _roll_unowned_loot(categories, village, collection):
-    eligible = {}
+    rarity_keys = [key for key, category in categories.items() if category.weight > 0]
+    if not rarity_keys:
+        raise LootRollRejected("No chest rarities are available.")
+    key = weighted_choice(rarity_keys, [categories[key].weight for key in rarity_keys])
+    category = categories[key]
+    eligible = []
     options = {}
-    for key, category in categories.items():
-        items = []
-        for item in category.items:
-            if item.weight <= 0:
-                continue
-            choices = _unique_reward_options(item, village, collection)
-            if choices == []:
-                continue
-            items.append(item)
-            options[id(item)] = choices
-        if items and category.weight > 0:
-            eligible[key] = Category(category.name, category.weight, items)
+    for item in category.items:
+        if item.weight <= 0:
+            continue
+        choices = _unique_reward_options(item, village, collection)
+        if choices == []:
+            continue
+        eligible.append(item)
+        options[id(item)] = choices
     if not eligible:
-        raise LootRollRejected("No unowned or repeatable rewards are available in this chest loot table.")
-    category, item = roll_loot(eligible)
+        raise LootRollRejected(f"No attainable unowned or repeatable rewards remain in the {category.name} loot table.")
+    item = roll_item_from_category(Category(category.name, category.weight, eligible))
     choices = options[id(item)]
     resolved = random.choice(choices) if choices is not None else resolve_item_display(item)
     return category, item, resolved
@@ -2103,62 +2104,54 @@ def _remaining_display_rows(entries):
     return rows
 
 
-def _remaining_cost_time(members, now):
-    fixed, choices = {}, {}
-    seconds = 0
-    already_paid = True
-    try:
-        for entry in members:
-            field = upgrade_system.fields_by_name.get(entry.item)
+def _remaining_level_rows(entries, now):
+    grouped = {}
+    for entry in entries:
+        field = upgrade_system.fields_by_name.get(entry.item)
+        base = re.sub(r" #\d+$", "", entry.item)
+        label = "Walls" if base == "Wall" else base
+        for level in range(entry.current_level + 1, entry.target_level + 1):
+            active = bool(entry.slot and level == entry.current_level + 1)
             if field is None:
-                return "Cost and time unavailable for this saved upgrade."
-            first_level = entry.current_level + 1
-            if entry.slot:
-                first_level += 1
-                if not entry.finish_time or entry.finish_time <= 0:
-                    return "Cost and time unavailable until the active upgrade data is repaired."
-                seconds += max(0, entry.finish_time - now)
-            if not entry.slot or first_level <= entry.target_level:
-                already_paid = False
-            for level in range(first_level, entry.target_level + 1):
-                price = upgrade_system._price_for(field, level)
-                seconds += price.duration
-                for resource, amount in price.fixed_costs.items():
-                    fixed[resource] = fixed.get(resource, 0) + amount
-                if price.choice_resources and price.choice_cost:
-                    currencies = tuple(price.choice_resources)
-                    choices[currencies] = choices.get(currencies, 0) + price.choice_cost
-    except UpgradeRejected as error:
-        return f"Cost and time unavailable: {error}"
-    costs = [f"{amount:,} {resource}" for resource, amount in fixed.items() if amount]
-    costs.extend("(" + " or ".join(f"{amount:,} {resource}" for resource in currencies) + ")" for currencies, amount in choices.items())
-    parts = []
-    for unit, label in ((86400, "d"), (3600, "h"), (60, "m"), (1, "s")):
-        amount, seconds = divmod(seconds, unit)
-        if amount:
-            parts.append(f"{amount}{label}")
-    cost_text = " + ".join(costs) if costs else ("Already paid" if already_paid else "Free")
-    return f"Cost remaining: **{cost_text}**\nTime remaining: **{' '.join(parts) or 'Instant'}**"
+                raise UpgradeRejected(f"Unknown saved upgrade: {entry.item}")
+            price = upgrade_system._price_for(field, level)
+            duration = max(0, (entry.finish_time or now) - now) if active else price.duration
+            fixed = tuple(sorted(price.fixed_costs.items())) if not active else ()
+            choices = tuple(price.choice_resources) if not active else ()
+            choice_cost = price.choice_cost if not active else 0
+            key = (label, level, fixed, choices, choice_cost, duration, active)
+            row = grouped.setdefault(key, {"label": label, "level": level, "count": 0,
+                "cost": sum(amount for _, amount in fixed) + choice_cost,
+                "duration": duration, "fixed": fixed, "choices": choices,
+                "choice_cost": choice_cost, "active": active, "workers": []})
+            row["count"] += 1
+            if active:
+                row["workers"].append(entry.slot.removesuffix(" Upgrade"))
+    return list(grouped.values())
 
 
-def _remaining_pages(entries, town_hall):
+def _remaining_pages(entries, town_hall, sort_order=None):
     total = sum(entry.count for entry in entries)
-    rows = _remaining_display_rows(entries)
-    now = int(time.time())
-    heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times total all levels and items in each row. Paid upgrades are excluded from costs; time includes their remaining duration and is summed, not a parallel completion estimate.\n\n"
+    rows = _remaining_level_rows(entries, int(time.time()))
+    if sort_order:
+        metric = "cost" if sort_order.startswith("Cost") else "duration"
+        rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
+    heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per upgrade. In progress rows show paid costs and time left.\n"
+    if sort_order and sort_order.startswith("Cost"):
+        heading += "Cost sorting uses summed resource amounts per upgrade and counts alternative currencies once.\n"
+    heading += "\n"
     chunks, lines = [], []
     length = len(heading)
-    for label, members in rows:
-        entry = members[0]
-        count = sum(member.count for member in members)
-        line = f"**{label}**: level {entry.current_level} to {entry.target_level} ({count:,} remaining)"
-        line += "\n" + _remaining_cost_time(members, now)
-        if entry.slot:
-            worker = entry.slot.removesuffix(" Upgrade")
-            if entry.finish_time and entry.finish_time > 0:
-                line += f"\nIn progress with {worker}; finishes <t:{entry.finish_time}:R>."
-            else:
-                line += f"\n{worker} has invalid upgrade data; contact a moderator."
+    for row in rows:
+        multiplier = f" x{row['count']}" if row["count"] > 1 else ""
+        costs = [f"{amount:,} {resource}" for resource, amount in row["fixed"] if amount]
+        if row["choice_cost"]:
+            costs.append("(" + " or ".join(f"{row['choice_cost']:,} {resource}" for resource in row["choices"]) + ")")
+        cost = "Already paid" if row["active"] else " + ".join(costs) or "Free"
+        duration = format_duration(row["duration"]) if row["duration"] else "Instant"
+        line = f"**{row['label']} — Level {row['level'] - 1} → {row['level']}{multiplier}**\nCost each: **{cost}** · Time each: **{duration}**"
+        if row["active"]:
+            line += "\nIn progress: " + ", ".join(row["workers"])
         if lines and (len(lines) >= 10 or length + len(line) + 2 > 3900):
             chunks.append(lines)
             lines = []
@@ -2314,7 +2307,14 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
-async def remaining_slash(interaction: discord.Interaction):
+@app_commands.describe(sorted="Sort by the cost or duration of each individual upgrade")
+@app_commands.choices(sorted=[
+    app_commands.Choice(name="Cost Ascending", value="Cost Ascending"),
+    app_commands.Choice(name="Cost Descending", value="Cost Descending"),
+    app_commands.Choice(name="Time Ascending", value="Time Ascending"),
+    app_commands.Choice(name="Time Descending", value="Time Descending"),
+])
+async def remaining_slash(interaction: discord.Interaction, sorted: Optional[str] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -2328,7 +2328,7 @@ async def remaining_slash(interaction: discord.Interaction):
             await interaction.response.send_message("Your Town Hall is already at its maximum level.", ephemeral=True)
             return
         entries = upgrade_system.remaining_upgrades(village, collection)
-        pages = _remaining_pages(entries, town_hall)
+        pages = _remaining_pages(entries, town_hall, sorted)
     except Exception as error:
         log.exception("Could not list remaining upgrades: %s", error)
         await interaction.response.send_message("Your remaining upgrades could not be loaded.", ephemeral=True)
