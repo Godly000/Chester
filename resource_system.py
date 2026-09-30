@@ -1,5 +1,6 @@
 import csv
 import re
+import random
 import time
 from dataclasses import dataclass
 from fractions import Fraction
@@ -11,6 +12,8 @@ from player_saves import FORMAT_DETAILS, SaveStore
 
 RESOURCE_PRODUCTION_SECONDS = 3600
 RESOURCE_TYPES = ("Gold", "Elixir", "Dark Elixir")
+ORE_TYPES = ("Shiny Ore", "Glowy Ore", "Starry Ore")
+COLLECTIBLE_RESOURCES = RESOURCE_TYPES + ORE_TYPES
 RESOURCE_CODES = {name: index for index, name in enumerate(RESOURCE_TYPES, 1)}
 TREASURY_FIELDS = {name: f"Treasury {name}" for name in RESOURCE_TYPES}
 LAST_RESOURCE_CHECK = "Last Resource Check"
@@ -24,7 +27,7 @@ class ResourceRejected(Exception):
 @dataclass(frozen=True)
 class ResourceStats:
     resource: str
-    production: int
+    production: Fraction
     capacity: int
 
 
@@ -33,7 +36,7 @@ class CollectorStatus:
     item: str
     level: int
     resource: str
-    hourly_rate: int
+    hourly_rate: float
     stored: int
     capacity: int
 
@@ -57,7 +60,7 @@ class ResourceSystem:
 
     def load(self) -> None:
         self.save_store._require_schema()
-        required_fields = [LAST_RESOURCE_CHECK, *RESOURCE_TYPES, *TREASURY_FIELDS.values()]
+        required_fields = [LAST_RESOURCE_CHECK, *COLLECTIBLE_RESOURCES, *TREASURY_FIELDS.values()]
         for name in required_fields:
             if not self.save_store.has_village_field(name):
                 raise ValueError(f"Missing resource save field: {name}")
@@ -75,11 +78,11 @@ class ResourceSystem:
                 resource = row["Resource"].strip()
                 if resource == "DE":
                     resource = "Dark Elixir"
-                production = int(row["Production"].replace(",", ""))
+                production = Fraction(row["Production"].replace(",", ""))
                 capacity = int(row["Capacity"].replace(",", ""))
                 if not name or level <= 0 or min(production, capacity) < 0:
                     raise ValueError(f"Invalid resource data for {name} level {level}")
-                if resource not in RESOURCE_TYPES:
+                if resource not in COLLECTIBLE_RESOURCES:
                     raise ValueError(f"Unknown storage resource: {resource}")
                 key = name, level
                 entries = rows.setdefault(key, [])
@@ -117,13 +120,13 @@ class ResourceSystem:
         return FORMAT_DETAILS[field.data_type][2]
 
     def capacities(self, village: Mapping[str, int]) -> Tuple[Dict[str, int], Dict[str, int]]:
-        main = dict.fromkeys(RESOURCE_TYPES, 0)
+        main = dict.fromkeys(COLLECTIBLE_RESOURCES, 0)
         treasury = dict.fromkeys(RESOURCE_TYPES, 0)
         for item in self.buildings:
             base = self.base_name(item)
             if base == "Clan Castle":
                 destination = treasury
-            elif base == "Town Hall" or base.endswith(" Storage"):
+            elif base in {"Town Hall", "Blacksmith"} or base.endswith(" Storage"):
                 destination = main
             else:
                 continue
@@ -132,20 +135,26 @@ class ResourceSystem:
         for resource in RESOURCE_TYPES:
             main[resource] = min(main[resource], self._limit(resource))
             treasury[resource] = min(treasury[resource], self._limit(TREASURY_FIELDS[resource]))
+        for resource in ORE_TYPES:
+            main[resource] = min(main[resource], self._limit(resource))
         return main, treasury
 
-    def deposit(self, village: Dict[str, int], amounts: Mapping[str, int]) -> ResourceReceipt:
+    def deposit(self, village: Dict[str, int], amounts: Mapping[str, int], *, randomize: bool = False) -> ResourceReceipt:
         main_caps, treasury_caps = self.capacities(village)
         main_gains = {}
         treasury_gains = {}
         for resource, amount in amounts.items():
-            if resource not in RESOURCE_TYPES or amount < 0:
+            if resource not in COLLECTIBLE_RESOURCES or amount < 0:
                 raise ValueError(f"Invalid resource deposit: {resource}")
             amount = int(amount)
             main_gain = min(amount, max(0, main_caps[resource] - village[resource]))
             village[resource] += main_gain
+            if resource in ORE_TYPES:
+                main_gains[resource] = main_gain
+                treasury_gains[resource] = 0
+                continue
             remaining = amount - main_gain
-            converted = remaining * self.treasury_ratio.numerator // self.treasury_ratio.denominator
+            converted = self._collection_amount(remaining * self.treasury_ratio, randomize)
             treasury_field = TREASURY_FIELDS[resource]
             treasury_gain = min(converted, max(0, treasury_caps[resource] - village[treasury_field]))
             village[treasury_field] += treasury_gain
@@ -153,8 +162,16 @@ class ResourceSystem:
             treasury_gains[resource] = treasury_gain
         return ResourceReceipt(main_gains, treasury_gains)
 
+    @staticmethod
+    def _collection_amount(amount: Fraction, randomize: bool) -> int:
+        whole = amount.numerator // amount.denominator
+        remainder = amount - whole
+        if randomize and remainder and random.random() >= remainder:
+            return whole + 1
+        return whole
+
     def collector_status(
-        self, village: Mapping[str, int], now: Optional[int] = None
+        self, village: Mapping[str, int], now: Optional[int] = None, *, randomize: bool = False
     ) -> List[CollectorStatus]:
         now = int(time.time()) if now is None else int(now)
         last_check = village[LAST_RESOURCE_CHECK]
@@ -164,8 +181,8 @@ class ResourceSystem:
             if not self.is_producer(item):
                 continue
             for stats in self._stats(item, village[item]):
-                amount = min(stats.capacity, stats.production * elapsed // RESOURCE_PRODUCTION_SECONDS)
-                result.append(CollectorStatus(item, village[item], stats.resource, stats.production, amount, stats.capacity))
+                amount = self._collection_amount(min(Fraction(stats.capacity), stats.production * elapsed / RESOURCE_PRODUCTION_SECONDS), randomize)
+                result.append(CollectorStatus(item, village[item], stats.resource, float(stats.production), amount, stats.capacity))
         return result
 
     def collect(
@@ -175,29 +192,30 @@ class ResourceSystem:
         now = max(now, village[LAST_RESOURCE_CHECK])
         if now > self._limit(LAST_RESOURCE_CHECK):
             raise ResourceRejected("The current time exceeds the Last Resource Check data limit")
-        statuses = self.collector_status(village, now)
+        statuses = self.collector_status(village, now, randomize=True)
         amounts = {}
         for status in statuses:
             amounts[status.resource] = amounts.get(status.resource, 0) + status.stored
         if not automatic:
             main_caps, treasury_caps = self.capacities(village)
             full = [
-                resource for resource in RESOURCE_TYPES
-                if (main_caps[resource] or treasury_caps[resource] or resource in amounts)
+                resource for resource in COLLECTIBLE_RESOURCES
+                if (main_caps[resource] or treasury_caps.get(resource, 0) or resource in amounts)
                 and village[resource] >= main_caps[resource]
-                and village[TREASURY_FIELDS[resource]] >= treasury_caps[resource]
+                and (resource not in TREASURY_FIELDS
+                     or village[TREASURY_FIELDS[resource]] >= treasury_caps[resource])
             ]
             if full:
                 raise ResourceRejected(
                     "Collection blocked because these storages and treasuries are full: "
                     + ", ".join(full)
                 )
-        receipt = self.deposit(village, amounts)
+        receipt = self.deposit(village, amounts, randomize=True)
         village[LAST_RESOURCE_CHECK] = now
         for resource in amounts:
             total_name = f"Total {resource}"
             if total_name in village:
-                village[total_name] += receipt.main[resource] + receipt.treasury[resource]
+                village[total_name] = min(self._limit(total_name), village[total_name] + receipt.main[resource] + receipt.treasury[resource])
         return receipt
 
     def collect_treasury(self, village: Dict[str, int]) -> Dict[str, int]:
