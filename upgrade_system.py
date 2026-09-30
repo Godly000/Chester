@@ -327,8 +327,6 @@ class UpgradeSystem:
 
     def _load_serials(self) -> None:
         path = self.progression_dir.parent / "upgrade_ids.csv"
-        if not path.exists() and (self.progression_dir / "upgrade_ids.csv").exists():
-            path = self.progression_dir / "upgrade_ids.csv"
         rows: List[Tuple[int, str, str]] = []
         if path.exists():
             with path.open(newline="", encoding="utf-8-sig") as file:
