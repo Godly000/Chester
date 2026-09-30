@@ -1,54 +1,4 @@
-"""
-Loot Box Discord Bot
-=====================
-
-Reads Town-Hall-specific two-tier weighted-random loot tables from CSV files:
-
-  data/rarities.csv                              -> category,weight
-  Town Hall Loot Tables/Town Hall N/<rarity>.csv -> item_name,weight[,extra]
-  Town Hall Loot Tables/images.csv               -> item_name,image_url
-  data/xp.csv                                    -> level,cumulative_xp_required
-
-Weight columns may be plain numbers ("638") or comma-grouped ("1,923") --
-both are accepted. Item rows no longer carry their own image column --
-every item's image comes from a case-sensitive lookup of its name in
-Town Hall Loot Tables/images.csv.
-
-The `extra` 3rd column is optional. If present, it is either:
-  - a numeric range like "100-500": a random quantity is rolled from that
-    range and shown in the output (e.g. "Gold x1,234"), or
-  - text naming another shared loot CSV (without ".csv"), e.g. "heroskin":
-    a random row is picked from that file (name, image), that
-    row's image overrides this item's image, and ": <name>" is appended
-    to this item's name (e.g. "Hero Equipment: Spiky Ball").
-
-Referenced sub-table CSVs (e.g. heroskin.csv) and images.csv may
-optionally start with a header row like "Item,Image" -- it's detected
-and skipped automatically.
-
-On the /chest command, the bot:
-  1. Selects the loot folder matching the player's Town Hall level
-  2. Picks a category using the weights in rarities.csv
-  3. Picks an item from that category's CSV using the item weights
-  4. Stores the reward and rarity XP in the player's ordered binary save
-     file inside saves/
-  5. Replies with an embed showing the category, item name, image, and
-     XP gained -- with a separate follow-up message if this pushed the
-     player up a level (see data/xp.csv)
-
-The /profile command shows every saved value in a required category.
-
-Setup
------
-1. pip install -r requirements.txt
-2. Copy .env.example to .env and add your bot token:
-       DISCORD_TOKEN=your-token-here
-3. Keep data next to this script and put the Town Hall loot folder beside it or inside data.
-4. python main.py
-
-The bot needs the "applications.commands" and "bot" scopes when invited,
-with at least the "Send Messages" and "Embed Links" permissions.
-"""
+"""Chester loads CSV data from fixed repository paths."""
 
 import asyncio
 import csv
@@ -131,11 +81,12 @@ SCRIPT_DIR = Path(__file__).parent
 ENV_PATH = SCRIPT_DIR / ".env"
 WHITELIST_FILE = SCRIPT_DIR / "whitelist.txt"
 DATA_DIR = SCRIPT_DIR / "data"
-TOWN_HALL_LOOT_DIR = SCRIPT_DIR / "Town Hall Loot Tables"
-LOOT_TABLE_DIR = DATA_DIR / "Town Hall Loot Tables"
+TOWN_HALL_LOOT_DIR = DATA_DIR / "Town Hall Loot Tables"
+LOOT_TABLE_DIR = TOWN_HALL_LOOT_DIR
 TUTORIAL_FILE = DATA_DIR / "tutorial.txt"
 RARITIES_FILE = LOOT_TABLE_DIR / "rarities.csv"
-IMAGES_FILE = LOOT_TABLE_DIR / "images.csv"
+IMAGES_FILE = DATA_DIR / "images.csv"
+EQUIPMENT_IMAGES_FILE = DATA_DIR / "equipment_images.csv"
 XP_LEVELS_FILE = DATA_DIR / "xp.csv"
 PROGRESSION_DIR = DATA_DIR / "progression"
 SAVES_DIR = SCRIPT_DIR / "saves"
@@ -360,24 +311,12 @@ def _find_data_csv(
     data_dir: Path = DATA_DIR,
     warn_missing: bool = True,
 ) -> Optional[Path]:
-    """
-    Look up data/<name>.csv, case-insensitively, since CSV text fields
-    might not exactly match a file's on-disk casing.
-    """
-    search_filename = f"{name}.csv"
-    exact = data_dir / search_filename
-    if exact.is_file():
-        return exact
-    target = search_filename.lower()
-    if data_dir.is_dir():
-        for candidate in data_dir.iterdir():
-            if candidate.is_file() and candidate.name.lower() == target:
-                return candidate
+    filename = name.strip().casefold().removesuffix(".csv") + ".csv"
+    path = data_dir / filename
+    if path.is_file():
+        return path
     if warn_missing:
-        log.warning(
-            "Loot table file not found. Searched for '%s' (case-insensitive) in '%s'.",
-            search_filename, data_dir,
-        )
+        log.warning("CSV file not found at expected path: %s", path)
     return None
 
 
@@ -464,9 +403,7 @@ def load_categories(
             log.warning("Skipping rarities row with non-positive weight: %r", row)
             continue
 
-        item_file = _find_data_csv(name, loot_dir, warn_missing=False)
-        if item_file is None:
-            item_file = loot_dir / f"{name}.csv"
+        item_file = loot_dir / f"{name.strip().casefold()}.csv"
         items: List[LootItem] = []
         try:
             item_rows = _strip_header_row(_read_weighted_csv_rows(item_file))
@@ -509,21 +446,12 @@ def load_categories(
                         )
                     image_url = ""
 
-                item_reference_dir = reference_dir
-                if extra_field and not _QUANTITY_RANGE_RE.match(extra_field.strip()):
-                    subtable_name = extra_field.strip()
-                    if (
-                        _find_data_csv(subtable_name, reference_dir, warn_missing=False) is None
-                        and _find_data_csv(subtable_name, DATA_DIR, warn_missing=False) is not None
-                    ):
-                        item_reference_dir = DATA_DIR
-
                 items.append(
                     LootItem(
                         name=item_name,
                         image_url=image_url,
                         weight=item_weight,
-                        data_dir=item_reference_dir,
+                        data_dir=reference_dir,
                         extra_field=extra_field,
                     )
                 )
@@ -545,57 +473,26 @@ def load_categories(
     return categories
 
 
-def _find_directory(name: str, parent: Path) -> Optional[Path]:
-    exact = parent / name
-    if exact.is_dir():
-        return exact
-    if parent.is_dir():
-        for candidate in parent.iterdir():
-            if candidate.is_dir() and candidate.name.casefold() == name.casefold():
-                return candidate
-    return None
-
-
 def _resolve_town_hall_loot_root(
     expected_categories: List[str],
 ) -> Tuple[Path, Dict[int, Path]]:
     configured = os.getenv("TOWN_HALL_LOOT_DIR", "").strip()
-    if configured:
-        configured_path = Path(configured).expanduser()
-        if not configured_path.is_absolute():
-            configured_path = SCRIPT_DIR / configured_path
-        candidates = [configured_path]
-    else:
-        candidates = [TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables"]
-
-    attempts: List[Tuple[Path, List[Path]]] = []
-    for candidate in dict.fromkeys(candidates):
-        root = _find_directory(candidate.name, candidate.parent) or candidate
-        folders = {
-            town_hall: _find_directory(f"Town Hall {town_hall}", root)
-            or root / f"Town Hall {town_hall}"
-            for town_hall in range(1, 19)
-        }
-        missing = [
-            folder / f"{name}.csv"
-            for folder in folders.values()
-            for name in expected_categories
-            if _find_data_csv(name, folder, warn_missing=False) is None
-        ]
-        if root.is_dir() and not missing:
-            return root, folders
-        attempts.append((root, missing))
-
-    searched = "; ".join(str(root) for root, _ in attempts)
-    best_root, missing = min(attempts, key=lambda attempt: len(attempt[1]))
-    examples = ", ".join(str(path.relative_to(best_root)) for path in missing[:4])
-    raise FileNotFoundError(
-        f"Town Hall loot tables are missing or incomplete. Searched: {searched}. "
-        f"Missing {len(missing)} required CSV files in {best_root}; examples: {examples}. "
-        "Upload the complete 'Town Hall Loot Tables' folder beside main.py or inside data/. "
-        "It must contain Town Hall 1 through Town Hall 18 with a CSV for each rarity. "
-        "For a different location, set TOWN_HALL_LOOT_DIR to that folder."
-    )
+    root = Path(configured).expanduser() if configured else TOWN_HALL_LOOT_DIR
+    if not root.is_absolute():
+        root = SCRIPT_DIR / root
+    folders = {level: root / f"Town Hall {level}" for level in range(1, 19)}
+    missing = [
+        folder / f"{name.strip().casefold()}.csv"
+        for folder in folders.values()
+        for name in expected_categories
+        if not (folder / f"{name.strip().casefold()}.csv").is_file()
+    ]
+    if missing:
+        examples = ", ".join(str(path) for path in missing[:4])
+        raise FileNotFoundError(
+            f"Missing {len(missing)} required loot CSV files at their configured paths: {examples}"
+        )
+    return root, folders
 
 
 def load_town_hall_loot_tables() -> Dict[int, Dict[str, Category]]:
@@ -606,11 +503,7 @@ def load_town_hall_loot_tables() -> Dict[int, Dict[str, Category]]:
         if len(row) >= 2
     }
     loot_root, town_hall_folders = _resolve_town_hall_loot_root(sorted(expected_categories))
-    images_file = (
-        _find_data_csv("images", loot_root, warn_missing=False)
-        or _find_data_csv("images", DATA_DIR, warn_missing=False)
-        or loot_root / "images.csv"
-    )
+    images_file = IMAGES_FILE
     log.info("Loading Town Hall loot tables from %s", loot_root)
     for town_hall, loot_dir in town_hall_folders.items():
         categories = load_categories(
@@ -1694,9 +1587,9 @@ def _upgrade_image_url(item, target_level):
         equipment_name = equipment_names.get(without_level.casefold())
     if equipment_name is not None:
         base = equipment_name
-        path = _find_data_csv("equipment_images", DATA_DIR, warn_missing=True)
-        if path is None:
-            log.info("Could not find equipment_images.csv")
+        path = EQUIPMENT_IMAGES_FILE
+        if not path.is_file():
+            log.warning("Equipment images file not found at expected path: %s", path)
             return ""
         with path.open(newline="", encoding="utf-8-sig") as image_file:
             for row in csv.DictReader(image_file):
@@ -2367,14 +2260,9 @@ def _magic_result_embed(result):
         color=discord.Color.green(),
     )
 
-    for directory in (TOWN_HALL_LOOT_DIR, DATA_DIR / "Town Hall Loot Tables", DATA_DIR):
-        path = _find_data_csv("images", directory, warn_missing=True)
-        if path is None:
-            continue
-        image_url = next((url for name, url in load_images(path).items() if name.casefold() == result.item.casefold()), None)
-        if image_url:
-            embed.set_image(url=proxy_image_url(image_url))
-            break
+    image_url = next((url for name, url in load_images(IMAGES_FILE).items() if name.casefold() == result.item.casefold()), None)
+    if image_url:
+        embed.set_image(url=proxy_image_url(image_url))
     return embed
 
 
