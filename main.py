@@ -2,6 +2,7 @@
 
 import asyncio
 import csv
+from fractions import Fraction
 import logging
 import os
 import random
@@ -79,6 +80,9 @@ log = logging.getLogger("loot_bot")
 SCRIPT_DIR = Path(__file__).parent
 ENV_PATH = SCRIPT_DIR / ".env"
 WHITELIST_FILE = SCRIPT_DIR / "whitelist.txt"
+CHEST_VISIBILITY_FILE = SCRIPT_DIR / "chest_visibility.txt"
+CHEST_VISIBILITY_ORDER = ("legendary", "epic", "rare", "common")
+BULK_MAGIC_SELL_VALUE = 2
 DATA_DIR = SCRIPT_DIR / "data"
 TOWN_HALL_LOOT_DIR = DATA_DIR / "Town Hall Loot Tables"
 LOOT_TABLE_DIR = TOWN_HALL_LOOT_DIR
@@ -1033,6 +1037,39 @@ def _set_chest_footer(embed, hide_tutorial=False):
         embed.remove_footer()
 
 
+def _chest_is_public(guild_id, rarity, categories):
+    chance = Fraction(1)
+    try:
+        with CHEST_VISIBILITY_FILE.open(newline="", encoding="utf-8-sig") as source:
+            for row in csv.DictReader(source):
+                if row["Server ID"].strip() == str(guild_id):
+                    chance = Fraction(row["Chance"].strip())
+                    if not 0 <= chance <= 1:
+                        raise ValueError("Chest visibility Chance must be between zero and one")
+                    break
+    except FileNotFoundError:
+        pass
+    except (OSError, UnicodeError, ValueError, ZeroDivisionError, KeyError, csv.Error) as error:
+        log.warning("Could not load chest visibility: %s", error)
+        chance = Fraction(1)
+    weights = {name.casefold(): Fraction(str(category.weight)) for name, category in categories.items() if category.weight > 0}
+    total = sum(weights.values())
+    if not total or rarity.casefold() not in weights:
+        return chance == 1
+    remaining = chance * total
+    order = list(CHEST_VISIBILITY_ORDER) + sorted(set(weights) - set(CHEST_VISIBILITY_ORDER))
+    for name in order:
+        weight = weights.get(name, 0)
+        if name == rarity.casefold():
+            if remaining <= 0:
+                return False
+            if remaining >= weight:
+                return True
+            return random.random() < remaining / weight
+        remaining -= weight
+    return False
+
+
 async def _open_chest(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction, create_save=True):
         return
@@ -1047,10 +1084,11 @@ async def _open_chest(interaction: discord.Interaction):
             )
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
         _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
+        ephemeral = not _chest_is_public(interaction.guild_id, rarity, town_hall_loot_tables[max(1, village["Town Hall"])])
         if interaction.response.is_done():
-            await interaction.followup.send(embed=embed, ephemeral=False)
+            await interaction.followup.send(embed=embed, ephemeral=ephemeral)
         else:
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
         await gembox_system.maybe_offer(interaction, rarity)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
@@ -1058,7 +1096,7 @@ async def _open_chest(interaction: discord.Interaction):
                 color=discord.Color.gold(),
             )
             level_up_embed.set_footer(text="Made by __godly__")
-            await interaction.followup.send(embed=level_up_embed)
+            await interaction.followup.send(embed=level_up_embed, ephemeral=ephemeral)
     except LootRollRejected as e:
         if interaction.response.is_done():
             await interaction.followup.send(f"⚠️ {e}", ephemeral=True)
@@ -1508,9 +1546,7 @@ async def _fetch_upgrade_image(url):
     proxy_url = proxy_upgrade_image_url(url)
 
     def failed(reason, broken=False):
-        log.warning("Image load error: %s | link=%s", reason, proxy_url)
-        if broken:
-            log.info("Critical failure: %s", broken)
+        log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
         return None, None, broken
 
     if not proxy_url:
@@ -1518,9 +1554,9 @@ async def _fetch_upgrade_image(url):
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            # log.info("Fetching image through proxy: %s", proxy_url)
+            log.info("Fetching image through proxy: %s", proxy_url)
             async with session.get(proxy_url, allow_redirects=False) as response:
-                if response.status < 200 or response.status >= 300:
+                if response.status != 200:
                     return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
                 content_type = response.headers.get("Content-Type", "")
                 if not content_type.lower().startswith("image/"):
@@ -2280,10 +2316,11 @@ async def magic_item_autocomplete(interaction: discord.Interaction, current: str
 
 
 class MagicItemView(discord.ui.View):
-    def __init__(self, user_id, item, options):
+    def __init__(self, user_id, item, options, quantity=1):
         super().__init__(timeout=120)
         self.user_id = user_id
         self.item = item
+        self.quantity = quantity
         self.options = {option.value: option for option in options}
         self.used = False
         self.message = None
@@ -2316,7 +2353,7 @@ class MagicItemView(discord.ui.View):
             option = self.options.get(self.selection.values[0])
             if option is None:
                 raise MagicRejected("Invalid selection. Run /use again")
-            result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item)
+            result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item, quantity=self.quantity)
         except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
             await interaction.response.send_message(f"You can't use any {self.item.name}: {error}", ephemeral=True)
             if self.message is not None:
@@ -2349,27 +2386,33 @@ class MagicItemView(discord.ui.View):
 
 
 @bot.tree.command(name="use", description="Use a magic item from your inventory.")
-@app_commands.describe(item="The type of magic item to use")
+@app_commands.describe(item="The type of magic item to use", quantity="Number to use for items worth two Gems defaults to one")
 @app_commands.autocomplete(item=magic_item_autocomplete)
-async def use_slash(interaction: discord.Interaction, item: str):
+async def use_slash(interaction: discord.Interaction, item: str, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        if magic_system.resolve(item).name == "Wall Rings":
+        definition = magic_system.resolve(item)
+        if quantity is not None and definition.sell != BULK_MAGIC_SELL_VALUE:
+            raise MagicRejected("Quantity is only available for magic items that sell for 2 Gems")
+        amount = quantity if quantity is not None else 1
+        village, _ = save_store.player_values(interaction.user.id)
+        magic_system._owned(village, definition, amount)
+        if definition.name == "Wall Rings":
             village, _ = save_store.player_values(interaction.user.id)
             magic_system._owned(village, magic_system.resolve(item))
             await _open_wall_upgrades(interaction, rings_only=True)
             return
         definition, options, status = magic_system.prepare(interaction.user.id, item)
         if options:
-            view = MagicItemView(interaction.user.id, definition, options)
+            view = MagicItemView(interaction.user.id, definition, options, amount)
             embed = discord.Embed(
                 title=f"Use {definition.name}", description="\n".join(status), color=discord.Color.blue()
             )
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             view.message = await interaction.original_response()
             return
-        result = magic_system.use(interaction.user.id, item)
+        result = magic_system.use(interaction.user.id, item, quantity=amount)
     except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
         await interaction.response.send_message(f"You can't use any {item}: {error}", ephemeral=True)
         return
