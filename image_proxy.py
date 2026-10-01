@@ -41,7 +41,7 @@ def proxy_image_url(url, width=DEFAULT_IMAGE_WIDTH):
             path = parsed.path.split("/revision/", 1)[0].rstrip("/")
             path += f"/revision/latest/scale-to-width-down/{width}"
             url = urlunsplit(("https", parsed.netloc, path, "", ""))
-        return IMAGE_PROXY_URL + "?" + urlencode({"url": url}, safe="=/")
+        return IMAGE_PROXY_URL + "?" + urlencode({"url": url}, safe=":=/")
     except ValueError as error:
         log.warning("Image omitted because it cannot use the proxy: %s", error)
         return None
