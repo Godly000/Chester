@@ -10,6 +10,7 @@ from resource_system import LAST_RESOURCE_CHECK, RESOURCE_CODES, RESOURCE_TYPES
 from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRejected
 
 
+BULK_MAGIC_SELL_VALUE = 2
 ALL_WORKER_TARGETS = {"All Builders", "All Researchers"}
 WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Hero Level", "Troop Level", "Spell Level", "Siege Level", "Pet Level"}
 
@@ -256,69 +257,77 @@ class MagicSystem:
         warnings.append(f"Cost reduced by {reduction:,} {resource}: {receipt.main[resource]:,} to storage, {receipt.treasury[resource]:,} to treasury.")
         return credited, warnings
 
-    def use(self, user_id, name, *, option: Optional[MagicOption] = None, expected_item=None, now=None):
+    def use(self, user_id, name, *, option: Optional[MagicOption] = None, expected_item=None, now=None, quantity=1):
         now = int(time.time()) if now is None else int(now)
         item = self.resolve(name)
+        if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity < 1:
+            raise MagicRejected("Quantity must be a positive whole number")
+        if quantity != 1 and item.sell != BULK_MAGIC_SELL_VALUE:
+            raise MagicRejected("Quantity is only available for magic items that sell for 2 Gems")
         if expected_item is not None and item != expected_item:
             raise MagicRejected("The item data changed. Run /use again")
         self.upgrades.refresh(user_id, now)
         with self.store.transaction(user_id) as (village, collection):
-            self._owned(village, item)
+            self._owned(village, item, quantity)
             lines = []
-            consumed = 1
-            if item.target == "Resources":
-                if item.strength <= 0:
-                    raise MagicRejected("This item has no production time skip configured")
-                previous = village[LAST_RESOURCE_CHECK] or now
-                village[LAST_RESOURCE_CHECK] = max(1, previous - item.strength)
-                lines.append(f"Production advanced by {format_duration(previous - village[LAST_RESOURCE_CHECK])}. Use /collect_loot to collect it.")
-            elif item.target in RESOURCE_TYPES:
-                capacities, _ = self.resources.capacities(village)
-                amount = min(item.strength, max(0, capacities[item.target] - village[item.target]))
-                if amount <= 0:
-                    raise MagicRejected(f"{item.target} storage is full or this item has no resource strength")
-                village[item.target] += amount
-                total = f"Total {item.target}"
-                if total in village:
-                    village[total] += amount
-                lines.append(f"Added {amount:,} {item.target} to main storage.")
-            elif item.target == "Wall":
-                if option is None:
-                    raise MagicRejected("Choose a Wall level first")
-                current = self._wall_option(item, village, collection, int(option.value))
-                if current.token != option.token:
-                    raise MagicRejected("The selected Wall or its cost changed. Run /use again")
-                wall, level, consumed, _ = current.token
-                self._owned(village, item, consumed)
-                village[wall] = level + 1
-                lines.append(f"{wall} upgraded from level {level} to {level + 1} using {consumed:,} Wall Rings.")
-            elif item.target in WORKER_TARGETS:
-                options, _ = self._worker_options(item, village, now)
-                if item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
+            total_consumed = 0
+            for _ in range(quantity):
+                consumed = 1
+                if item.target == "Resources":
+                    if item.strength <= 0:
+                        raise MagicRejected("This item has no production time skip configured")
+                    previous = village[LAST_RESOURCE_CHECK] or now
+                    village[LAST_RESOURCE_CHECK] = max(1, previous - item.strength)
+                    lines.append(f"Production advanced by {format_duration(previous - village[LAST_RESOURCE_CHECK])}. Use /collect_loot to collect it.")
+                elif item.target in RESOURCE_TYPES:
+                    capacities, _ = self.resources.capacities(village)
+                    amount = min(item.strength, max(0, capacities[item.target] - village[item.target]))
+                    if amount <= 0:
+                        raise MagicRejected(f"{item.target} storage is full or this item has no resource strength")
+                    village[item.target] += amount
+                    total = f"Total {item.target}"
+                    if total in village:
+                        village[total] += amount
+                    lines.append(f"Added {amount:,} {item.target} to main storage.")
+                elif item.target == "Wall":
                     if option is None:
-                        raise MagicRejected("Choose a worker first")
-                    options = [entry for entry in options if entry.value == option.value and entry.token == option.token]
+                        raise MagicRejected("Choose a Wall level first")
+                    current = self._wall_option(item, village, collection, int(option.value))
+                    if current.token != option.token:
+                        raise MagicRejected("The selected Wall or its cost changed. Run /use again")
+                    wall, level, consumed, _ = current.token
+                    self._owned(village, item, consumed)
+                    village[wall] = level + 1
+                    lines.append(f"{wall} upgraded from level {level} to {level + 1} using {consumed:,} Wall Rings.")
+                elif item.target in WORKER_TARGETS:
+                    options, _ = self._worker_options(item, village, now)
+                    if item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
+                        if option is None:
+                            raise MagicRejected("Choose a worker first")
+                        options = [entry for entry in options if entry.value == option.value and entry.token == option.token]
+                        if not options:
+                            raise MagicRejected("That worker's upgrade changed or finished. Run /use again")
                     if not options:
-                        raise MagicRejected("That worker's upgrade changed or finished. Run /use again")
-                if not options:
-                    raise MagicRejected("No eligible upgrades are in progress")
-                changed = False
-                for entry in options:
-                    slot = entry.value
-                    clock = slot.removesuffix(" Upgrade") + " Time"
-                    name = self.upgrades.name_by_serial[village[slot]]
-                    credited, refund_lines = self._reduce_cost(item, village, slot, name)
-                    remaining = max(0, village[clock] - now)
-                    seconds = remaining - remaining_after_magic(remaining, item.strength)
-                    village[clock] -= seconds
-                    changed = changed or seconds > 0 or credited > 0
-                    lines.append(f"{entry.label}: {name}, reduced by {format_duration(seconds)}.")
-                    lines.extend(refund_lines)
-                if not changed:
-                    raise MagicRejected("This item would have no effect on those upgrades")
-                completed = self.upgrades._refresh_values(village, now).completed
-                lines.extend(f"Completed {entry.item}: level {entry.new_level}." for entry in completed)
-            else:
-                raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
-            village[item.name] -= consumed
-            return MagicResult(item.name, consumed, lines)
+                        raise MagicRejected("No eligible upgrades are in progress")
+                    changed = False
+                    for entry in options:
+                        slot = entry.value
+                        clock = slot.removesuffix(" Upgrade") + " Time"
+                        name = self.upgrades.name_by_serial[village[slot]]
+                        credited, refund_lines = self._reduce_cost(item, village, slot, name)
+                        remaining = max(0, village[clock] - now)
+                        seconds = remaining - remaining_after_magic(remaining, item.strength)
+                        village[clock] -= seconds
+                        changed = changed or seconds > 0 or credited > 0
+                        lines.append(f"{entry.label}: {name}, reduced by {format_duration(seconds)}.")
+                        lines.extend(refund_lines)
+                    if not changed:
+                        raise MagicRejected("This item would have no effect on those upgrades")
+                    completed = self.upgrades._refresh_values(village, now).completed
+                    lines.extend(f"Completed {entry.item}: level {entry.new_level}." for entry in completed)
+                else:
+                    raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
+                village[item.name] -= consumed
+                total_consumed += consumed
+            lines.insert(0, f"Used {total_consumed:,} {item.name}.")
+            return MagicResult(item.name, total_consumed, lines)
