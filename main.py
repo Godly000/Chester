@@ -2,7 +2,6 @@
 
 import asyncio
 import csv
-import io
 import logging
 import os
 import random
@@ -1512,12 +1511,13 @@ async def _fetch_upgrade_image(url):
         log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
         return None, None, broken
 
-    if not url.startswith(("https://", "http://")):
+    if not proxy_url:
         return failed("Invalid image URL scheme", broken=True)
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(proxy_url, allow_redirects=True) as response:
+            log.info("Fetching image through proxy: %s", proxy_url)
+            async with session.get(proxy_url, allow_redirects=False) as response:
                 if response.status != 200:
                     return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
                 content_type = response.headers.get("Content-Type", "")
@@ -1612,7 +1612,7 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
         url = image_urls[item, target_level]
         if url:
             urls[url] = (None, None, False)
-    if urls and interaction.app_permissions.attach_files:
+    if urls:
         semaphore = asyncio.Semaphore(4)
         async def fetch(url):
             async with semaphore:
@@ -1632,25 +1632,15 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
     for index, (embed, item, target_level) in enumerate(grouped_entries.values()):
         base = upgrade_system._base_name(item)
         url = image_urls[item, target_level]
-        files = []
         if url:
-            data, extension, broken = urls[url]
-            if data and interaction.app_permissions.attach_files:
-                filename = f"upgrade_{index}.{extension}"
-                files.append(discord.File(io.BytesIO(data), filename=filename))
-                embed.set_image(url=proxy_upgrade_image_url(f"attachment://{filename}"))
-            else:
-                embed.set_image(url=proxy_upgrade_image_url(url))
-                if broken:
-                    embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
-        try:
-            if index == 0:
-                await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=files)
-            else:
-                await interaction.followup.send(embed=embed, ephemeral=False, files=files)
-        finally:
-            for file in files:
-                file.close()
+            _, _, broken = urls[url]
+            embed.set_image(url=proxy_upgrade_image_url(url))
+            if broken:
+                embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
+        if index == 0:
+            await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=[])
+        else:
+            await interaction.followup.send(embed=embed, ephemeral=False)
 
 
 def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> discord.Embed:
