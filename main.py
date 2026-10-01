@@ -924,6 +924,20 @@ async def on_ready():
     log.info("Logged in as %s (id: %s)", bot.user, bot.user.id if bot.user else "?")
 
 
+def _chest_currency_fields(resource, values, main_caps, treasury_caps, received):
+    balance = f"{values[resource]:,}"
+    if resource in main_caps:
+        balance += f" / {main_caps[resource]:,}"
+    fields = [(resource, balance)]
+    treasury_gain = received.treasury.get(resource, 0)
+    if treasury_gain > 0 and resource in TREASURY_FIELDS:
+        fields.append((
+            TREASURY_FIELDS[resource],
+            f"{values[TREASURY_FIELDS[resource]]:,} / {treasury_caps[resource]:,} (+{treasury_gain:,})",
+        ))
+    return fields
+
+
 async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str]:
     """
     Perform a real /chest roll: pick loot, award XP for it, and return
@@ -983,6 +997,11 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         for name in collection_unlocks:
             collection[name] = 1
         new_xp = values["Experience"]
+        currency_fields = []
+        reward_field = save_store.village_by_name.get(resolved.reward_name)
+        if reward_field is not None and reward_field.category.casefold() == "currency":
+            main_caps, treasury_caps = resource_system.capacities(values)
+            currency_fields = _chest_currency_fields(resolved.reward_name, values, main_caps, treasury_caps, received)
     old_level = xp_to_level(old_xp)
     new_level = xp_to_level(new_xp)
 
@@ -992,8 +1011,10 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         xp_reward=xp_reward,
         resolved=resolved,
     )
-    if resource_amounts:
-        embed.add_field(name="Stored resources", value=_format_resource_receipt(received), inline=False)
+    if currency_fields:
+        embed.title = resolved.reward_name
+        for name, value in currency_fields:
+            embed.add_field(name=name, value=value, inline=False)
     for name, stored, sold, gems in magic_awards:
         description = f"Stored {stored:,} {name}."
         if sold:
