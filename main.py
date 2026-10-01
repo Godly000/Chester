@@ -1508,7 +1508,9 @@ async def _fetch_upgrade_image(url):
     proxy_url = proxy_upgrade_image_url(url)
 
     def failed(reason, broken=False):
-        log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
+        log.warning("Image load error: %s | link=%s", reason, proxy_url)
+        if broken:
+            log.info("Critical failure: %s", broken)
         return None, None, broken
 
     if not proxy_url:
@@ -1516,9 +1518,9 @@ async def _fetch_upgrade_image(url):
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            log.info("Fetching image through proxy: %s", proxy_url)
+            # log.info("Fetching image through proxy: %s", proxy_url)
             async with session.get(proxy_url, allow_redirects=False) as response:
-                if response.status != 200:
+                if response.status < 200 or response.status >= 300:
                     return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
                 content_type = response.headers.get("Content-Type", "")
                 if not content_type.lower().startswith("image/"):
