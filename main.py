@@ -1012,7 +1012,7 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         resolved=resolved,
     )
     if currency_fields:
-        embed.title = resolved.reward_name
+        embed.title = f"{resolved.reward_name} x{resolved.reward_amount:,}"
         for name, value in currency_fields:
             embed.add_field(name=name, value=value, inline=False)
     for name, stored, sold, gems in magic_awards:
