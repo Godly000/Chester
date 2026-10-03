@@ -196,20 +196,6 @@ class ResourceSystem:
         amounts = {}
         for status in statuses:
             amounts[status.resource] = amounts.get(status.resource, 0) + status.stored
-        if not automatic:
-            main_caps, treasury_caps = self.capacities(village)
-            full = [
-                resource for resource in COLLECTIBLE_RESOURCES
-                if (main_caps[resource] or treasury_caps.get(resource, 0) or resource in amounts)
-                and village[resource] >= main_caps[resource]
-                and (resource not in TREASURY_FIELDS
-                     or village[TREASURY_FIELDS[resource]] >= treasury_caps[resource])
-            ]
-            if full:
-                raise ResourceRejected(
-                    "Collection blocked because these storages and treasuries are full: "
-                    + ", ".join(full)
-                )
         receipt = self.deposit(village, amounts, randomize=True)
         village[LAST_RESOURCE_CHECK] = now
         for resource in amounts:
