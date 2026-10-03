@@ -161,7 +161,7 @@ _QUANTITY_RANGE_RE = re.compile(r"^\s*([\d,]+)\s*-\s*([\d,]+)\s*$")
 # Rarity -> embed color, purely cosmetic. Falls back to a neutral color
 # if the category name isn't recognized.
 RARITY_COLORS = {
-    "common": discord.Color.light_gray(),
+    "common": discord.Color.green(),
     "rare": discord.Color.blue(),
     "epic": discord.Color.purple(),
     "legendary": discord.Color.gold(),
@@ -1402,7 +1402,7 @@ def _upgrade_hammers(field):
             if item.name.startswith("Hammer of ") and magic_system.can_target_upgrade(item, field)]
 
 
-def _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=False):
+def _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=False, include_hammers=True):
     fields = _upgrade_groups(category).get(group, [])
     pending = upgrade_system._pending_serials(village)
     first = next((field for field in fields if village[field.name] == level and upgrade_system.serial_for(field) not in pending), None)
@@ -1410,7 +1410,7 @@ def _building_payment_options(village, collection, category, group, level, quant
         raise UpgradeRejected("No matching items remain at this level.")
     price = upgrade_system._price_for(first, level + 1)
     methods = [(currency, None) for currency in price.choice_resources or (None,)]
-    if price.duration or price.choice_cost or any(price.fixed_costs.values()):
+    if include_hammers and (price.duration or price.choice_cost or any(price.fixed_costs.values())):
         methods.extend((None, hammer) for hammer in _upgrade_hammers(first))
     options, errors = [], []
     for currency, hammer in methods:
@@ -1424,7 +1424,7 @@ def _building_payment_options(village, collection, category, group, level, quant
     return options
 
 
-def _available_group_levels(village, collection, category, group, ignore_workers=False):
+def _available_group_levels(village, collection, category, group, ignore_workers=False, include_hammers=True):
     fields = _upgrade_groups(category).get(group, [])
     result = {}
     for level in sorted({village[field.name] for field in fields}):
@@ -1437,7 +1437,7 @@ def _available_group_levels(village, collection, category, group, ignore_workers
                     if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
                         raise UpgradeRejected("Not enough resources or Wall Rings.")
                 else:
-                    _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=ignore_workers)
+                    _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=ignore_workers, include_hammers=include_hammers)
                 low = quantity
             except (UpgradeRejected, MagicRejected, ResourceRejected):
                 high = quantity - 1
@@ -1455,7 +1455,7 @@ def _group_can_upgrade(village, collection, category, group):
                 if any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
                     return True
             else:
-                _building_payment_options(village, collection, category, group, level, 1, ignore_workers=True)
+                _building_payment_options(village, collection, category, group, level, 1, ignore_workers=True, include_hammers=False)
                 return True
         except (UpgradeRejected, MagicRejected, ResourceRejected):
             continue
@@ -1595,7 +1595,7 @@ async def _fetch_upgrade_image(url):
     timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            # log.info("Fetching image through proxy: %s", proxy_url)
+            log.info("Fetching image through proxy: %s", proxy_url)
             async with session.get(proxy_url, allow_redirects=False) as response:
                 if response.status != 200:
                     return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
@@ -1896,7 +1896,7 @@ def _upgrade_argument_options(interaction):
     if group is None:
         return {}, None
     village, collection = _upgrade_snapshot(interaction.user.id)
-    levels = _available_group_levels(village, collection, category, group, ignore_workers=True)
+    levels = _available_group_levels(village, collection, category, group, ignore_workers=True, include_hammers=False)
     return {level + 1: count for level, count in levels.items()}, group
 
 
