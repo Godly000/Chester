@@ -1254,7 +1254,7 @@ def _upgrade_group_name(field):
 def _upgrade_groups(category):
     groups = {}
     for field in upgrade_system.level_fields:
-        if field.category.casefold() == category.strip().casefold():
+        if not category or field.category.casefold() == category.strip().casefold():
             groups.setdefault(_upgrade_group_name(field), []).append(field)
     return groups
 
@@ -1276,6 +1276,28 @@ async def upgradeinfo_category_autocomplete(interaction: discord.Interaction, cu
 async def upgradeinfo_item_autocomplete(interaction: discord.Interaction, current: str):
     category = getattr(interaction.namespace, "category", "") or ""
     return [app_commands.Choice(name=name, value=name) for name in _upgradeinfo_items(category) if current.casefold() in name.casefold()][:25]
+
+
+async def upgradeinfo_level_autocomplete(interaction: discord.Interaction, current: str):
+    category = getattr(interaction.namespace, "category", None)
+    item = getattr(interaction.namespace, "item", "") or ""
+    options = _upgradeinfo_items(category)
+    field = next((field for name, field in options.items() if name.casefold() == item.strip().casefold()), None)
+    if field is None:
+        return []
+    if field.category == "Equipment Level":
+        levels = range(1, upgrade_system._equipment_cap(field) + 1)
+    else:
+        levels = []
+        maximum = max((level for _, level in upgrade_system.normal_prices), default=1)
+        for level in range(1, maximum + 1):
+            try:
+                upgrade_system._price_for(field, level)
+            except UpgradeRejected:
+                continue
+            levels.append(level)
+    return [app_commands.Choice(name=f"Level {level}", value=level)
+            for level in levels if str(current) in str(level)][:25]
 
 
 def _upgradeinfo_embed(category, item, level):
@@ -1307,9 +1329,9 @@ def _upgradeinfo_embed(category, item, level):
 
 
 @bot.tree.command(name="upgradeinfo", description="Show the costs, time, and image for a target upgrade level.")
-@app_commands.describe(category="The upgrade category", item="The item to look up", level="The resulting level after the upgrade")
-@app_commands.autocomplete(category=upgradeinfo_category_autocomplete, item=upgradeinfo_item_autocomplete)
-async def upgradeinfo_slash(interaction: discord.Interaction, category: str, item: str, level: app_commands.Range[int, 1]):
+@app_commands.describe(category="Filter by category or omit to search all categories", item="The item to look up", level="The resulting level after the upgrade")
+@app_commands.autocomplete(category=upgradeinfo_category_autocomplete, item=upgradeinfo_item_autocomplete, level=upgradeinfo_level_autocomplete)
+async def upgradeinfo_slash(interaction: discord.Interaction, item: str, level: app_commands.Range[int, 1], category: Optional[str] = None):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     try:
@@ -1465,8 +1487,6 @@ async def upgrade_item_autocomplete(interaction: discord.Interaction, current: s
     if save_migration_active:
         return []
     category = getattr(interaction.namespace, "category", None)
-    if not category:
-        return []
     try:
         village, collection = _upgrade_snapshot(interaction.user.id)
         return [
@@ -1883,9 +1903,8 @@ def _upgrade_argument_options(interaction):
 async def upgrade_level_autocomplete(interaction: discord.Interaction, current: str):
     try:
         levels, _ = _upgrade_argument_options(interaction)
-        quantity = getattr(interaction.namespace, "quantity", None) or 1
         return [app_commands.Choice(name=f"Level {level} — up to {count} upgrades", value=level)
-                for level, count in levels.items() if str(current) in str(level) and count >= quantity][:25]
+                for level, count in levels.items() if str(current) in str(level)][:25]
     except Exception:
         log.exception("Could not load upgrade level suggestions")
         return []
@@ -1924,9 +1943,9 @@ def _upgrade_payment_duration(quote):
 
 
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
-@app_commands.describe(category="The upgrade category", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
+@app_commands.describe(category="Filter by category or omit to search all categories", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
+async def upgrade_slash(interaction: discord.Interaction, item: str, category: Optional[str] = None, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -3148,18 +3167,19 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
 
 @bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
-    category="The save category to display.",
+    category="The save category to display defaults to Currency",
     member="View someone else's profile instead of your own (Moderator permission or higher required)."
 )
 @app_commands.autocomplete(category=profile_category_autocomplete)
 async def profile_slash(
     interaction: discord.Interaction,
-    category: str,
+    category: Optional[str] = None,
     member: Optional[discord.Member] = None,
 ):
     if not await enforce_chester_channel(interaction):
         return
 
+    category = category or "Currency"
     target = member or interaction.user
 
     if member is not None and member.id != interaction.user.id:
