@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 from player_saves import FORMAT_DETAILS
 from resource_system import LAST_RESOURCE_CHECK, RESOURCE_CODES, RESOURCE_TYPES
-from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRejected
+from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRejected, RefreshReport
 
 
 BULK_MAGIC_SELL_VALUE = 2
@@ -206,13 +206,36 @@ class MagicSystem:
         rings = (cost + item.cost - 1) // item.cost
         return MagicOption(str(level), f"Level {level} to {level + 1}", f"{field.name}: {rings:,} Wall Rings", (field.name, level, rings, price))
 
+    def _hammer_option(self, item, village, collection, field, now):
+        if not self.can_target_upgrade(item, field) or field.name.startswith("Builder's Hut") or field.category in {"Wall Level", "Equipment Level"}:
+            raise MagicRejected("That Hammer cannot target this upgrade")
+        level = village[field.name]
+        price = self.upgrades._price_for(field, level + 1)
+        if not (price.duration or price.choice_cost or any(price.fixed_costs.values())):
+            raise MagicRejected("This upgrade is already free and instant")
+        self.upgrades._start_values(
+            dict(village), dict(collection), field.name, now,
+            price.choice_resources[0] if price.choice_resources else None,
+            level, price, RefreshReport([], [], []),
+            cost_reduction=item.cost, time_reduction=item.strength,
+        )
+        return MagicOption(field.name, field.name, f"Level {level} to {level + 1}", (level, price))
+
     def prepare(self, user_id, name, now=None):
         now = int(time.time()) if now is None else int(now)
         item = self.resolve(name)
         self.upgrades.refresh(user_id, now)
         village, collection = self.store.player_values(user_id)
         self._owned(village, item)
-        if item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
+        if item.name.startswith("Hammer of "):
+            options = []
+            for field in self.upgrades.level_fields:
+                try:
+                    options.append(self._hammer_option(item, village, collection, field, now))
+                except (MagicRejected, UpgradeRejected):
+                    continue
+            status = ["Choose an item to upgrade using this Hammer."]
+        elif item.target in WORKER_TARGETS - ALL_WORKER_TARGETS:
             options, status = self._worker_options(item, village, now)
         elif item.target == "Wall":
             levels = sorted({village[field.name] for field in self.upgrades.level_fields if re.fullmatch(r"Wall #\d+", field.name)})
@@ -273,7 +296,22 @@ class MagicSystem:
             total_consumed = 0
             for _ in range(quantity):
                 consumed = 1
-                if item.target == "Resources":
+                if item.name.startswith("Hammer of "):
+                    if option is None:
+                        raise MagicRejected("Choose an item to upgrade first")
+                    field = self.upgrades.resolve_item(option.value)
+                    current = self._hammer_option(item, village, collection, field, now)
+                    if current.token != option.token:
+                        raise MagicRejected("That upgrade changed. Run /use again")
+                    level, price = current.token
+                    outcome, _ = self.upgrades._start_values(
+                        village, collection, field.name, now,
+                        price.choice_resources[0] if price.choice_resources else None,
+                        level, price, RefreshReport([], [], []),
+                        cost_reduction=item.cost, time_reduction=item.strength,
+                    )
+                    lines.append(f"{field.name}: level {level} to {level + 1}. " + ("Completed." if outcome.instant else "Upgrade started."))
+                elif item.target == "Resources":
                     if item.strength <= 0:
                         raise MagicRejected("This item has no production time skip configured")
                     previous = village[LAST_RESOURCE_CHECK] or now
