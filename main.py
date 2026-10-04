@@ -1329,9 +1329,9 @@ def _upgradeinfo_embed(category, item, level):
 
 
 @bot.tree.command(name="upgradeinfo", description="Show the costs, time, and image for a target upgrade level.")
-@app_commands.describe(category="Filter by category or omit to search all categories", item="The item to look up", level="The resulting level after the upgrade")
+@app_commands.describe(category="The category of the upgrade", item="The item to look up", level="The resulting level after the upgrade")
 @app_commands.autocomplete(category=upgradeinfo_category_autocomplete, item=upgradeinfo_item_autocomplete, level=upgradeinfo_level_autocomplete)
-async def upgradeinfo_slash(interaction: discord.Interaction, item: str, level: app_commands.Range[int, 1], category: Optional[str] = None):
+async def upgradeinfo_slash(interaction: discord.Interaction, category: str, item: str, level: app_commands.Range[int, 1]):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     try:
@@ -1943,9 +1943,9 @@ def _upgrade_payment_duration(quote):
 
 
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
-@app_commands.describe(category="Filter by category or omit to search all categories", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
+@app_commands.describe(category="The category of the upgrade", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, item: str, category: Optional[str] = None, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
+async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -3189,19 +3189,18 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
 
 @bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
-    category="The save category to display defaults to Currency",
+    category="The save category to display",
     member="View someone else's profile instead of your own (Moderator permission or higher required)."
 )
 @app_commands.autocomplete(category=profile_category_autocomplete)
 async def profile_slash(
     interaction: discord.Interaction,
-    category: Optional[str] = None,
+    category: str,
     member: Optional[discord.Member] = None,
 ):
     if not await enforce_chester_channel(interaction):
         return
 
-    category = category or "Currency"
     target = member or interaction.user
 
     if member is not None and member.id != interaction.user.id:
