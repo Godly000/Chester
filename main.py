@@ -2364,12 +2364,34 @@ class MagicItemView(discord.ui.View):
         self.options = {option.value: option for option in options}
         self.used = False
         self.message = None
+        self.option_list = list(options)
+        self.page = 0
         self.selection = discord.ui.Select(
-            placeholder="Choose a Wall level" if item.target == "Wall" else "Choose a worker",
-            options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options],
+            placeholder="Choose an upgrade" if item.name.startswith("Hammer of ") else ("Choose a Wall level" if item.target == "Wall" else "Choose a worker"),
+            options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options[:25]],
         )
         self.selection.callback = self.choose
         self.add_item(self.selection)
+        self.previous_page.disabled = True
+        self.next_page.disabled = len(self.option_list) <= 25
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.change_page(interaction, -1)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.change_page(interaction, 1)
+
+    async def change_page(self, interaction, delta):
+        if not await self.interaction_check(interaction):
+            return
+        self.page = max(0, min((len(self.option_list) - 1) // 25, self.page + delta))
+        entries = self.option_list[self.page * 25:(self.page + 1) * 25]
+        self.selection.options = [discord.SelectOption(label=entry.label[:100], value=entry.value, description=entry.description[:100]) for entry in entries]
+        self.previous_page.disabled = self.page == 0
+        self.next_page.disabled = (self.page + 1) * 25 >= len(self.option_list)
+        await interaction.response.edit_message(view=self)
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.user_id:
