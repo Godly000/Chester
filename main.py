@@ -1091,25 +1091,36 @@ def _chest_is_public(guild_id, rarity, categories):
     return False
 
 
-async def _open_chest(interaction: discord.Interaction):
-    if not await enforce_chester_channel(interaction, create_save=True):
-        return
+async def _send_chest_error(interaction, message):
     try:
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+    except discord.HTTPException as error:
+        log.warning("Could not deliver chest error for user %s: %s", interaction.user.id, error)
+
+
+async def _open_chest(interaction: discord.Interaction):
+    welcomed = False
+    acknowledged = False
+    try:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        acknowledged = True
+        await interaction.edit_original_response(content="Opening your chest…")
+        if not await enforce_chester_channel(interaction, create_save=True):
+            return
         village, _ = save_store.player_values(interaction.user.id)
         if village["Town Hall"] == 0:
             save_store.update_village_values(
                 interaction.user.id, set_values={"Town Hall": 1}
             )
-            await interaction.response.send_message(
-                VILLAGE_WELCOME_MESSAGE, ephemeral=True
-            )
+            await interaction.edit_original_response(content=VILLAGE_WELCOME_MESSAGE)
+            welcomed = True
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
         _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
         ephemeral = not _chest_is_public(interaction.guild_id, rarity, town_hall_loot_tables[max(1, village["Town Hall"])])
-        if interaction.response.is_done():
-            await interaction.followup.send(embed=embed, ephemeral=ephemeral)
-        else:
-            await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
         await gembox_system.maybe_offer(interaction, rarity)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
@@ -1118,32 +1129,30 @@ async def _open_chest(interaction: discord.Interaction):
             )
             level_up_embed.set_footer(text="Made by __godly__")
             await interaction.followup.send(embed=level_up_embed, ephemeral=ephemeral)
-    except LootRollRejected as e:
-        if interaction.response.is_done():
-            await interaction.followup.send(f"⚠️ {e}", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"⚠️ {e}", ephemeral=True)
-    except Exception as e:
-        log.exception("Error rolling loot: %s", e)
-        if interaction.response.is_done():
-            await interaction.followup.send(f"⚠️ Something went wrong: {e}", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
+    except LootRollRejected as error:
+        await _send_chest_error(interaction, f"⚠️ {error}")
+    except discord.NotFound as error:
+        log.warning("Chest interaction expired for user %s: %s", interaction.user.id, error)
+    except Exception as error:
+        log.exception("Error rolling loot for user %s: %s", interaction.user.id, error)
+        await _send_chest_error(interaction, f"⚠️ Something went wrong: {error}")
+    finally:
+        if acknowledged and not welcomed:
+            try:
+                await interaction.delete_original_response()
+            except discord.HTTPException as error:
+                log.warning("Could not clear chest loading message for user %s: %s", interaction.user.id, error)
 
 
 @chest_slash.error
 async def chest_slash_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
-        await interaction.response.send_message(
-            f"⏳ Slow down! You can open another chest in {error.retry_after:.1f}s.",
-            ephemeral=True,
+        await _send_chest_error(
+            interaction, f"⏳ Slow down! You can open another chest in {error.retry_after:.1f}s."
         )
     else:
-        log.exception("Unexpected error in /chest: %s", error)
-        if interaction.response.is_done():
-            await interaction.followup.send(f"⚠️ Something went wrong: {error}", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"⚠️ Something went wrong: {error}", ephemeral=True)
+        log.error("Unexpected error in /chest: %s", error, exc_info=(type(error), error, error.__traceback__))
+        await _send_chest_error(interaction, f"⚠️ Something went wrong: {error}")
 
 
 async def rarity_autocomplete(interaction: discord.Interaction, current: str):
