@@ -130,6 +130,7 @@ TOWN_HALL_PROFILE_IMAGES = {
 UPGRADE_IMAGE_TIMEOUT = 15
 UPGRADE_IMAGE_MAX_BYTES = 8 * 1024 * 1024
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
+DARK_ELIXIR_COST_SORT_WEIGHT = 50
 GEM_BOX_CHANCE = 0.01
 SET_COMMAND_OWNER_ID = 459126084428890113
 NEW_PLAYER_MESSAGE = "New to Chester? Open a Chest using the /chest command to get started!"
@@ -2110,7 +2111,7 @@ def _remaining_level_rows(entries, now):
             choice_cost = price.choice_cost if not active else 0
             key = (label, level, fixed, choices, choice_cost, duration, active)
             row = grouped.setdefault(key, {"label": label, "level": level, "count": 0,
-                "cost": sum(amount for _, amount in fixed) + choice_cost,
+                "cost": sum(amount * (DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1) for resource, amount in fixed) + choice_cost * min((DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1 for resource in choices), default=1),
                 "duration": duration, "fixed": fixed, "choices": choices,
                 "choice_cost": choice_cost, "active": active, "workers": []})
             row["count"] += 1
@@ -2127,7 +2128,7 @@ def _remaining_pages(entries, town_hall, sort_order=None):
         rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
     heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per upgrade. In progress rows show paid costs and time left.\n"
     if sort_order and sort_order.startswith("Cost"):
-        heading += "Cost sorting uses summed resource amounts per upgrade and counts alternative currencies once.\n"
+        heading += "Cost sorting weights Dark Elixir at 50 times other resources and counts the cheapest alternative currency once.\n"
     heading += "\n"
     chunks, lines = [], []
     length = len(heading)
