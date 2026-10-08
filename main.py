@@ -2095,28 +2095,55 @@ def _remaining_display_rows(entries):
 
 
 def _remaining_level_rows(entries, now):
-    grouped = {}
+    families = {}
     for entry in entries:
-        field = upgrade_system.fields_by_name.get(entry.item)
         base = re.sub(r" #\d+$", "", entry.item)
+        families.setdefault(base, []).append(entry)
+    grouped = {}
+    for base, members in families.items():
         label = "Walls" if base == "Wall" else base
-        for level in range(entry.current_level + 1, entry.target_level + 1):
-            active = bool(entry.slot and level == entry.current_level + 1)
+        highest = max(entry.current_level for entry in members)
+        boundaries = {entry.current_level for entry in members}
+        boundaries.update(entry.target_level for entry in members)
+        boundaries.update(range(highest, max(entry.target_level for entry in members) + 1))
+        boundaries.update(entry.current_level + 1 for entry in members if entry.slot)
+        for entry in members:
+            field = upgrade_system.fields_by_name.get(entry.item)
             if field is None:
                 raise UpgradeRejected(f"Unknown saved upgrade: {entry.item}")
-            price = upgrade_system._price_for(field, level)
-            duration = max(0, (entry.finish_time or now) - now) if active else price.duration
-            fixed = tuple(sorted(price.fixed_costs.items())) if not active else ()
-            choices = tuple(price.choice_resources) if not active else ()
-            choice_cost = price.choice_cost if not active else 0
-            key = (label, level, fixed, choices, choice_cost, duration, active)
-            row = grouped.setdefault(key, {"label": label, "level": level, "count": 0,
-                "cost": sum(amount * (DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1) for resource, amount in fixed) + choice_cost * min((DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1 for resource in choices), default=1),
-                "duration": duration, "fixed": fixed, "choices": choices,
-                "choice_cost": choice_cost, "active": active, "workers": []})
-            row["count"] += 1
-            if active:
-                row["workers"].append(entry.slot.removesuffix(" Upgrade"))
+            previous_choices = None
+            for level in range(entry.current_level + 1, entry.target_level + 1):
+                choices = tuple(upgrade_system._price_for(field, level).choice_resources)
+                if previous_choices is not None and choices != previous_choices:
+                    boundaries.add(level - 1)
+                previous_choices = choices
+        for start, end in zip(sorted(boundaries), sorted(boundaries)[1:]):
+            for entry in members:
+                if entry.current_level > start or entry.target_level < end:
+                    continue
+                active = bool(entry.slot and start == entry.current_level)
+                fixed_costs = {}
+                choices, choice_cost, duration = (), 0, 0
+                if active:
+                    duration = max(0, (entry.finish_time or now) - now)
+                else:
+                    field = upgrade_system.fields_by_name[entry.item]
+                    for level in range(start + 1, end + 1):
+                        price = upgrade_system._price_for(field, level)
+                        duration += price.duration
+                        for resource, amount in price.fixed_costs.items():
+                            fixed_costs[resource] = fixed_costs.get(resource, 0) + amount
+                        choices = tuple(price.choice_resources)
+                        choice_cost += price.choice_cost
+                fixed = tuple(sorted(fixed_costs.items()))
+                key = (label, start, end, fixed, choices, choice_cost, duration, active)
+                row = grouped.setdefault(key, {"label": label, "start": start, "level": end, "count": 0,
+                    "cost": sum(amount * (DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1) for resource, amount in fixed) + choice_cost * min((DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1 for resource in choices), default=1),
+                    "duration": duration, "fixed": fixed, "choices": choices,
+                    "choice_cost": choice_cost, "active": active, "workers": []})
+                row["count"] += 1
+                if active:
+                    row["workers"].append(entry.slot.removesuffix(" Upgrade"))
     return list(grouped.values())
 
 
@@ -2126,7 +2153,7 @@ def _remaining_pages(entries, town_hall, sort_order=None):
     if sort_order:
         metric = "cost" if sort_order.startswith("Cost") else "duration"
         rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
-    heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per upgrade. In progress rows show paid costs and time left.\n"
+    heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per unit for the entire displayed level range. In progress rows show paid costs and time left.\n"
     if sort_order and sort_order.startswith("Cost"):
         heading += "Cost sorting weights Dark Elixir at 50 times other resources and counts the cheapest alternative currency once.\n"
     heading += "\n"
@@ -2139,7 +2166,7 @@ def _remaining_pages(entries, town_hall, sort_order=None):
             costs.append("(" + " or ".join(f"{row['choice_cost']:,} {resource}" for resource in row["choices"]) + ")")
         cost = "Already paid" if row["active"] else " + ".join(costs) or "Free"
         duration = format_duration(row["duration"]) if row["duration"] else "Instant"
-        line = f"**{row['label']} — Level {row['level'] - 1} → {row['level']}{multiplier}**\nCost each: **{cost}** · Time each: **{duration}**"
+        line = f"**{row['label']} — Level {row['start']} → {row['level']}{multiplier}**\nCost each: **{cost}** · Time each: **{duration}**"
         if row["active"]:
             line += "\nIn progress: " + ", ".join(row["workers"])
         if lines and (len(lines) >= 10 or length + len(line) + 2 > 3900):
