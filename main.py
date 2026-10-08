@@ -618,11 +618,11 @@ def _unique_reward_options(item, village, collection):
     ]
 
 
-def _roll_unowned_loot(categories, village, collection):
+def _roll_unowned_loot(categories, village, collection, rarity_key=None):
     rarity_keys = [key for key, category in categories.items() if category.weight > 0]
     if not rarity_keys:
         raise LootRollRejected("No chest rarities are available.")
-    key = weighted_choice(rarity_keys, [categories[key].weight for key in rarity_keys])
+    key = rarity_key if rarity_key is not None else weighted_choice(rarity_keys, [categories[key].weight for key in rarity_keys])
     category = categories[key]
     eligible = []
     options = {}
@@ -939,7 +939,7 @@ def _chest_currency_fields(resource, values, main_caps, treasury_caps, received)
     return fields
 
 
-async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str]:
+async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, Optional[int], str]:
     """
     Perform a real /chest roll: pick loot, award XP for it, and return
     (embed, new_level_if_leveled_up_else_None, rarity).
@@ -954,7 +954,7 @@ async def _do_loot_roll(user_id: int) -> Tuple[discord.Embed, Optional[int], str
         raise LootRollRejected(
             f"No chest loot table is available for Town Hall level {town_hall}."
         )
-    category, item, resolved = _roll_unowned_loot(categories, village, owned_collection)
+    category, item, resolved = _roll_unowned_loot(categories, village, owned_collection, rarity_key)
 
     xp_reward = XP_REWARDS.get(category.name.lower(), 0)
     old_xp = village["Experience"]
@@ -1103,27 +1103,30 @@ async def _send_chest_error(interaction, message):
 
 
 async def _open_chest(interaction: discord.Interaction):
-    welcomed = False
-    acknowledged = False
     chest_sent = False
     try:
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        acknowledged = True
-        await interaction.edit_original_response(content="Opening your chest…")
         if not await enforce_chester_channel(interaction, create_save=True):
             return
         village, _ = save_store.player_values(interaction.user.id)
-        if village["Town Hall"] == 0:
-            save_store.update_village_values(
-                interaction.user.id, set_values={"Town Hall": 1}
-            )
-            await interaction.edit_original_response(content=VILLAGE_WELCOME_MESSAGE)
-            welcomed = True
-        embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id)
+        new_player = village["Town Hall"] == 0
+        town_hall = max(1, village["Town Hall"])
+        categories = town_hall_loot_tables.get(town_hall)
+        if not categories:
+            raise LootRollRejected(f"No chest loot table is available for Town Hall level {town_hall}.")
+        keys = [key for key, category in categories.items() if category.weight > 0]
+        if not keys:
+            raise LootRollRejected("No chest rarities are available.")
+        rarity_key = weighted_choice(keys, [categories[key].weight for key in keys])
+        ephemeral = not _chest_is_public(interaction.guild_id, categories[rarity_key].name, categories)
+        await interaction.response.defer(ephemeral=ephemeral, thinking=True)
+        if new_player:
+            save_store.update_village_values(interaction.user.id, set_values={"Town Hall": 1})
+        embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id, rarity_key)
         _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
-        ephemeral = not _chest_is_public(interaction.guild_id, rarity, town_hall_loot_tables[max(1, village["Town Hall"])])
-        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+        await interaction.edit_original_response(content=None, embed=embed)
         chest_sent = True
+        if new_player:
+            await interaction.followup.send(VILLAGE_WELCOME_MESSAGE, ephemeral=True)
         await gembox_system.maybe_offer(interaction, rarity)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
@@ -1132,21 +1135,17 @@ async def _open_chest(interaction: discord.Interaction):
             )
             level_up_embed.set_footer(text="Made by __godly__")
             await interaction.followup.send(embed=level_up_embed, ephemeral=ephemeral)
-    except LootRollRejected as error:
-        await _send_chest_error(interaction, f"⚠️ {error}")
     except discord.NotFound as error:
         log.warning("Chest interaction expired for user %s: %s", interaction.user.id, error)
     except Exception as error:
-        log.exception("Error rolling loot for user %s: %s", interaction.user.id, error)
-        await _send_chest_error(interaction, f"⚠️ Something went wrong: {error}")
-    finally:
-        if acknowledged and not welcomed:
+        if not isinstance(error, LootRollRejected):
+            log.exception("Error rolling loot for user %s: %s", interaction.user.id, error)
+        if interaction.response.is_done() and not chest_sent:
             try:
-                await interaction.edit_original_response(
-                    content="Chest opened." if chest_sent else "Chest opening stopped. See the message above for details."
-                )
-            except discord.HTTPException as error:
-                log.warning("Could not update chest loading message for user %s: %s", interaction.user.id, error)
+                await interaction.edit_original_response(content="The chest could not be opened.", embed=None)
+            except discord.HTTPException:
+                log.warning("Could not update failed chest response for user %s", interaction.user.id)
+        await _send_chest_error(interaction, f"⚠️ {error}")
 
 
 @chest_slash.error
