@@ -1105,6 +1105,7 @@ async def _send_chest_error(interaction, message):
 async def _open_chest(interaction: discord.Interaction):
     welcomed = False
     acknowledged = False
+    chest_sent = False
     try:
         await interaction.response.defer(ephemeral=True, thinking=True)
         acknowledged = True
@@ -1122,6 +1123,7 @@ async def _open_chest(interaction: discord.Interaction):
         _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
         ephemeral = not _chest_is_public(interaction.guild_id, rarity, town_hall_loot_tables[max(1, village["Town Hall"])])
         await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+        chest_sent = True
         await gembox_system.maybe_offer(interaction, rarity)
         if leveled_up_to is not None:
             level_up_embed = discord.Embed(
@@ -1140,9 +1142,11 @@ async def _open_chest(interaction: discord.Interaction):
     finally:
         if acknowledged and not welcomed:
             try:
-                await interaction.delete_original_response()
+                await interaction.edit_original_response(
+                    content="Chest opened." if chest_sent else "Chest opening stopped. See the message above for details."
+                )
             except discord.HTTPException as error:
-                log.warning("Could not clear chest loading message for user %s: %s", interaction.user.id, error)
+                log.warning("Could not update chest loading message for user %s: %s", interaction.user.id, error)
 
 
 @chest_slash.error
