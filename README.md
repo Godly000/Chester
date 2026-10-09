@@ -11,7 +11,9 @@ Progression and rewards are configured through CSV files.
 3. Copy `.env.example` to `.env` once, then set `DISCORD_TOKEN` to your bot token.
 4. Invite the bot with the `bot` and `applications.commands` scopes and permissions
    to view channels, send messages, and embed links.
-5. Run `python main.py`.
+5. Deploy your image proxy using the [Cloudflare Worker setup](#cloudflare-worker-setup)
+   below and set its URL in `image_proxy.py`.
+6. Run `python main.py`.
 
 Keep `.env` private and untracked. Do not overwrite an existing host configuration
 with the example file during deployment. Preserve `saves/`, `save-backups/`,
@@ -242,12 +244,103 @@ reloads loot data, not every gameplay system.
 
 ## Images
 
-Embed images pass through `image_proxy.py` and
-`https://image-proxy.godly-proxy-26.workers.dev/`. Fandom URLs receive
+Embed images pass through `image_proxy.py` and the Worker configured by
+`IMAGE_PROXY_URL`. Fandom URLs receive
 `/revision/latest/scale-to-width-down/100` at runtime; keep source CSV links
 unmodified. Upgrade images use the resulting level's Image value, while equipment
 images are looked up by equipment name without a level suffix. Blank image
-fields are allowed. Attempted image fetches and failures are logged to the console.
+fields are allowed. The Worker logs upstream image fetch attempts and failures;
+check its logs when an image does not appear.
+
+### Cloudflare Worker setup
+
+Deploy your own Worker when hosting Chester. The Worker fetches image URLs for
+Discord; it runs on Cloudflare independently of your computer or bot host.
+
+1. Create or sign in to a [Cloudflare account](https://dash.cloudflare.com/).
+2. Open **Workers & Pages**, select **Create application**, and create a Worker
+   from the Hello World starter. Choose a name such as `chester-image-proxy`
+   and deploy it.
+3. Open the Worker's code editor (**Edit code**). Replace the starter code with
+   the entire contents of [cloudflare_worker.js](cloudflare_worker.js). If your
+   client cannot download JavaScript files, use
+   [cloudflare_worker.txt](cloudflare_worker.txt) and paste its contents instead.
+   This is module Worker code, including `export default`; do not wrap it in
+   another handler. Save and deploy the edited Worker.
+4. Copy the deployed HTTPS address, for example
+   `https://chester-image-proxy.YOUR-SUBDOMAIN.workers.dev/`.
+5. In `image_proxy.py`, replace the value of `IMAGE_PROXY_URL` with that address:
+
+   ```python
+   IMAGE_PROXY_URL = "https://chester-image-proxy.YOUR-SUBDOMAIN.workers.dev/"
+   ```
+
+   Keep the trailing slash. Do not add `?url=` here; the bot adds the image URL
+   for each request. Leave the original image links in the CSV files unchanged.
+6. Restart Chester after changing `image_proxy.py`.
+
+No Discord token belongs in the Worker. Keep `DISCORD_TOKEN` in the bot's `.env`
+file. For current dashboard instructions, see Cloudflare's
+[Worker deployment guide](https://developers.cloudflare.com/workers/get-started/dashboard/).
+
+#### Hosting Gem Box images in R2
+
+The Worker can serve the Gem Box images from a private R2 bucket instead of
+depending on Imgur accepting its requests. This is optional for the general
+proxy, but configure it if Imgur returns HTTP 403 or the Gem Box images fail.
+The original PNG files are not included with the Worker; obtain the matching
+images from your original uploads before proceeding.
+
+1. In the Cloudflare dashboard, open **R2 Object Storage**, complete any required
+   account setup, and create a bucket such as `chester-gembox-images`. Check
+   Cloudflare's current R2 pricing before enabling the service.
+2. Upload the five original images at the bucket root, using these exact,
+   case-sensitive object names. Rename the files; do not upload an Imgur album
+   webpage as an image.
+
+   | Source image | R2 object name | Purpose |
+   | --- | --- | --- |
+   | `https://i.imgur.com/2hV7gTP.png` | `gembox-top-right.png` | Top Right answer |
+   | `https://i.imgur.com/yqbcCrb.png` | `gembox-top-left.png` | Top Left answer |
+   | `https://i.imgur.com/qju8XK9.png` | `gembox-bottom-right.png` | Bottom Right answer |
+   | `https://i.imgur.com/vVCWo8l.png` | `gembox-bottom-left.png` | Bottom Left answer |
+   | `https://i.imgur.com/Ft9zPsM.png` | `goblin-punched.png` | Successful encounter |
+
+3. Open your Worker, go to **Bindings**, and add an **R2 bucket** binding. Set
+   the variable name to **`GEMBOX_IMAGES`** and select the bucket you created.
+   Save and deploy the updated configuration.
+4. Keep the bucket private. The Worker accesses it through the binding, so
+   neither public bucket access nor R2 API credentials in the bot are needed.
+
+The Worker maps the existing five Imgur URLs to these objects automatically.
+If an object or binding is missing, it falls back to fetching the original URL,
+which can still fail. The ordinary Goblin Builder image continues to use Fandom.
+See Cloudflare's [R2 Worker setup guide](https://developers.cloudflare.com/r2/get-started/workers-api/)
+for bucket and binding details.
+
+#### Verify the proxy
+
+Open this address after substituting your deployed Worker hostname:
+
+```text
+https://YOUR-WORKER.workers.dev/?url=https%3A%2F%2Fi.imgur.com%2F2hV7gTP.png
+```
+
+It should display the Gem Box image. A request to the Worker root without
+`?url=` intentionally returns a missing-parameter error. The proxy expects a
+direct image URL, not an Imgur album or a Fandom article page.
+
+As a Discord moderator, test `/fight` with each image argument from `1` to `4`
+in `#chester`. These practice encounters neither award Gems nor log failures.
+Test an upgrade image with `/upgradeinfo` as well; Fandom images should pass
+through the proxy with `/revision/latest/scale-to-width-down/100` applied.
+
+For failures, inspect the Worker's logs in Cloudflare. An upstream HTTP 403
+means the source refused the fetch; a proxy cannot guarantee access to every
+host. HTTP 415 means the source returned something other than an image. For
+Gem Box failures, verify the `GEMBOX_IMAGES` binding and exact object names
+before retrying. Deploying code locally does not update the live Worker:
+publish Worker changes in Cloudflare and restart the bot for Python changes.
 
 ## Updating the save schema
 
