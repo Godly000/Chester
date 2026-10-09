@@ -54,6 +54,10 @@ class UpgradeRejected(Exception):
     pass
 
 
+class UpgradeLocked(UpgradeRejected):
+    pass
+
+
 class WorkerUnavailable(UpgradeRejected):
     pass
 
@@ -505,7 +509,7 @@ class UpgradeSystem:
             and collection_field.category == "Hero Equipment"
             and not collection.get(field.name, 0)
         ):
-            raise UpgradeRejected(f"{field.name} is not unlocked in your collection. Obtain it from a Chest or /buy first.")
+            raise UpgradeLocked(f"{field.name} is not unlocked in your collection. Obtain it from a Chest or /buy first.")
         if field.name == "Town Hall":
             if current_level >= 18 and reject_at_maximum:
                 raise UpgradeRejected("Town Hall is already at its maximum level")
@@ -518,14 +522,14 @@ class UpgradeSystem:
         instance = int(match.group(2)) if match else 1
         if instance > allowed_count:
             if requirement == "Collection":
-                raise UpgradeRejected(
+                raise UpgradeLocked(
                     f"{field.name} is not unlocked in the player's collection"
                 )
             if match and current_level == 0 and field.category in BUILDER_CATEGORIES:
-                raise UpgradeRejected(
+                raise UpgradeLocked(
                     f"You have already built the maximum level of {match.group(1)}s for Town Hall {village.get('Town Hall', 0)}."
                 )
-            raise UpgradeRejected(
+            raise UpgradeLocked(
                 f"{field.name} is not unlocked: {requirement} level {prerequisite} "
                 f"allows {allowed_count}"
             )
@@ -733,10 +737,8 @@ class UpgradeSystem:
             for field in candidates:
                 try:
                     maximum = self._availability(field, projected, collection, reject_at_maximum=False)
-                except UpgradeRejected as error:
-                    if "not unlocked" in str(error):
-                        continue
-                    raise
+                except UpgradeLocked:
+                    continue
                 target = self._supported_maximum(field, maximum)
                 if target > projected[field.name]:
                     projected[field.name] = target
