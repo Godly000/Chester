@@ -3232,7 +3232,7 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
 @bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
     category="The save category to display defaults to Currency",
-    member="View someone else's profile instead of your own (Moderator permission or higher required)."
+    member="View someone else's profile instead of your own."
 )
 @app_commands.autocomplete(category=profile_category_autocomplete)
 async def profile_slash(
@@ -3245,16 +3245,6 @@ async def profile_slash(
 
     category = category or "Currency"
     target = member or interaction.user
-
-    if member is not None and member.id != interaction.user.id:
-        if not interaction.permissions.moderate_members:
-            await interaction.response.send_message(
-                "⚠️ You need Moderator permissions (Moderate Members) or higher to "
-                "view someone else's profile.",
-                ephemeral=True,
-            )
-            return
-
     if not save_store.player_path(target.id).is_file():
         await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
         return
