@@ -32,6 +32,7 @@ RESEARCHER_CATEGORIES = {
     "Spell Level",
     "Siege Level",
     "Pet Level",
+    "Pet",
 }
 EQUIPMENT_CATEGORY = "Equipment Level"
 TABLE_NAME_ALIASES = {"Electric Owl": "Electro Owl"}
@@ -181,7 +182,7 @@ class UpgradeSystem:
         self.level_fields = [
             field
             for field in self.save_store.fields
-            if "level" in field.category.casefold() or field.name == "Town Hall"
+            if "level" in field.category.casefold() or field.category == "Pet" or field.name == "Town Hall"
         ]
         self.fields_by_name = {field.name: field for field in self.level_fields}
         self.fields_by_key = {field.name.casefold(): field for field in self.level_fields}
@@ -407,7 +408,7 @@ class UpgradeSystem:
             number = int(researcher.group(1))
             if number >= 3:
                 raise WorkerUnavailable(GOBLIN_RESEARCHER_MESSAGE)
-            requirement = "Laboratory level 1" if number == 1 else "Pet House level 2"
+            requirement = "Laboratory level 1" if number == 1 else "Pet House level 1"
             raise UpgradeRejected(f"Researcher #{number} unlocks automatically at {requirement}")
         field = self.fields_by_key.get(item.strip().casefold())
         if field is None:
@@ -519,6 +520,10 @@ class UpgradeSystem:
             if requirement == "Collection":
                 raise UpgradeRejected(
                     f"{field.name} is not unlocked in the player's collection"
+                )
+            if match and current_level == 0 and field.category in BUILDER_CATEGORIES:
+                raise UpgradeRejected(
+                    f"You have already built the maximum level of {match.group(1)}s for Town Hall {village.get('Town Hall', 0)}."
                 )
             raise UpgradeRejected(
                 f"{field.name} is not unlocked: {requirement} level {prerequisite} "
@@ -668,7 +673,7 @@ class UpgradeSystem:
                 unlocked = (
                     number == 1 and village.get("Laboratory", 0) >= 1
                 ) or (
-                    number == 2 and village.get("Pet House", 0) >= 2
+                    number == 2 and village.get("Pet House", 0) >= 1 and field.category in {"Pet Level", "Pet"}
                 )
             if not unlocked:
                 continue
@@ -681,9 +686,7 @@ class UpgradeSystem:
         if slot_type == "Researcher":
             if village.get("Laboratory", 0) < 1:
                 raise UpgradeRejected("Unlock the first Researcher by completing Laboratory level 1")
-            if village.get("Pet House", 0) < 2:
-                raise UpgradeRejected("The first Researcher is busy. Complete Pet House level 2 to unlock the second Researcher")
-            raise WorkerUnavailable(GOBLIN_RESEARCHER_MESSAGE)
+            raise WorkerUnavailable("Your eligible Researcher is busy. Wait for the current research to finish.")
         raise UpgradeRejected("No unlocked Builder is free. Wait for an upgrade or unlock another Builder with /upgrade")
 
     def _pending_serials(self, village: Mapping[str, int]) -> Dict[int, str]:
