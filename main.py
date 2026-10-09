@@ -1487,7 +1487,10 @@ async def upgrade_category_autocomplete(interaction: discord.Interaction, curren
             app_commands.Choice(name=category, value=category)
             for category in categories
             if current.casefold() in category.casefold()
-            and any(_group_can_upgrade(village, collection, category, group) for group in _upgrade_groups(category))
+            and (category.casefold() == "important" or any(
+                _group_can_upgrade(village, collection, category, group)
+                for group in _upgrade_groups(category)
+            ))
         ][:25]
     except Exception:
         log.exception("Could not load upgrade category suggestions")
