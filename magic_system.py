@@ -12,7 +12,7 @@ from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRej
 
 BULK_MAGIC_SELL_VALUE = 2
 ALL_WORKER_TARGETS = {"All Builders", "All Researchers"}
-WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Hero Level", "Troop Level", "Spell Level", "Siege Level", "Pet Level"}
+WORKER_TARGETS = ALL_WORKER_TARGETS | {"Builder", "Researcher", "Upgrader", "Hero Level", "Troop Level", "Spell Level", "Siege Level", "Pet Level", "Pet"}
 
 
 def format_duration(seconds):
@@ -133,10 +133,12 @@ class MagicSystem:
 
     def _owned(self, village, item, count=1):
         if village[item.name] < count:
+            if count - village[item.name] == 1:
+                raise MagicRejected(f"You are missing {item.name}")
             raise MagicRejected(f"You need {count:,} {item.name}; you have {village[item.name]:,}")
 
     def can_target_upgrade(self, item, field):
-        if item.name == "Pet Potion" and field.category != "Pet Level":
+        if item.name == "Pet Potion" and field.category not in {"Pet Level", "Pet"}:
             return False
         builder = field.name == "Town Hall" or field.category in BUILDER_CATEGORIES
         researcher = field.category in RESEARCHER_CATEGORIES
@@ -148,6 +150,8 @@ class MagicSystem:
             return builder or researcher
         if item.target == "Troop Level":
             return field.category in {"Troop Level", "Siege Level"}
+        if item.target in {"Pet", "Pet Level"}:
+            return field.category in {"Pet", "Pet Level"}
         return item.target in WORKER_TARGETS and field.category == item.target
 
     def _worker_options(self, item, village, now):
@@ -168,7 +172,7 @@ class MagicSystem:
             field = self.upgrades.fields_by_name.get(name)
             number = int(re.search(r"#(\d+)", slot).group(1))
             unlocked = (number == 1 or number <= 5 and village.get(f"Builder's Hut #{number}", 0) > 0) if builder else (
-                number == 1 and village.get("Laboratory", 0) >= 1 or number == 2 and village.get("Pet House", 0) >= 2
+                number == 1 and village.get("Laboratory", 0) >= 1 or number == 2 and village.get("Pet House", 0) >= 1
             )
             if field is None:
                 status.append(f"{prefix}: {'Idle' if unlocked else 'Locked'}")
@@ -294,6 +298,8 @@ class MagicSystem:
             self._owned(village, item, quantity)
             lines = []
             total_consumed = 0
+            time_saved = {}
+            production_saved = 0
             for _ in range(quantity):
                 consumed = 1
                 if item.name.startswith("Hammer of "):
@@ -316,7 +322,7 @@ class MagicSystem:
                         raise MagicRejected("This item has no production time skip configured")
                     previous = village[LAST_RESOURCE_CHECK] or now
                     village[LAST_RESOURCE_CHECK] = max(1, previous - item.strength)
-                    lines.append(f"Production advanced by {format_duration(previous - village[LAST_RESOURCE_CHECK])}. Use /collect_loot to collect it.")
+                    production_saved += previous - village[LAST_RESOURCE_CHECK]
                 elif item.target in RESOURCE_TYPES:
                     capacities, _ = self.resources.capacities(village)
                     amount = min(item.strength, max(0, capacities[item.target] - village[item.target]))
@@ -357,7 +363,8 @@ class MagicSystem:
                         seconds = remaining - remaining_after_magic(remaining, item.strength)
                         village[clock] -= seconds
                         changed = changed or seconds > 0 or credited > 0
-                        lines.append(f"{entry.label}: {name}, reduced by {format_duration(seconds)}.")
+                        key = (entry.label, name)
+                        time_saved[key] = time_saved.get(key, 0) + seconds
                         lines.extend(refund_lines)
                     if not changed:
                         raise MagicRejected("This item would have no effect on those upgrades")
@@ -367,5 +374,8 @@ class MagicSystem:
                     raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
                 village[item.name] -= consumed
                 total_consumed += consumed
+            lines = [f"{worker}: {name}, reduced by {format_duration(seconds)}." for (worker, name), seconds in time_saved.items()] + lines
+            if production_saved:
+                lines.insert(0, f"Production advanced by {format_duration(production_saved)}. Use /collect_loot to collect it.")
             lines.insert(0, f"Used {total_consumed:,} {item.name}.")
             return MagicResult(item.name, total_consumed, lines)
