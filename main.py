@@ -1576,7 +1576,7 @@ def _unavailable_upgrade_reason(village, collection, category, group, rings_only
                 costs = quote["costs"]
                 if rings_only:
                     costs = {"Wall Rings": costs["Wall Rings"]}
-                missing = [f"need {cost:,} {resource}, have {village.get(resource, 0):,}" for resource, cost in costs.items() if village.get(resource, 0) < cost]
+                missing = [(f"missing {resource}" if resource in magic_system.items and cost - village.get(resource, 0) == 1 else f"need {cost:,} {resource}, have {village.get(resource, 0):,}") for resource, cost in costs.items() if village.get(resource, 0) < cost]
                 if missing:
                     reasons.append(f"Level {level}: " + "; or ".join(missing) + ".")
             else:
@@ -1833,6 +1833,8 @@ def _commit_wall_upgrade(user_id, quote, currency):
             raise UpgradeRejected("That payment method is unavailable.")
         cost = current["costs"][currency]
         if village.get(currency, 0) < cost:
+            if currency in magic_system.items and cost - village.get(currency, 0) == 1:
+                raise UpgradeRejected(f"You are missing {currency}")
             raise UpgradeRejected(f"Not enough {currency}: need {cost:,}, have {village.get(currency, 0):,}.")
         village[currency] -= cost
         for name in current["names"]:
@@ -3229,18 +3231,19 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
 
 @bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
-    category="The save category to display",
+    category="The save category to display defaults to Currency",
     member="View someone else's profile instead of your own (Moderator permission or higher required)."
 )
 @app_commands.autocomplete(category=profile_category_autocomplete)
 async def profile_slash(
     interaction: discord.Interaction,
-    category: str,
+    category: Optional[str] = None,
     member: Optional[discord.Member] = None,
 ):
     if not await enforce_chester_channel(interaction):
         return
 
+    category = category or "Currency"
     target = member or interaction.user
 
     if member is not None and member.id != interaction.user.id:
