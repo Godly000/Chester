@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import aiohttp
 import discord
 
 from notification_system import NotificationSystem
@@ -127,8 +126,6 @@ TOWN_HALL_PROFILE_IMAGES = {
     17: 'https://static.wikia.nocookie.net/clashofclans/images/2/24/Town_Hall17-1.png',
     18: 'https://static.wikia.nocookie.net/clashofclans/images/7/76/Town_Hall18.png',
 }
-UPGRADE_IMAGE_TIMEOUT = 15
-UPGRADE_IMAGE_MAX_BYTES = 8 * 1024 * 1024
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 DARK_ELIXIR_COST_SORT_WEIGHT = 50
 GEM_BOX_CHANCE = 0.01
@@ -1599,48 +1596,6 @@ def _format_upgrade_costs(costs: Dict[str, int]) -> str:
     )
 
 
-async def _fetch_upgrade_image(url):
-    proxy_url = proxy_upgrade_image_url(url)
-
-    def failed(reason, broken=False):
-        log.warning("Image load failed: %s | source=%s | proxy=%s", reason, url, proxy_url)
-        return None, None, broken
-
-    if not proxy_url:
-        return failed("Invalid image URL scheme", broken=True)
-    timeout = aiohttp.ClientTimeout(total=UPGRADE_IMAGE_TIMEOUT)
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            # log.info("Fetching image through proxy: %s", proxy_url)
-            async with session.get(proxy_url, allow_redirects=False) as response:
-                if response.status != 200:
-                    return failed(f"HTTP {response.status}", broken=response.status in (404, 410))
-                content_type = response.headers.get("Content-Type", "")
-                if not content_type.lower().startswith("image/"):
-                    return failed(f"Expected image content but received {content_type or 'no Content-Type'}", broken=True)
-                data = bytearray()
-                async for chunk in response.content.iter_chunked(65536):
-                    data.extend(chunk)
-                    if len(data) > UPGRADE_IMAGE_MAX_BYTES:
-                        return failed(f"Image exceeds the {UPGRADE_IMAGE_MAX_BYTES} byte download limit")
-                data = bytes(data)
-                if not data:
-                    return failed("Empty image response", broken=True)
-                if data.startswith(b"\x89PNG\r\n\x1a\n"):
-                    extension = "png"
-                elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
-                    extension = "webp"
-                elif data.startswith(b"\xff\xd8\xff"):
-                    extension = "jpg"
-                elif data.startswith((b"GIF87a", b"GIF89a")):
-                    extension = "gif"
-                else:
-                    return failed("Unrecognized or invalid image file signature")
-                return data, extension, False
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
-        return failed(f"{type(exc).__name__}: {exc}")
-
-
 def _build_batch_upgrade_entries(outcomes):
     groups = {}
     for outcome in outcomes:
@@ -1701,19 +1656,7 @@ def _upgrade_image_url(item, target_level):
 
 async def _publish_upgrade_embeds(interaction, entries, component=False):
     await interaction.response.defer(ephemeral=False, thinking=not component)
-    urls = {}
     image_urls = {(item, target_level): _upgrade_image_url(item, target_level) for embed, item, target_level in entries}
-    for embed, item, target_level in entries:
-        url = image_urls[item, target_level]
-        if url:
-            urls[url] = (None, None, False)
-    if urls:
-        semaphore = asyncio.Semaphore(4)
-        async def fetch(url):
-            async with semaphore:
-                return await _fetch_upgrade_image(url)
-        results = await asyncio.gather(*(fetch(url) for url in urls))
-        urls.update(zip(urls, results))
     grouped_entries = {}
     for embed, item, target_level in entries:
         key = image_urls[item, target_level] or (upgrade_system._base_name(item), target_level)
@@ -1725,13 +1668,11 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
         for field in embed.fields:
             combined.add_field(name=field.name, value=field.value, inline=field.inline)
     for index, (embed, item, target_level) in enumerate(grouped_entries.values()):
-        base = upgrade_system._base_name(item)
         url = image_urls[item, target_level]
         if url:
-            _, _, broken = urls[url]
-            embed.set_image(url=proxy_upgrade_image_url(url))
-            if broken:
-                embed.add_field(name="Image unavailable", value=f"The image link for {base} level {target_level} is not working.", inline=False)
+            proxy_url = proxy_upgrade_image_url(url)
+            if proxy_url:
+                embed.set_image(url=proxy_url)
         if index == 0:
             await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=[])
         else:
