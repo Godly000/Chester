@@ -25,7 +25,7 @@ from magic_system import MagicRejected, MagicSystem, format_duration
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
-from resource_system import RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
+from resource_system import COLLECTIBLE_RESOURCES, RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
     STRUCTURE_CATEGORIES,
     RefreshReport,
@@ -983,7 +983,7 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
 
     resource_amounts = {
         resource: village_additions.pop(resource)
-        for resource in RESOURCE_TYPES if resource in village_additions
+        for resource in COLLECTIBLE_RESOURCES if resource in village_additions
     }
     magic_awards = []
     with save_store.transaction(user_id) as (values, collection):
@@ -3245,6 +3245,7 @@ async def profile_slash(
 
     category = category or "Currency"
     target = member or interaction.user
+
     if not save_store.player_path(target.id).is_file():
         await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
         return
