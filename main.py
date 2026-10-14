@@ -943,7 +943,6 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
     """
     if not town_hall_loot_tables:
         raise RuntimeError("Loot tables are not loaded. Try `/reload_loot` or restart the bot.")
-    upgrade_system.refresh(user_id)
     village, owned_collection = save_store.player_values(user_id)
     town_hall = village["Town Hall"]
     categories = town_hall_loot_tables.get(town_hall)
@@ -1355,11 +1354,14 @@ async def upgradeinfo_slash(interaction: discord.Interaction, category: str, ite
 def _upgrade_snapshot(user_id):
     village, collection = save_store.player_values(user_id)
     village, collection = dict(village), dict(collection)
-    upgrade_system._refresh_values(village, int(time.time()))
     return village, collection
 
 
-def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None, ignore_workers=False):
+def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None, ignore_workers=False, levels=1):
+    if type(levels) is not int or levels < 1:
+        raise UpgradeRejected("Choose at least one level.")
+    if levels > 1 and hammer is not None:
+        raise UpgradeRejected("Multiple levels must be paid with resources.")
     if quantity < 1:
         raise UpgradeRejected("Choose at least one building.")
     fields = _upgrade_groups(category).get(group, [])
@@ -1380,25 +1382,31 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
     started = set()
     prices, costs, outcomes = [], {}, []
     for field in fields[:quantity]:
-        price = upgrade_system._price_for(field, level + 1)
-        outcome, _ = upgrade_system._start_values(
-            working, owned, field.name, now,
-            (price.choice_resources[0] if hammer and price.choice_resources else currency),
-            level, price, report, batch_started=started,
-            cost_reduction=hammer.cost if hammer else 0,
-            time_reduction=hammer.strength if hammer else 0,
-            ignore_workers=ignore_workers,
-        )
-        if hammer:
-            working[hammer.name] -= 1
-            outcome.costs[hammer.name] = 1
+        item_costs = {}
+        for step in range(level, level + levels):
+            price = upgrade_system._price_for(field, step + 1)
+            if levels > 1 and price.duration != 0:
+                raise UpgradeRejected("Every requested level must have zero upgrade time to use levels.")
+            outcome, _ = upgrade_system._start_values(
+                working, owned, field.name, now,
+                (price.choice_resources[0] if hammer and price.choice_resources else currency),
+                step, price, report, batch_started=started,
+                cost_reduction=hammer.cost if hammer else 0,
+                time_reduction=hammer.strength if hammer else 0,
+                ignore_workers=ignore_workers,
+            )
+            if hammer:
+                working[hammer.name] -= 1
+                outcome.costs[hammer.name] = 1
+            prices.append(price)
+            for resource, amount in outcome.costs.items():
+                costs[resource] = costs.get(resource, 0) + amount
+            for resource, amount in outcome.costs.items():
+                item_costs[resource] = item_costs.get(resource, 0) + amount
         started.add(field.name)
-        prices.append(price)
-        outcomes.append(outcome)
-        for resource, amount in outcome.costs.items():
-            costs[resource] = costs.get(resource, 0) + amount
+        outcomes.append(UpgradeOutcome(field.name, level, level + levels, outcome.instant, outcome.slot, outcome.finish_time, item_costs))
     quote = {
-        "category": category, "group": group, "level": level, "quantity": quantity,
+        "category": category, "group": group, "level": level, "quantity": quantity, "levels": levels,
         "currency": currency, "names": [field.name for field in fields[:quantity]],
         "prices": prices, "costs": costs, "hammer": hammer,
     }
@@ -1412,7 +1420,7 @@ def _upgrade_hammers(field):
             if item.name.startswith("Hammer of ") and magic_system.can_target_upgrade(item, field)]
 
 
-def _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=False, include_hammers=True):
+def _building_payment_options(village, collection, category, group, level, quantity, ignore_workers=False, include_hammers=True, levels=1):
     fields = _upgrade_groups(category).get(group, [])
     pending = upgrade_system._pending_serials(village)
     first = next((field for field in fields if village[field.name] == level and upgrade_system.serial_for(field) not in pending), None)
@@ -1420,12 +1428,12 @@ def _building_payment_options(village, collection, category, group, level, quant
         raise UpgradeRejected("No matching items remain at this level.")
     price = upgrade_system._price_for(first, level + 1)
     methods = [(currency, None) for currency in price.choice_resources or (None,)]
-    if include_hammers and (price.duration or price.choice_cost or any(price.fixed_costs.values())):
+    if include_hammers and levels == 1 and (price.duration or price.choice_cost or any(price.fixed_costs.values())):
         methods.extend((None, hammer) for hammer in _upgrade_hammers(first))
     options, errors = [], []
     for currency, hammer in methods:
         try:
-            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer, ignore_workers=ignore_workers)
+            quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer, ignore_workers=ignore_workers, levels=levels)
             options.append(quote)
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
             errors.append(str(error))
@@ -1517,7 +1525,7 @@ def _commit_building_batch(user_id, quote):
     with save_store.transaction(user_id) as (village, collection):
         current, working, outcomes = _simulate_building_batch(
             village, collection, quote["category"], quote["group"], quote["level"],
-            quote["quantity"], quote["currency"], quote.get("hammer"),
+            quote["quantity"], quote["currency"], quote.get("hammer"), levels=quote.get("levels", 1),
         )
         if current != quote:
             raise UpgradeRejected("The buildings or prices changed. Open /upgrade again.")
@@ -1718,7 +1726,9 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
     return embed
 
 
-def _wall_quote(village, collection, level, quantity):
+def _wall_quote(village, collection, level, quantity, levels=1):
+    if type(levels) is not int or levels < 1:
+        raise UpgradeRejected("Choose at least one level.")
     if quantity < 1:
         raise UpgradeRejected("Choose at least one wall.")
     pending = upgrade_system._pending_serials(village)
@@ -1740,37 +1750,38 @@ def _wall_quote(village, collection, level, quantity):
     for _, field in walls[:quantity]:
         if upgrade_system.serial_for(field) in pending:
             raise UpgradeRejected(f"{field.name} is already upgrading.")
-        upgrade_system._availability(field, working, collection)
-        price = upgrade_system._price_for(field, level + 1)
-        if price.duration:
-            raise UpgradeRejected("This wall upgrade is not instantaneous.")
-        if price.choice_resources:
-            if set(price.choice_resources) != {"Gold", "Elixir"} or price.fixed_costs:
-                raise UpgradeRejected("This wall has an unsupported resource cost.")
-            cost = price.choice_cost
-        else:
-            if set(price.fixed_costs) - {"Gold"}:
-                raise UpgradeRejected("This wall cannot be upgraded with Gold.")
-            cost = price.fixed_costs.get("Gold", 0)
-            allow_elixir = False
-        if cost and ring_item.cost <= 0:
-            raise UpgradeRejected("Wall Rings need a positive Cost in magicitems.csv.")
-        gold += cost
-        elixir += cost
-        rings += (cost + ring_item.cost - 1) // ring_item.cost if cost else 0
         names.append(field.name)
-        prices.append(price)
-        working[field.name] += 1
+        for step in range(level, level + levels):
+            upgrade_system._availability(field, working, collection)
+            price = upgrade_system._price_for(field, step + 1)
+            if price.duration:
+                raise UpgradeRejected("This wall upgrade is not instantaneous.")
+            if price.choice_resources:
+                if set(price.choice_resources) != {"Gold", "Elixir"} or price.fixed_costs:
+                    raise UpgradeRejected("This wall has an unsupported resource cost.")
+                cost = price.choice_cost
+            else:
+                if set(price.fixed_costs) - {"Gold"}:
+                    raise UpgradeRejected("This wall cannot be upgraded with Gold.")
+                cost = price.fixed_costs.get("Gold", 0)
+                allow_elixir = False
+            if cost and ring_item.cost <= 0:
+                raise UpgradeRejected("Wall Rings need a positive Cost in magicitems.csv.")
+            gold += cost
+            elixir += cost
+            rings += (cost + ring_item.cost - 1) // ring_item.cost if cost else 0
+            prices.append(price)
+            working[field.name] += 1
     costs = {"Gold": gold}
     if allow_elixir:
         costs["Elixir"] = elixir
     costs["Wall Rings"] = rings
-    return {"level": level, "quantity": quantity, "names": names, "prices": prices, "costs": costs}
+    return {"level": level, "quantity": quantity, "levels": levels, "names": names, "prices": prices, "costs": costs}
 
 
 def _commit_wall_upgrade(user_id, quote, currency):
     with save_store.transaction(user_id) as (village, collection):
-        current = _wall_quote(village, collection, quote["level"], quote["quantity"])
+        current = _wall_quote(village, collection, quote["level"], quote["quantity"], levels=quote.get("levels", 1))
         if current != quote:
             raise UpgradeRejected("The selected walls or costs changed. Open /upgrade category:Wall Level item:Walls again.")
         if currency not in current["costs"]:
@@ -1782,7 +1793,7 @@ def _commit_wall_upgrade(user_id, quote, currency):
             raise UpgradeRejected(f"Not enough {currency}: need {cost:,}, have {village.get(currency, 0):,}.")
         village[currency] -= cost
         for name in current["names"]:
-            village[name] += 1
+            village[name] += current["levels"]
         return cost
 
 
@@ -1826,9 +1837,10 @@ class WallPaymentView(discord.ui.View):
         level = self.quote["level"]
         names = self.quote["names"]
         label = names[0] if len(names) == 1 else f"{len(names):,} Walls"
-        outcome = UpgradeOutcome(label, level, level + 1, True, None, None, {currency: cost})
+        target = level + self.quote.get("levels", 1)
+        outcome = UpgradeOutcome(label, level, target, True, None, None, {currency: cost})
         embed = _build_upgrade_embed(outcome, RefreshReport([], [], []))
-        await _publish_upgrade_embeds(interaction, [(embed, names[0], level + 1)], component=True)
+        await _publish_upgrade_embeds(interaction, [(embed, names[0], target)], component=True)
 
     async def cancel(self, interaction):
         if not await self.interaction_check(interaction):
@@ -1902,9 +1914,9 @@ def _upgrade_payment_duration(quote):
 
 
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
-@app_commands.describe(category="The category of the upgrade", item="The item or building type", level="Target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted")
+@app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted", levels="Number of consecutive levels to upgrade defaults to one and requires zero time at every level")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None):
+async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None, levels: app_commands.Range[int, 1] = 1):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -1914,18 +1926,19 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
             raise UpgradeRejected("Choose a valid upgrade category and item.")
         upgrade_system.refresh(interaction.user.id)
         village, collection = save_store.player_values(interaction.user.id)
-        levels = _available_group_levels(village, collection, category, group)
-        if not levels:
+        available_levels = _available_group_levels(village, collection, category, group)
+        if not available_levels:
             raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
-        target = level if level is not None else min(levels) + 1
+        target = level if level is not None else min(available_levels) + 1
         amount = quantity if quantity is not None else 1
         current = target - 1
-        if current not in levels:
+        if current not in available_levels:
             raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
-        if amount < 1 or amount > levels[current]:
-            raise UpgradeRejected(f"You can upgrade at most {levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
+        if amount < 1 or amount > available_levels[current]:
+            raise UpgradeRejected(f"You can upgrade at most {available_levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
+        target = current + levels
         if group == "Walls":
-            quote = _wall_quote(village, collection, current, amount)
+            quote = _wall_quote(village, collection, current, amount, levels=levels)
             view = WallPaymentView(interaction.user.id, quote)
             for button in view.children:
                 if button.label.startswith("Use "):
@@ -1934,7 +1947,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
             costs = "\n".join(f"**{name}:** {cost:,}" for name, cost in quote["costs"].items())
             costs += f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
         else:
-            options = _building_payment_options(village, collection, category, group, current, amount)
+            options = _building_payment_options(village, collection, category, group, current, amount, levels=levels)
             view = BuildingPaymentView(interaction.user.id, options)
             costs = "\n\nOR\n\n".join(
                 _format_upgrade_costs(quote["costs"]) + f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
@@ -2086,7 +2099,7 @@ def _remaining_level_rows(entries, now):
                         choice_cost += price.choice_cost
                 fixed = tuple(sorted(fixed_costs.items()))
                 key = (label, start, end, fixed, choices, choice_cost, duration, active)
-                row = grouped.setdefault(key, {"label": label, "start": start, "level": end, "count": 0,
+                row = grouped.setdefault(key, {"category": upgrade_system.fields_by_name[entry.item].category, "label": label, "start": start, "level": end, "count": 0,
                     "cost": sum(amount * (DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1) for resource, amount in fixed) + choice_cost * min((DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1 for resource in choices), default=1),
                     "duration": duration, "fixed": fixed, "choices": choices,
                     "choice_cost": choice_cost, "active": active, "workers": []})
@@ -2096,7 +2109,7 @@ def _remaining_level_rows(entries, now):
     return list(grouped.values())
 
 
-def _remaining_pages(entries, town_hall, sort_order=None):
+def _remaining_pages(entries, town_hall, sort_order=None, category=None):
     total = sum(entry.count for entry in entries)
     rows = _remaining_level_rows(entries, int(time.time()))
     if sort_order:
@@ -2105,6 +2118,8 @@ def _remaining_pages(entries, town_hall, sort_order=None):
     heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per unit for the entire displayed level range. In progress rows show paid costs and time left.\n"
     if sort_order and sort_order.startswith("Cost"):
         heading += "Cost sorting weights Dark Elixir at 50 times other resources and counts the cheapest alternative currency once.\n"
+    if category:
+        heading += f"Category: **{category}**\n"
     heading += "\n"
     chunks, lines = [], []
     length = len(heading)
@@ -2117,7 +2132,7 @@ def _remaining_pages(entries, town_hall, sort_order=None):
         duration = format_duration(row["duration"]) if row["duration"] else "Instant"
         line = f"**{row['label']} — Level {row['start']} → {row['level']}{multiplier}**\nCost each: **{cost}** · Time each: **{duration}**"
         if row["active"]:
-            line += "\nIn progress: " + ", ".join(row["workers"])
+            line += ("\nReady to refresh: " if row["duration"] == 0 else "\nIn progress: ") + ", ".join(row["workers"])
         if lines and (len(lines) >= 10 or length + len(line) + 2 > 3900):
             chunks.append(lines)
             lines = []
@@ -2129,6 +2144,8 @@ def _remaining_pages(entries, town_hall, sort_order=None):
     pages = []
     for number, chunk in enumerate(chunks, 1):
         description = heading + "\n\n".join(chunk) if total else "All required upgrades are complete. You can upgrade your Town Hall once you have the resources and a free Builder."
+        if not total and category:
+            description = f"No remaining upgrades in **{category}** for your current Town Hall. Other categories may still have upgrades remaining."
         embed = discord.Embed(title="Remaining Town Hall upgrades", description=description, color=discord.Color.blue())
         embed.set_footer(text=f"Page {number}/{len(chunks)} · Use /remaining again to refresh")
         pages.append(embed)
@@ -2273,18 +2290,18 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
-@app_commands.describe(sorted="Sort by the cost or duration of each individual upgrade")
+@app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost or duration")
+@app_commands.autocomplete(category=upgradeinfo_category_autocomplete)
 @app_commands.choices(sorted=[
     app_commands.Choice(name="Cost Ascending", value="Cost Ascending"),
     app_commands.Choice(name="Cost Descending", value="Cost Descending"),
     app_commands.Choice(name="Time Ascending", value="Time Ascending"),
     app_commands.Choice(name="Time Descending", value="Time Descending"),
 ])
-async def remaining_slash(interaction: discord.Interaction, sorted: Optional[str] = None):
+async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        upgrade_system.refresh(interaction.user.id)
         village, collection = save_store.player_values(interaction.user.id)
         town_hall = village["Town Hall"]
         if town_hall == 0:
@@ -2293,8 +2310,16 @@ async def remaining_slash(interaction: discord.Interaction, sorted: Optional[str
         if town_hall >= 18:
             await interaction.response.send_message("Your Town Hall is already at its maximum level.", ephemeral=True)
             return
+        if category is not None:
+            categories = dict.fromkeys(field.category for field in upgrade_system.level_fields)
+            category = next((name for name in categories if name.casefold() == category.strip().casefold()), None)
+            if category is None:
+                await interaction.response.send_message("Choose a valid upgrade category from the suggestions.", ephemeral=True)
+                return
         entries = upgrade_system.remaining_upgrades(village, collection)
-        pages = _remaining_pages(entries, town_hall, sorted)
+        if category is not None:
+            entries = [entry for entry in entries if upgrade_system.fields_by_name[entry.item].category == category]
+        pages = _remaining_pages(entries, town_hall, sorted, category)
     except Exception as error:
         log.exception("Could not list remaining upgrades: %s", error)
         await interaction.response.send_message("Your remaining upgrades could not be loaded.", ephemeral=True)
@@ -2724,7 +2749,6 @@ async def collect_loot_slash(interaction: discord.Interaction):
         return
     try:
         now = int(time.time())
-        upgrade_system.refresh(interaction.user.id, now)
         with save_store.transaction(interaction.user.id) as (village, collection):
             received = resource_system.collect(village, now)
     except ResourceRejected as error:
@@ -2744,7 +2768,6 @@ async def collect_treasury_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        upgrade_system.refresh(interaction.user.id)
         with save_store.transaction(interaction.user.id) as (village, collection):
             collected = resource_system.collect_treasury(village)
     except Exception as error:
@@ -2763,7 +2786,6 @@ async def view_collectors_slash(interaction: discord.Interaction):
         return
     try:
         now = int(time.time())
-        upgrade_system.refresh(interaction.user.id, now)
         village, _ = save_store.player_values(interaction.user.id)
         statuses = resource_system.collector_status(village, now)
     except Exception as error:
