@@ -1663,7 +1663,8 @@ def _upgrade_image_url(item, target_level):
 
 
 async def _publish_upgrade_embeds(interaction, entries, component=False):
-    await interaction.response.defer(ephemeral=False, thinking=not component)
+    if not component:
+        await interaction.response.defer(ephemeral=False, thinking=True)
     image_urls = {(item, target_level): _upgrade_image_url(item, target_level) for embed, item, target_level in entries}
     grouped_entries = {}
     for embed, item, target_level in entries:
@@ -1682,7 +1683,10 @@ async def _publish_upgrade_embeds(interaction, entries, component=False):
             if proxy_url:
                 embed.set_image(url=proxy_url)
         if index == 0:
-            await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=[])
+            if component:
+                await interaction.response.edit_message(content=None, embed=embed, view=None, attachments=[])
+            else:
+                await interaction.edit_original_response(content=None, embed=embed, view=None, attachments=[])
         else:
             await interaction.followup.send(embed=embed, ephemeral=False)
 
