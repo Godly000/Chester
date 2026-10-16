@@ -2353,17 +2353,26 @@ def _loot_table_pages(town_hall, rarity=None):
 async def loot_table_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18], rarity: Optional[str] = None):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
+    await interaction.response.defer(thinking=True)
     try:
-        pages = _loot_table_pages(town_hall, rarity)
+        pages = await asyncio.to_thread(_loot_table_pages, town_hall, rarity)
+        if not pages:
+            raise LootRollRejected("No loot rewards are available for this selection.")
     except LootRollRejected as error:
-        await interaction.response.send_message(_error_text(error), ephemeral=True)
+        await interaction.edit_original_response(content=_error_text(error), embed=None, view=None)
+        return
+    except Exception:
+        log.exception("Could not generate loot table for Town Hall %s and rarity %s", town_hall, rarity)
+        await interaction.edit_original_response(
+            content="The loot table could not be loaded. Please ask a moderator to check the bot console.",
+            embed=None, view=None,
+        )
         return
     if len(pages) == 1:
-        await interaction.response.send_message(embed=pages[0])
+        await interaction.edit_original_response(content=None, embed=pages[0], view=None)
     else:
         view = RemainingUpgradesView(interaction.user.id, pages, command="loot_table")
-        await interaction.response.send_message(embed=pages[0], view=view)
-        view.message = await interaction.original_response()
+        view.message = await interaction.edit_original_response(content=None, embed=pages[0], view=view)
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
@@ -3464,4 +3473,4 @@ def main():
         )
     bot.run(DISCORD_TOKEN)
 if __name__ == "__main__":
-    main()
+    main(
