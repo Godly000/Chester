@@ -31,6 +31,7 @@ from upgrade_system import (
     UpgradeCurrencyChoiceRequired,
     UpgradeOutcome,
     UpgradeRejected,
+    UpgradeLocked,
     UpgradeSystem,
     WorkerUnavailable,
     TownHallUpgradeBlocked,
@@ -1138,7 +1139,8 @@ async def _open_chest(interaction: discord.Interaction):
             log.exception("Error rolling loot for user %s: %s", interaction.user.id, error)
         if interaction.response.is_done() and not chest_sent:
             try:
-                await interaction.edit_original_response(content="The chest could not be opened.", embed=None)
+                await interaction.edit_original_response(content=f"⚠️ {_error_text(error)}", embed=None)
+                return
             except discord.HTTPException:
                 log.warning("Could not update failed chest response for user %s", interaction.user.id)
         await _send_chest_error(interaction, f"⚠️ {error}")
@@ -1346,7 +1348,7 @@ async def upgradeinfo_slash(interaction: discord.Interaction, category: str, ite
     try:
         entry = _upgradeinfo_embed(category, item, level)
     except UpgradeRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     await _publish_upgrade_embeds(interaction, [entry])
 
@@ -1438,7 +1440,7 @@ def _building_payment_options(village, collection, category, group, level, quant
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
             errors.append(str(error))
     if not options:
-        raise UpgradeRejected("\n".join(dict.fromkeys(errors)))
+        raise UpgradeRejected(_error_text("\n".join(errors)))
     return options
 
 
@@ -1549,7 +1551,7 @@ class BuildingPaymentView(discord.ui.View):
                 try:
                     outcomes = _commit_building_batch(self.user_id, selected)
                 except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-                    await interaction.response.send_message(str(error), ephemeral=True)
+                    await interaction.response.send_message(_error_text(error), ephemeral=True)
                     return
                 self.used = True
                 self.stop()
@@ -1574,8 +1576,34 @@ class BuildingPaymentView(discord.ui.View):
         return True
 
 
+def _error_text(error):
+    return "\n".join(dict.fromkeys(line.strip() for line in str(error).splitlines() if line.strip()))
+
+
+def _format_percentage(value, precision=4):
+    return f"{value:.{precision}f}".rstrip("0").rstrip(".") + "%"
+
+
+def _group_is_maxed(village, collection, fields):
+    eligible = []
+    pending = upgrade_system._pending_serials(village)
+    for field in fields:
+        try:
+            maximum = upgrade_system._availability(field, village, collection, reject_at_maximum=False)
+        except UpgradeLocked:
+            continue
+        if maximum <= 0:
+            continue
+        eligible.append(field)
+        if village[field.name] < maximum or upgrade_system.serial_for(field) in pending:
+            return False
+    return bool(eligible)
+
+
 def _unavailable_upgrade_reason(village, collection, category, group, rings_only=False):
     fields = _upgrade_groups(category).get(group, [])
+    if not rings_only and _group_is_maxed(village, collection, fields):
+        return f"You have already maxed all available {group} upgrades for your current building levels."
     reasons = []
     for level in sorted({village[field.name] for field in fields}):
         try:
@@ -1590,8 +1618,8 @@ def _unavailable_upgrade_reason(village, collection, category, group, rings_only
             else:
                 _building_payment_options(village, collection, category, group, level, 1)
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-            reasons.append(f"Level {level}: {error}")
-    reason = "\n".join(dict.fromkeys(reasons)) or "There are no eligible items of this type."
+            reasons.extend(str(error).splitlines())
+    reason = _error_text("\n".join(reasons)) or "There are no eligible items of this type."
     action = "use any Wall Rings" if rings_only else f"upgrade any {group}"
     return f"You can't {action}.\n{reason}"[:1900]
 
@@ -1834,7 +1862,7 @@ class WallPaymentView(discord.ui.View):
         try:
             cost = _commit_wall_upgrade(self.user_id, self.quote, currency)
         except (UpgradeRejected, MagicRejected) as error:
-            await interaction.response.send_message(str(error), ephemeral=True)
+            await interaction.response.send_message(_error_text(error), ephemeral=True)
             return
         self.used = True
         self.stop()
@@ -1901,6 +1929,48 @@ async def upgrade_quantity_autocomplete(interaction: discord.Interaction, curren
         return []
 
 
+async def upgrade_levels_autocomplete(interaction: discord.Interaction, current: str):
+    try:
+        targets, group = _upgrade_argument_options(interaction)
+        if not targets or group is None:
+            return []
+        target = getattr(interaction.namespace, "level", None)
+        target = min(targets) if target is None else target
+        quantity = getattr(interaction.namespace, "quantity", None) or 1
+        if target not in targets or not 1 <= quantity <= targets[target]:
+            return []
+        category = getattr(interaction.namespace, "category", "") or ""
+        village, collection = _upgrade_snapshot(interaction.user.id)
+        fields = _upgrade_groups(category)[group]
+        pending = upgrade_system._pending_serials(village)
+        field = next(field for field in fields if village[field.name] == target - 1
+                     and upgrade_system.serial_for(field) not in pending)
+        maximum = upgrade_system._availability(field, village, collection, reject_at_maximum=False)
+        options = []
+        for count in range(1, maximum - target + 2):
+            try:
+                if group == "Walls":
+                    quote = _wall_quote(village, collection, target - 1, quantity, levels=count)
+                    if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items()):
+                        break
+                else:
+                    _building_payment_options(
+                        village, collection, category, group, target - 1, quantity,
+                        ignore_workers=True, include_hammers=False, levels=count,
+                    )
+            except (UpgradeRejected, MagicRejected, ResourceRejected):
+                break
+            if str(count).startswith(str(current)):
+                options.append(app_commands.Choice(
+                    name=f"{count} level{'s' if count != 1 else ''} — to Level {target + count - 1}",
+                    value=count,
+                ))
+        return options[:25]
+    except Exception:
+        log.exception("Could not load consecutive upgrade level suggestions")
+        return []
+
+
 def _upgrade_payment_duration(quote):
     hammer = quote.get("hammer")
     reduction = hammer.strength if hammer else 0
@@ -1919,7 +1989,7 @@ def _upgrade_payment_duration(quote):
 
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
 @app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted", levels="Number of consecutive levels to upgrade defaults to one and requires zero time at every level")
-@app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete)
+@app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete, levels=upgrade_levels_autocomplete)
 async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None, levels: app_commands.Range[int, 1] = 1):
     if not await enforce_chester_channel(interaction):
         return
@@ -1964,7 +2034,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
             embed.set_image(url=proxy_upgrade_image_url(image_url))
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
     except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
 
 
 @bot.tree.command(
@@ -2217,7 +2287,7 @@ def _loot_table_pages(town_hall, rarity=None):
     rarity_order = {name: index for index, name in enumerate(XP_REWARDS.keys())}
     active.sort(key=lambda entry: -rarity_order.get(entry[0].name.lower(), -1))
     total_weight = sum(category.weight for category, items in active)
-    splits = "\n".join(f"**{category.name.title()}:** {100 * category.weight / total_weight:.4f}%"
+    splits = "\n".join(f"**{category.name.title()}:** {_format_percentage(100 * category.weight / total_weight)}"
                        for category, items in active
                        if rarity is None or category.name.casefold() == rarity.casefold())
     pages = []
@@ -2248,8 +2318,8 @@ def _loot_table_pages(town_hall, rarity=None):
             elif extra:
                 detail = " (random item from this reward group)"
             conditional = item.weight / item_total
-            line = (f"**{item.name}{detail}** — {100 * conditional:.4f}% within rarity; "
-                    f"{100 * conditional * rarity_chance:.4f}% overall")
+            line = (f"**{item.name}{detail}** — {_format_percentage(100 * conditional)} within rarity; "
+                    f"{_format_percentage(100 * conditional * rarity_chance)} overall")
             if lines and length + len(line) + 1 > 3800:
                 chunks.append(lines)
                 lines = []
@@ -2264,8 +2334,11 @@ def _loot_table_pages(town_hall, rarity=None):
                 description=prefix + "\n".join(chunk),
                 color=RARITY_COLORS.get(category.name.lower(), discord.Color.blue()),
             ))
+    icon = proxy_image_url(TOWN_HALL_PROFILE_IMAGES.get(town_hall))
     for index, embed in enumerate(pages, 1):
         embed.set_footer(text=f"Page {index}/{len(pages)}")
+        if icon:
+            embed.set_thumbnail(url=icon)
     return pages
 
 
@@ -2283,7 +2356,7 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
     try:
         pages = _loot_table_pages(town_hall, rarity)
     except LootRollRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     if len(pages) == 1:
         await interaction.response.send_message(embed=pages[0])
@@ -2432,7 +2505,7 @@ class MagicItemView(discord.ui.View):
                 raise MagicRejected("Invalid selection. Run /use again")
             result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item, quantity=self.quantity)
         except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-            await interaction.response.send_message(f"You can't use any {self.item.name}: {error}", ephemeral=True)
+            await interaction.response.send_message(f"You can't use any {self.item.name}: {_error_text(error)}", ephemeral=True)
             if self.message is not None:
                 await self.message.edit(view=None)
             return
@@ -2491,7 +2564,7 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
             return
         result = magic_system.use(interaction.user.id, item, quantity=amount)
     except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-        await interaction.response.send_message(f"You can't use any {item}: {error}", ephemeral=True)
+        await interaction.response.send_message(f"You can't use any {item}: {_error_text(error)}", ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /use: %s", error)
@@ -2560,7 +2633,7 @@ async def buy_slash(interaction: discord.Interaction, category: str, item: str):
             collection[field.name] = 1
             gems_remaining = village["Gems"]
     except UpgradeRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     embed = discord.Embed(
         title="Collection item purchased",
@@ -2602,7 +2675,7 @@ async def sell_slash(interaction: discord.Interaction, item: Optional[str] = Non
             return
         result = magic_system.sell(interaction.user.id, item, quantity if quantity is not None else 1)
     except MagicRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /sell: %s", error)
@@ -2711,7 +2784,7 @@ async def check_obstacles_slash(interaction: discord.Interaction):
     try:
         added, overflow, total = obstacle_system.check(interaction.user.id)
     except ObstacleRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     lines = [f"**{name}:** +{amount}" for name, amount in added.items()]
     if not lines:
@@ -2733,7 +2806,7 @@ async def remove_obstacle_slash(interaction: discord.Interaction, obstacle: str,
     try:
         item, cost, gems = obstacle_system.remove(interaction.user.id, obstacle, amount)
     except ObstacleRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     embed = discord.Embed(
         title="Obstacles removed",
@@ -2756,7 +2829,7 @@ async def collect_loot_slash(interaction: discord.Interaction):
         with save_store.transaction(interaction.user.id) as (village, collection):
             received = resource_system.collect(village, now)
     except ResourceRejected as error:
-        await interaction.response.send_message(str(error), ephemeral=False)
+        await interaction.response.send_message(_error_text(error), ephemeral=False)
         return
     except Exception as error:
         log.exception("Unexpected error in /collect_loot: %s", error)
@@ -2804,7 +2877,7 @@ async def view_collectors_slash(interaction: discord.Interaction):
         embed.add_field(
             name=f"{status.item} | Level {status.level}",
             value=(f"{status.hourly_rate:,.3f} {status.resource} per hour\n"
-                   f"{status.stored:,} / {status.capacity:,} stored ({percent:.1f}%)"),
+                   f"{status.stored:,} / {status.capacity:,} stored ({_format_percentage(percent, 1)})"),
             inline=False,
         )
     embed.set_footer(text="Use collect_loot to move these resources into storage")
@@ -3357,7 +3430,7 @@ async def set_slash(interaction: discord.Interaction, user_id: str, category: st
         await interaction.response.send_message("This player's save needs migration. Run /update_saves first.", ephemeral=True)
         return
     except (ValueError, KeyError) as error:
-        await interaction.response.send_message(str(error), ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     await interaction.response.send_message(
         f"Updated user **{user_id}**, **{field.category} / {field.name}**: "
