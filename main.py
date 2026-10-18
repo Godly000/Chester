@@ -168,6 +168,8 @@ RARITY_COLORS = {
 
 COLLECTION_REWARD_CATEGORIES = {
     "Capital House": "Clan Capital House Part",
+    "Capital House Part": "Clan Capital House Part",
+    "Clan Capital House Part": "Clan Capital House Part",
     "Decoration": "Decoration",
     "Hero Equipment": "Hero Equipment",
     "Hero Skin": "Hero Skin",
@@ -414,6 +416,8 @@ def load_categories(
                     log.warning("Skipping malformed item row in %s: %r", item_file.name, item_row)
                     continue
                 item_name, item_weight_str = item_row[0], item_row[1]
+                if item_name.strip().casefold() in {"wall ring", "wall rings"}:
+                    item_name = "Wall Rings"
                 try:
                     item_weight = _parse_weight(item_weight_str)
                 except ValueError:
@@ -430,6 +434,8 @@ def load_categories(
                 # column was removed). If it's not present, this is simply
                 # None and the item is used as-is (no quantity, no sub-roll).
                 extra_field = item_row[2] if len(item_row) >= 3 else None
+                if item_name == "Wall Rings" and extra_field and extra_field.strip() in {"46056", "46056.0"}:
+                    extra_field = "2-3"
                 if extra_field and extra_field.strip().casefold().removesuffix(".csv") in {"common_resources", "rare_resources", "ore_rewards"}:
                     filename = extra_field.strip().casefold().removesuffix(".csv") + ".csv"
                     extra_field = _chest_resource_range(filename, item_name, loot_dir, name)
@@ -961,7 +967,7 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
     }
     collection_unlocks: List[str] = []
 
-    if resolved.collection_category:
+    if resolved.collection_category or save_store.has_collection_field(resolved.reward_name):
         if save_store.has_collection_field(resolved.reward_name):
             collection_unlocks.append(resolved.reward_name)
         else:
@@ -2060,7 +2066,7 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
             name="In progress",
             value="\n".join(
                 f"**{entry.item}:** <t:{entry.finish_time}:R> "
-                f"({entry.slot.removesuffix(' Upgrade')})"
+                f"(<t:{entry.finish_time}:T>)"
                 for entry in report.active
             ),
             inline=False,
@@ -2557,7 +2563,7 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
         amount = quantity if quantity is not None else 1
         village, _ = save_store.player_values(interaction.user.id)
         magic_system._owned(village, definition, amount)
-        if definition.name == "Wall Rings":
+        if definition.name.casefold() in {"wall ring", "wall rings"}:
             village, _ = save_store.player_values(interaction.user.id)
             magic_system._owned(village, magic_system.resolve(item))
             await _open_wall_upgrades(interaction, rings_only=True)
@@ -3037,6 +3043,13 @@ async def support_slash(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@bot.tree.command(name="attack", description="Attack feature coming soon.")
+async def attack_slash(interaction: discord.Interaction):
+    if not await enforce_chester_channel(interaction):
+        return
+    await interaction.response.send_message("Work in Progress", ephemeral=True)
+
+
 @bot.tree.command(name="about", description="About Chester")
 async def about_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
@@ -3071,6 +3084,7 @@ async def help_slash(
         return
     commands = [
         ("chest", "Opens a Treasure Chest using your Town Hall loot table."),
+        ("attack", "Work in Progress"),
         ("option", "Enable or disable notifications and chest tutorial tips."),
         ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
@@ -3473,4 +3487,4 @@ def main():
         )
     bot.run(DISCORD_TOKEN)
 if __name__ == "__main__":
-    main(
+    main()
