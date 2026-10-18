@@ -94,7 +94,11 @@ class MagicSystem:
     def resolve(self, name: str) -> MagicItem:
         if not self.items:
             raise MagicRejected("Magic item data is not loaded")
-        item = self.by_key.get(name.strip().casefold())
+        key = name.strip().casefold()
+        if key in {"wall ring", "wall rings"}:
+            item = self.by_key.get("wall rings") or self.by_key.get("wall ring")
+        else:
+            item = self.by_key.get(key)
         if item is None:
             raise MagicRejected(f"Unknown magic item: {name}")
         return item
@@ -228,7 +232,6 @@ class MagicSystem:
     def prepare(self, user_id, name, now=None):
         now = int(time.time()) if now is None else int(now)
         item = self.resolve(name)
-        self.upgrades.refresh(user_id, now)
         village, collection = self.store.player_values(user_id)
         self._owned(village, item)
         if item.name.startswith("Hammer of "):
@@ -293,7 +296,6 @@ class MagicSystem:
             raise MagicRejected("Quantity is only available for magic items that sell for 2 Gems")
         if expected_item is not None and item != expected_item:
             raise MagicRejected("The item data changed. Run /use again")
-        self.upgrades.refresh(user_id, now)
         with self.store.transaction(user_id) as (village, collection):
             self._owned(village, item, quantity)
             lines = []
@@ -368,8 +370,9 @@ class MagicSystem:
                         lines.extend(refund_lines)
                     if not changed:
                         raise MagicRejected("This item would have no effect on those upgrades")
-                    completed = self.upgrades._refresh_values(village, now).completed
-                    lines.extend(f"Completed {entry.item}: level {entry.new_level}." for entry in completed)
+                    ready = [entry for entry in options if village[entry.value.removesuffix(" Upgrade") + " Time"] <= now]
+                    if ready:
+                        lines.append("Upgrades are ready. Use /refresh_upgrades or /upgrade to apply completed levels and free their workers.")
                 else:
                     raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
                 village[item.name] -= consumed
