@@ -129,6 +129,7 @@ TOWN_HALL_PROFILE_IMAGES = {
 }
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 DARK_ELIXIR_COST_SORT_WEIGHT = 50
+WALL_DARK_ELIXIR_RATIO = 50
 GEM_BOX_CHANCE = 0.01
 SET_COMMAND_OWNER_ID = 459126084428890113
 NEW_PLAYER_MESSAGE = "New to Chester? Open a Chest using the /chest command to get started!"
@@ -1764,6 +1765,18 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
     return embed
 
 
+def _dark_elixir_upgrades_finished(village, collection):
+    for entry in upgrade_system.remaining_upgrades(village, collection):
+        field = upgrade_system.fields_by_name.get(entry.item)
+        if field is None:
+            return False
+        for target in range(entry.current_level + 1, entry.target_level + 1):
+            price = upgrade_system._price_for(field, target)
+            if {"Dark Elixir", "DE"}.intersection(price.fixed_costs) or {"Dark Elixir", "DE"}.intersection(price.choice_resources):
+                return False
+    return True
+
+
 def _wall_quote(village, collection, level, quantity, levels=1):
     if type(levels) is not int or levels < 1:
         raise UpgradeRejected("Choose at least one level.")
@@ -1814,6 +1827,8 @@ def _wall_quote(village, collection, level, quantity, levels=1):
     if allow_elixir:
         costs["Elixir"] = elixir
     costs["Wall Rings"] = rings
+    if _dark_elixir_upgrades_finished(village, collection):
+        costs["Dark Elixir"] = (gold + WALL_DARK_ELIXIR_RATIO - 1) // WALL_DARK_ELIXIR_RATIO
     return {"level": level, "quantity": quantity, "levels": levels, "names": names, "prices": prices, "costs": costs}
 
 
@@ -2458,8 +2473,36 @@ async def magic_item_autocomplete(interaction: discord.Interaction, current: str
     ][:25]
 
 
+def _book_preview_pages(item, village, collection, status):
+    pages = [discord.Embed(title=f"Use {item.name}", description="\n".join(status) or "No upgrades in progress can use this Book.", color=discord.Color.blue())]
+    rows = []
+    pending = upgrade_system._pending_serials(village)
+    for field in upgrade_system.level_fields:
+        if not magic_system.can_target_upgrade(item, field):
+            continue
+        try:
+            maximum = upgrade_system._availability(field, village, collection, reject_at_maximum=False)
+            if field.name == "Town Hall" and upgrade_system.remaining_upgrades(village, collection):
+                continue
+            for target in range(village[field.name] + 1, maximum + 1):
+                if target == village[field.name] + 1 and upgrade_system.serial_for(field) in pending:
+                    continue
+                price = upgrade_system._price_for(field, target)
+                if price.duration > 0:
+                    rows.append((price.duration, field.name, target))
+        except UpgradeRejected:
+            continue
+    rows.sort(key=lambda row: (-row[0], row[1], row[2]))
+    for offset in range(0, len(rows), 15):
+        lines = [f"**{name} → Level {target}:** {format_duration(duration)}" for duration, name, target in rows[offset:offset + 15]]
+        pages.append(discord.Embed(title=f"{item.name} — Possible upgrades", description="Start an upgrade with /upgrade before using a Book.\n\n" + "\n".join(lines), color=discord.Color.blue()))
+    for index, page in enumerate(pages):
+        page.set_footer(text=f"Page {index + 1}/{len(pages)}")
+    return pages
+
+
 class MagicItemView(discord.ui.View):
-    def __init__(self, user_id, item, options, quantity=1):
+    def __init__(self, user_id, item, options, quantity=1, pages=None):
         super().__init__(timeout=120)
         self.user_id = user_id
         self.item = item
@@ -2469,14 +2512,16 @@ class MagicItemView(discord.ui.View):
         self.message = None
         self.option_list = list(options)
         self.page = 0
+        self.pages = pages
         self.selection = discord.ui.Select(
-            placeholder="Choose an upgrade" if item.name.startswith("Hammer of ") else ("Choose a Wall level" if item.target == "Wall" else "Choose a worker"),
-            options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options[:25]],
+            placeholder="Choose an upgrade" if item.name.startswith(("Hammer of ", "Book of ")) else ("Choose a Wall level" if item.target == "Wall" else "Choose a worker"),
+            options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options[:25]] or [discord.SelectOption(label="No eligible upgrades in progress", value="unavailable")],
+            disabled=not options,
         )
         self.selection.callback = self.choose
         self.add_item(self.selection)
         self.previous_page.disabled = True
-        self.next_page.disabled = len(self.option_list) <= 25
+        self.next_page.disabled = len(pages) <= 1 if pages is not None else len(self.option_list) <= 25
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2488,6 +2533,13 @@ class MagicItemView(discord.ui.View):
 
     async def change_page(self, interaction, delta):
         if not await self.interaction_check(interaction):
+            return
+        if self.pages is not None:
+            self.page = max(0, min(len(self.pages) - 1, self.page + delta))
+            self.selection.disabled = self.page != 0 or not self.option_list
+            self.previous_page.disabled = self.page == 0
+            self.next_page.disabled = self.page == len(self.pages) - 1
+            await interaction.response.edit_message(embed=self.pages[self.page], view=self)
             return
         self.page = max(0, min((len(self.option_list) - 1) // 25, self.page + delta))
         entries = self.option_list[self.page * 25:(self.page + 1) * 25]
@@ -2569,11 +2621,17 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
             await _open_wall_upgrades(interaction, rings_only=True)
             return
         definition, options, status = magic_system.prepare(interaction.user.id, item)
-        if options:
-            view = MagicItemView(interaction.user.id, definition, options, amount)
+        if options or definition.name.startswith("Book of "):
+            pages = None
+            if definition.name.startswith("Book of "):
+                village, collection = save_store.player_values(interaction.user.id)
+                pages = _book_preview_pages(definition, village, collection, status)
+            view = MagicItemView(interaction.user.id, definition, options, amount, pages=pages)
             embed = discord.Embed(
                 title=f"Use {definition.name}", description="\n".join(status), color=discord.Color.blue()
             )
+            if pages is not None:
+                embed = pages[0]
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             view.message = await interaction.original_response()
             return
@@ -3223,7 +3281,7 @@ async def leaderboard_slash(interaction: discord.Interaction, category: str):
 
 
 def _profile_categories():
-    return ["Obstacles" if category.casefold() == "obstacle" else category for category in save_store.categories if category.casefold() != "important"]
+    return ["Unlocked Epic Equipment" if category == "Hero Equipment" else "Obstacles" if category.casefold() == "obstacle" else category for category in save_store.categories if category.casefold() != "important"]
 
 
 async def profile_category_autocomplete(interaction: discord.Interaction, current: str):
@@ -3310,6 +3368,8 @@ async def profile_slash(
         return
 
     category = category or "Currency"
+    if category.casefold() == "unlocked epic equipment":
+        category = "Hero Equipment"
     target = member or interaction.user
 
     if not save_store.player_path(target.id).is_file():
@@ -3346,9 +3406,14 @@ async def profile_slash(
         )
         return
 
-    village, _ = save_store.player_values(target.id)
+    village, collection = save_store.player_values(target.id)
     town_hall_icon = TOWN_HALL_PROFILE_IMAGES.get(village.get("Town Hall", 0))
     important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
+    if resolved_category in {"Hero Equipment", "Clan Capital House Part", "Decoration", "Hero Skin"}:
+        collection_fields = [field for field in save_store.collection_by_name.values() if field.category == resolved_category]
+        unlocked = sum(collection.get(field.name, 0) > 0 for field in collection_fields)
+        progress_text = f"**Collection progress: {unlocked:,}/{len(collection_fields):,} unlocked**"
+        important_text = f"{progress_text}\n\n{important_text}" if important_text else progress_text
     profile_capacities = {}
     if resolved_category.casefold() in {"currency", "treasury"}:
         village, _ = save_store.player_values(target.id)
@@ -3364,7 +3429,7 @@ async def profile_slash(
         kwargs = {"ephemeral": True}
         if important_text:
             kwargs["embed"] = discord.Embed(
-                title=f"{target.display_name} — {resolved_category}",
+                title=f"{target.display_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}",
                 description=important_text,
                 color=discord.Color.blue(),
             )
@@ -3378,7 +3443,7 @@ async def profile_slash(
     for page_number, page in enumerate(pages, start=1):
         page_label = f" ({page_number}/{len(pages)})" if len(pages) > 1 else ""
         embed = discord.Embed(
-            title=f"{target.display_name} — {resolved_category}{page_label}",
+            title=f"{target.display_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}{page_label}",
             description=f"{important_text}\n\n{page}" if important_text else page,
             color=discord.Color.blue(),
         )
