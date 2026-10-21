@@ -1126,7 +1126,7 @@ async def _open_chest(interaction: discord.Interaction):
         if new_player:
             save_store.update_village_values(interaction.user.id, set_values={"Town Hall": 1})
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id, rarity_key)
-        _set_chest_footer(embed, bool(village.get("Hide tutorial", 0)))
+        _set_chest_footer(embed, bool(village.get("Hide Tutorial", 0)))
         await interaction.edit_original_response(content=None, embed=embed)
         chest_sent = True
         if new_player:
@@ -3190,7 +3190,7 @@ def _leaderboard_value(statistic, value):
 @app_commands.choices(name=[
     app_commands.Choice(name="Notification for finished upgrades", value="Notification for finished upgrades"),
     app_commands.Choice(name="Notification for full collectors", value="Notification for full collectors"),
-    app_commands.Choice(name="Hide tutorial", value="Hide tutorial"),
+    app_commands.Choice(name="Hide tutorial", value="Hide Tutorial"),
 ])
 async def option_slash(interaction: discord.Interaction, name: str, enabled: bool):
     if not await enforce_chester_channel(interaction):
