@@ -2990,9 +2990,9 @@ def _collector_display_fields(village, statuses, now):
                 last_check = village.get(LAST_RESOURCE_CHECK, 0)
                 finish = (last_check if last_check > 0 else now) + seconds
                 label = "Full since" if finish <= now else "Full at"
-                lines.append(f"{label} <t:{finish}:T>")
+                lines[-1] += f"\n{label} <t:{finish}:T>"
             else:
-                lines.append("No production at this level.")
+                lines[-1] += "\nNo production at this level."
         fields.append((f"{base} x{len(group['items'])} | Level {level}", "\n\n".join(lines)))
     return fields
 
