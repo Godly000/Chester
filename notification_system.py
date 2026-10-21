@@ -85,7 +85,7 @@ class NotificationSystem:
             sent = set(previous.get("sent", []))
             for key, job in jobs.items():
                 if job["finish"] <= now and key not in sent:
-                    messages.append(("upgrade", key, f"{job['name']} reached level {job['level']} <t:{job['finish']}:R>. Use /refresh_upgrades to refresh your village."))
+                    messages.append(("upgrade", key, f"{job['name']} reached level {job['level']} <t:{job['finish']}:R>. Use /view_upgrades to view your upgrades."))
             previous["jobs"] = {key: job for key, job in jobs.items() if key not in sent}
             previous["sent"] = list(sent.intersection(active_keys))
         else:
