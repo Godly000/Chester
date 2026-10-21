@@ -45,7 +45,7 @@ Treasury Elixir,Treasury,integer
 Treasury Dark Elixir,Treasury,integer
 Notification for finished upgrades,Option,boolean
 Notification for full collectors,Option,boolean
-Hide tutorial,Option,boolean
+Hide Tutorial,Option,boolean
 Builder Bite,Magic Item,byte
 Clan Castle Cake,Magic Item,byte
 Study Soup,Magic Item,byte
@@ -124,6 +124,26 @@ Researcher #2 Currency,Upgrade,byte
 Researcher #2 Cost,Upgrade,integer
 Researcher #3 Currency,Upgrade,byte
 Researcher #3 Cost,Upgrade,integer
+Upgrade #1 Name,History,short
+Upgrade #1 Time,History,integer
+Upgrade #2 Name,History,short
+Upgrade #2 Time,History,integer
+Upgrade #3 Name,History,short
+Upgrade #3 Time,History,integer
+Upgrade #4 Name,History,short
+Upgrade #4 Time,History,integer
+Upgrade #5 Name,History,short
+Upgrade #5 Time,History,integer
+Upgrade #6 Name,History,short
+Upgrade #6 Time,History,integer
+Upgrade #7 Name,History,short
+Upgrade #7 Time,History,integer
+Upgrade #8 Name,History,short
+Upgrade #8 Time,History,integer
+Upgrade #9 Name,History,short
+Upgrade #9 Time,History,integer
+Upgrade #10 Name,History,short
+Upgrade #10 Time,History,integer
 Town Hall,Important,byte
 Town Hall 17 Weapon,Defense Level,byte
 Smasher,Defense Level,byte
