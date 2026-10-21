@@ -179,17 +179,19 @@ class MagicSystem:
                 number == 1 and village.get("Laboratory", 0) >= 1 or number == 2 and village.get("Pet House", 0) >= 1
             )
             if field is None:
-                status.append(f"{prefix}: {'Idle' if unlocked else 'Locked'}")
+                if not item.name.startswith("Book of "):
+                    status.append(f"{prefix}: {'Idle' if unlocked else 'Locked'}")
                 continue
-            status.append(f"{prefix}: {name}, level {village[name]} to {village[name] + 1}, finishes <t:{finish}:R>")
             if not self.can_target_upgrade(item, field):
                 continue
+            status.append(f"{prefix}: {name}, level {village[name]} to {village[name] + 1}, finishes <t:{finish}:R>")
             if serial in seen:
                 raise MagicRejected("Duplicate active upgrades need to be repaired before using magic items")
             seen.add(serial)
             currency, cost = self.upgrades._cost_fields(slot)
             token = (serial, finish, village[name], village[currency], village[cost])
-            options.append(MagicOption(slot, prefix, f"{name}: level {village[name]} to {village[name] + 1}", token))
+            label = f"{name} to Level {village[name] + 1}" if item.name.startswith("Book of ") else prefix
+            options.append(MagicOption(slot, label, f"{prefix}: {name}, level {village[name]} to {village[name] + 1}", token))
         return options, status
 
     def _wall_option(self, item, village, collection, level):
@@ -255,7 +257,7 @@ class MagicSystem:
             status = [f"You have {village[item.name]:,} Wall Rings. Choose the current Wall level."]
         else:
             return item, [], []
-        if not options:
+        if not options and not item.name.startswith("Book of "):
             raise MagicRejected(f"There are no eligible targets for {item.name}")
         return item, options, status
 
@@ -344,6 +346,7 @@ class MagicSystem:
                     wall, level, consumed, _ = current.token
                     self._owned(village, item, consumed)
                     village[wall] = level + 1
+                    self.upgrades.record_upgrade(village, self.upgrades.serial_for(self.upgrades.fields_by_name[wall]), now)
                     lines.append(f"{wall} upgraded from level {level} to {level + 1} using {consumed:,} Wall Rings.")
                 elif item.target in WORKER_TARGETS:
                     options, _ = self._worker_options(item, village, now)
@@ -370,14 +373,13 @@ class MagicSystem:
                         lines.extend(refund_lines)
                     if not changed:
                         raise MagicRejected("This item would have no effect on those upgrades")
-                    ready = [entry for entry in options if village[entry.value.removesuffix(" Upgrade") + " Time"] <= now]
-                    if ready:
-                        lines.append("Upgrades are ready. Use /refresh_upgrades or /upgrade to apply completed levels and free their workers.")
                 else:
                     raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
                 village[item.name] -= consumed
                 total_consumed += consumed
             lines = [f"{worker}: {name}, reduced by {format_duration(seconds)}." for (worker, name), seconds in time_saved.items()] + lines
+            report = self.upgrades._refresh_values(village, now)
+            lines.extend(f"{entry.item} completed at level {entry.new_level}." for entry in report.completed)
             if production_saved:
                 lines.insert(0, f"Production advanced by {format_duration(production_saved)}. Use /collect_loot to collect it.")
             lines.insert(0, f"Used {total_consumed:,} {item.name}.")
