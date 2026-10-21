@@ -24,7 +24,7 @@ from magic_system import MagicRejected, MagicSystem, format_duration
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
-from resource_system import COLLECTIBLE_RESOURCES, RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
+from resource_system import COLLECTIBLE_RESOURCES, LAST_RESOURCE_CHECK, RESOURCE_PRODUCTION_SECONDS, RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
     STRUCTURE_CATEGORIES,
     RefreshReport,
@@ -2969,6 +2969,34 @@ async def collect_treasury_slash(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+def _collector_display_fields(village, statuses, now):
+    groups = {}
+    for status in statuses:
+        base = re.sub(r" #\d+$", "", status.item)
+        group = groups.setdefault((base, status.level), {"items": set(), "resources": {}})
+        group["items"].add(status.item)
+        group["resources"].setdefault(status.resource, status)
+    fields = []
+    for (base, level), group in groups.items():
+        lines = []
+        for status in group["resources"].values():
+            percent = 100 * status.stored / status.capacity if status.capacity else 0
+            rate = f"{status.hourly_rate:,.3f}".rstrip("0").rstrip(".")
+            lines.append(f"{rate} {status.resource} per hour\n{status.stored:,} / {status.capacity:,} stored ({_format_percentage(percent, 1)})")
+            stats = next(entry for entry in resource_system._stats(status.item, status.level) if entry.resource == status.resource)
+            if stats.production > 0:
+                duration = Fraction(stats.capacity * RESOURCE_PRODUCTION_SECONDS) / stats.production
+                seconds = (duration.numerator + duration.denominator - 1) // duration.denominator
+                last_check = village.get(LAST_RESOURCE_CHECK, 0)
+                finish = (last_check if last_check > 0 else now) + seconds
+                label = "Full since" if finish <= now else "Full at"
+                lines.append(f"{label} <t:{finish}:T>")
+            else:
+                lines.append("No production at this level.")
+        fields.append((f"{base} x{len(group['items'])} | Level {level}", "\n\n".join(lines)))
+    return fields
+
+
 @bot.tree.command(name="view_collectors", description="View producer rates, stored loot, and capacities.")
 async def view_collectors_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
@@ -2984,12 +3012,10 @@ async def view_collectors_slash(interaction: discord.Interaction):
     embed = discord.Embed(title="Resource collectors", color=discord.Color.blue())
     if not statuses:
         embed.description = "Build a Gold Mine, Elixir Collector, Dark Elixir Drill, or Blacksmith to begin producing resources."
-    for status in statuses:
-        percent = 100 * status.stored / status.capacity if status.capacity else 0
+    for name, value in _collector_display_fields(village, statuses, now):
         embed.add_field(
-            name=f"{status.item} | Level {status.level}",
-            value=(f"{status.hourly_rate:,.3f} {status.resource} per hour\n"
-                   f"{status.stored:,} / {status.capacity:,} stored ({_format_percentage(percent, 1)})"),
+            name=name,
+            value=value,
             inline=False,
         )
     embed.set_footer(text="Use collect_loot to move these resources into storage")
