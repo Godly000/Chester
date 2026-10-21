@@ -218,7 +218,21 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="!", intents=intents)
+class ChesterBot(commands.Bot):
+    def dispatch(self, event, /, *args, **kwargs):
+        if event == "interaction" and args and self.is_ready():
+            interaction = args[0]
+            if not save_migration_active and save_store.player_path(interaction.user.id).is_file():
+                try:
+                    interaction.extras["upgrade_refresh"] = upgrade_system.refresh(interaction.user.id)
+                except SaveSchemaMismatch:
+                    pass
+                except Exception:
+                    log.exception("Could not refresh upgrades for %s", interaction.user.id)
+        super().dispatch(event, *args, **kwargs)
+
+
+bot = ChesterBot(command_prefix="!", intents=intents)
 save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
 resource_system = ResourceSystem(PROGRESSION_DIR, save_store, CLAN_CASTLE_RESOURCE_RATIO)
 upgrade_system = UpgradeSystem(
@@ -1847,6 +1861,8 @@ def _commit_wall_upgrade(user_id, quote, currency):
         village[currency] -= cost
         for name in current["names"]:
             village[name] += current["levels"]
+            for _ in range(current["levels"]):
+                upgrade_system.record_upgrade(village, upgrade_system.serial_for(upgrade_system.fields_by_name[name]), int(time.time()))
         return cost
 
 
@@ -2059,16 +2075,16 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
 
 
 @bot.tree.command(
-    name="refresh_upgrades",
+    name="view_upgrades",
     description="Finish completed upgrades and show upgrades still in progress.",
 )
-async def refresh_upgrades_slash(interaction: discord.Interaction):
+async def view_upgrades_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        report = upgrade_system.refresh(interaction.user.id)
+        report = interaction.extras.get("upgrade_refresh") or upgrade_system.refresh(interaction.user.id)
     except Exception as e:
-        log.exception("Unexpected error in /refresh_upgrades: %s", e)
+        log.exception("Unexpected error in /view_upgrades: %s", e)
         await interaction.response.send_message(
             f"⚠️ Upgrades could not be refreshed: {e}",
             ephemeral=True,
@@ -2106,6 +2122,29 @@ async def refresh_upgrades_slash(interaction: discord.Interaction):
         await _publish_upgrade_embeds(interaction, entries)
     else:
         await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="history", description="View your recent upgrade history.")
+@app_commands.choices(category=[app_commands.Choice(name="upgrade", value="upgrade")])
+async def history_slash(interaction: discord.Interaction, category: str):
+    if not await enforce_chester_channel(interaction):
+        return
+    if category != "upgrade":
+        await interaction.response.send_message("Choose the upgrade category.", ephemeral=True)
+        return
+    village, _ = save_store.player_values(interaction.user.id)
+    entries = []
+    for field in save_store.fields:
+        match = re.fullmatch(r"Upgrade #(\d+) Name", field.name)
+        if field.source != "village" or match is None:
+            continue
+        timestamp = village.get(f"Upgrade #{match.group(1)} Time", 0)
+        if timestamp > 0:
+            name = upgrade_system.name_by_serial.get(village[field.name], f"Unknown upgrade {village[field.name]}")
+            entries.append((timestamp, name))
+    entries.sort(key=lambda entry: entry[0], reverse=True)
+    lines = [f"**{name}** — <t:{timestamp}:R> (<t:{timestamp}:F>)" for timestamp, name in entries]
+    await interaction.response.send_message(embed=discord.Embed(title="Upgrade history", description="\n".join(lines) or "No completed upgrades have been recorded yet.", color=discord.Color.blue()))
 
 
 def _remaining_display_rows(entries):
@@ -3147,7 +3186,8 @@ async def help_slash(
         ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
         ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
-        ("refresh_upgrades", "Applies finished upgrades and shows active upgrade slots."),
+        ("view_upgrades", "Shows completed upgrades and upgrades still in progress."),
+        ("history", "Shows your ten most recent completed upgrades."),
         ("remaining", "Lists remaining Town Hall requirements with page controls."),
         ("cancel_upgrade", "Cancels an active item or slot and refunds half its cost."),
         ("view_collectors", "Shows producer rates, fill progress, and capacities."),
