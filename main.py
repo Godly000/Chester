@@ -2076,7 +2076,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
 
 @bot.tree.command(
     name="view_upgrades",
-    description="Finish completed upgrades and show upgrades still in progress.",
+    description="See current upgrades in progress.",
 )
 async def view_upgrades_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
@@ -2124,7 +2124,7 @@ async def view_upgrades_slash(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 
-@bot.tree.command(name="history", description="View your recent upgrade history.")
+@bot.tree.command(name="history", description="View recent attack and upgrade history.")
 @app_commands.choices(category=[app_commands.Choice(name="upgrade", value="upgrade")])
 async def history_slash(interaction: discord.Interaction, category: str):
     if not await enforce_chester_channel(interaction):
