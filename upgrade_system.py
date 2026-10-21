@@ -527,7 +527,7 @@ class UpgradeSystem:
                 )
             if match and current_level == 0 and field.category in BUILDER_CATEGORIES:
                 raise UpgradeLocked(
-                    f"You have already built the maximum level of {match.group(1)}s for Town Hall {village.get('Town Hall', 0)}."
+                    f"You have already built the maximum number of {match.group(1)}s for Town Hall {village.get('Town Hall', 0)}."
                 )
             raise UpgradeLocked(
                 f"{field.name} is not unlocked: {requirement} level {prerequisite} "
@@ -792,6 +792,17 @@ class UpgradeSystem:
         with self.save_store.transaction(user_id) as (village, collection):
             return self._refresh_values(village, now)
 
+    def record_upgrade(self, village, serial, finished_at):
+        slots = sorted(int(match.group(1)) for name in village if (match := re.fullmatch(r"Upgrade #(\d+) Name", name)) and f"Upgrade #{match.group(1)} Time" in village)
+        if not slots:
+            return
+        entries = [(village[f"Upgrade #{number} Name"], village[f"Upgrade #{number} Time"]) for number in slots if village[f"Upgrade #{number} Time"] > 0]
+        entries.insert(0, (serial, finished_at))
+        entries.sort(key=lambda entry: entry[1], reverse=True)
+        for number, (name, timestamp) in zip(slots, entries):
+            village[f"Upgrade #{number} Name"] = name
+            village[f"Upgrade #{number} Time"] = timestamp
+
     def _refresh_values(self, village: Dict[str, int], now: int) -> RefreshReport:
         if village.get("Town Hall", 0) >= 1 and village.get("Builder's Hut #1", 0) == 0:
             village["Builder's Hut #1"] = 1
@@ -829,6 +840,7 @@ class UpgradeSystem:
                 village[item] = new_level
                 village.update(self._completion_side_effects(item, new_level, village))
                 completed.append(CompletedUpgrade(item, new_level, upgrade_name))
+                self.record_upgrade(village, serial, finish_time)
                 completed_serials.add(serial)
             else:
                 warnings.append(f"Duplicate completed upgrade for {item} was cleared")
@@ -940,6 +952,8 @@ class UpgradeSystem:
         for resource, amount in deductions.items():
             village[resource] -= amount
         village.update(set_values)
+        if price.duration == 0:
+            self.record_upgrade(village, self.serial_for(field), now)
         return (
             UpgradeOutcome(
                 item=field.name,
@@ -955,7 +969,6 @@ class UpgradeSystem:
 
     def cancel_upgrade(self, user_id: int, item: str, now: Optional[int] = None):
         now = int(time.time()) if now is None else int(now)
-        self.refresh(user_id, now)
         if self.resource_system is None:
             raise UpgradeRejected("Resource storage data is not loaded")
         with self.save_store.transaction(user_id) as (village, collection):
