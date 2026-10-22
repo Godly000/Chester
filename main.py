@@ -2611,7 +2611,7 @@ class MagicItemView(discord.ui.View):
                 raise MagicRejected("Invalid selection. Run /use again")
             result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item, quantity=self.quantity)
         except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-            await interaction.response.send_message(f"You can't use any {self.item.name}: {_error_text(error)}", ephemeral=True)
+            await interaction.response.send_message(f"{_error_text(error)}", ephemeral=True)
             if self.message is not None:
                 await self.message.edit(view=None)
             return
