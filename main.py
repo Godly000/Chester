@@ -2676,7 +2676,7 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
             return
         result = magic_system.use(interaction.user.id, item, quantity=amount)
     except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-        await interaction.response.send_message(f"You can't use any {item}: {_error_text(error)}", ephemeral=True)
+        await interaction.response.send_message(f"{_error_text(error)}", ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /use: %s", error)
