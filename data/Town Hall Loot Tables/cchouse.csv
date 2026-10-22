@@ -1,4 +1,7 @@
 Item,Image
+Orange Classic Roof,https://media.ffycdn.net/eu/supercell/rmsuhcpkUhamPtK37vkb.png
+Blue Classic Roof,https://media.ffycdn.net/eu/supercell/cs1VNeMZepPkHxZRL1Kh.png
+Red Classic Roof,https://media.ffycdn.net/eu/supercell/GuKs3xzYmSbZUcd8FapR.png
 Brown Tent Roof,https://media.ffycdn.net/eu/supercell/r6CyYe8RXkofibGyyuXW.png
 Red Tent Roof,https://media.ffycdn.net/eu/supercell/Gnvy7wxKgpXUkNqejkmY.png
 Yellow Tent Roof,https://media.ffycdn.net/eu/supercell/okTzAZdZ9oKHVXk7DNZy.png
@@ -11,11 +14,11 @@ Blue Castle Roof,https://media.ffycdn.net/eu/supercell/xCfvD7UcymsCubVbux35.png
 Black Castle Roof,https://media.ffycdn.net/eu/supercell/jKwUo4sXX3nkakQbzMkJ.png
 Red Castle Roof,https://media.ffycdn.net/eu/supercell/xCfvD7UcymsCubVbux35.png
 Yellow Castle Roof,https://media.ffycdn.net/eu/supercell/J3CeWJU47GvTereEaKeJ.png
-Red Pagoda,https://media.ffycdn.net/eu/supercell/EMRG7bjbtjSzJajn993L.png
-Blue Pagoda,https://media.ffycdn.net/eu/supercell/Yva5yVdkj1ME816RkE8L.png
-Black Pagoda,https://media.ffycdn.net/eu/supercell/4waZL83YhXGEEA1e8oWk.png
-Green Pagoda,https://media.ffycdn.net/eu/supercell/sRewaBnPvdRRLh6ieNgv.png
-White Pagoda,https://media.ffycdn.net/eu/supercell/Y3Z5ZFUbPRSLE5pmRM9m.png
+Red Pagoda Roof,https://media.ffycdn.net/eu/supercell/EMRG7bjbtjSzJajn993L.png
+Blue Pagoda Roof,https://media.ffycdn.net/eu/supercell/Yva5yVdkj1ME816RkE8L.png
+Black Pagoda Roof,https://media.ffycdn.net/eu/supercell/4waZL83YhXGEEA1e8oWk.png
+Green Pagoda Roof,https://media.ffycdn.net/eu/supercell/sRewaBnPvdRRLh6ieNgv.png
+White Pagoda Roof,https://media.ffycdn.net/eu/supercell/Y3Z5ZFUbPRSLE5pmRM9m.png
 Stone Roof,https://media.ffycdn.net/eu/supercell/cJ1EuwFdragwKeE5EuBC.png
 Grass Roof 1,https://media.ffycdn.net/eu/supercell/SR6XFXyxqp4nYtNF8Wwn.png
 Grass Roof 2,https://media.ffycdn.net/eu/supercell/keqFbDCGnUxUhxnZ5zH5.png
@@ -27,25 +30,87 @@ Green Windmill Roof,https://media.ffycdn.net/eu/supercell/KHMfyyM9u3Lq4vtojYJM.p
 Winter Roof,https://media.ffycdn.net/eu/supercell/4Fajrh229eELpN6joiff.png
 Igloo Roof,https://media.ffycdn.net/eu/supercell/sSpeTErAMY22KyFH9kbU.png
 Gingerbread Roof,https://media.ffycdn.net/eu/supercell/5Ba6dz1yb1hvkePNo4Ys.png
+Goblin Roof,https://media.ffycdn.net/eu/supercell/5a1e7wqVNQgr4cB6KiSZ.png
+Halloween Roof,https://media.ffycdn.net/eu/supercell/Go4QXVProczj2uDiCACS.png
+Bakery Roof,https://media.ffycdn.net/eu/supercell/xvGi5TmeEXaa48z28Fdu.png
+Lunar New Year 2024 Roof,https://static.wikia.nocookie.net/clashofclans/images/1/10/Clan_House_Roof_LNY_2024_Roof.png
+Football Roof,https://static.wikia.nocookie.net/clashofclans/images/3/3a/Clan_House_Roof_Football_Roof.png
+Anime Roof,https://static.wikia.nocookie.net/clashofclans/images/9/9d/Clan_House_Roof_Anime_Roof.png
+TTRPG Roof,https://static.wikia.nocookie.net/clashofclans/images/6/6f/Clan_House_Roof_TTRPG_Roof.png
+Cyan Crystal Roof,https://static.wikia.nocookie.net/clashofclans/images/c/c7/Clan_House_Roof_Halloween_2024_Roof.png
+Toyshop Roof,https://static.wikia.nocookie.net/clashofclans/images/8/8c/Clan_House_Roof_Toyshop_Roof.png
+Lunar New Year 2025 Roof,https://static.wikia.nocookie.net/clashofclans/images/7/77/Clan_House_Roof_LNY25_Roof.png
+Clash-A-Rama Roof,https://static.wikia.nocookie.net/clashofclans/images/7/79/Clan_House_Roof_ClashaRama_Roof.png
+Meltdown Mayhem Roof,https://static.wikia.nocookie.net/clashofclans/images/8/84/Clan_House_Roof_Frost_Age_Roof.png
+Sound of Clash Roof,https://static.wikia.nocookie.net/clashofclans/images/b/bb/Clan_House_Roof_Sound_of_Clash_Roof.png
+Anime Fury Roof,https://static.wikia.nocookie.net/clashofclans/images/5/5a/Clan_House_Roof_Anime_Fury_Roof.png
+The Awesome Quest Roof,https://static.wikia.nocookie.net/clashofclans/images/a/a4/Clan_House_Roof_Quest_Chase_Roof.png
+Portal Panic Roof,https://static.wikia.nocookie.net/clashofclans/images/4/47/Clan_House_Roof_Portal_Panic_Roof.png
+Classic Walls,https://media.ffycdn.net/eu/supercell/46h9qPRJVVkLr4qPMeNt.png
 Dark Stone Walls,https://media.ffycdn.net/eu/supercell/ZCg94cpgzbdjSSqa5Bpy.png
 Stilt Walls,https://media.ffycdn.net/eu/supercell/uxqz1dYpn2aB64aG581h.png
 Grass Walls,https://media.ffycdn.net/eu/supercell/mzru29pj9bo7Nu3DRsMy.png
 Winter Walls,https://media.ffycdn.net/eu/supercell/iWwCBHoW9Fmn5iKXcnsz.png
 Igloo Walls,https://media.ffycdn.net/eu/supercell/XYyigestU1bBkjQsuexT.png
 Gingerbread Walls,https://media.ffycdn.net/eu/supercell/3kjXWMkJZUx4zVCKkGko.png
+Goblin Walls,https://media.ffycdn.net/eu/supercell/BA59J9aSAyvhSmtF5Tiv.png
+White Chess Walls,https://media.ffycdn.net/eu/supercell/pPBEX4qka4Y3XcMvMk7o.png
+Bakery Walls,https://media.ffycdn.net/eu/supercell/1pygNQHDomdN9xHhBZVM.png
+Lunar New Year 2024 Walls,https://static.wikia.nocookie.net/clashofclans/images/c/cf/Clan_House_Walls_LNY_2024_Walls.png
+Football Walls,https://static.wikia.nocookie.net/clashofclans/images/f/f6/Clan_House_Walls_Football_Walls.png
+Anime Walls,https://static.wikia.nocookie.net/clashofclans/images/2/24/Clan_House_Walls_Anime_Walls.png
 Dark Days Walls,https://static.wikia.nocookie.net/clashofclans/images/9/90/Clan_House_Walls_Dark_Days_Walls.png
+Clash-A-Rama Walls,https://static.wikia.nocookie.net/clashofclans/images/6/60/Clan_House_Wall_ClashaRama_Wall.png
+Cosmic Rock Walls,https://static.wikia.nocookie.net/clashofclans/images/7/7a/Clan_House_Wall_Cosmic_Rock_Wall.png
+Wise Warriors Walls,https://static.wikia.nocookie.net/clashofclans/images/1/1f/Clan_House_Wall_LNY26_Wall.png
+Anime Fury Wall,https://static.wikia.nocookie.net/clashofclans/images/8/89/Clan_House_Walls_Anime_Fury_Walls.png
+The Awesome Quest Walls,https://static.wikia.nocookie.net/clashofclans/images/2/2b/Clan_House_Walls_Quest_Chase_Walls.png
+Tag Team Walls,https://static.wikia.nocookie.net/clashofclans/images/8/8d/Clan_House_Walls_Tag_Team_Walls.png
+Brown Fence Floor,https://media.ffycdn.net/eu/supercell/LtniPAeBvoALvjaMGfSs.png?width=2400
 Checkered Floor,https://media.ffycdn.net/eu/supercell/k3VPYSqfDjZ24nZqirzf.png
 Snow Floor,https://media.ffycdn.net/eu/supercell/P5ZkyAvE8aYQ6DkLL896.png
 Grass Floor,https://media.ffycdn.net/eu/supercell/f8EPACvVoiVSpjpHveno.png
 White Fence Floor,https://media.ffycdn.net/eu/supercell/WdtcVXVvhCE37dCgAjRU.png
 Gold Floor,https://media.ffycdn.net/eu/supercell/F4qts2gGQb75P1rX7rx6.png
 Gingerbread Floor,https://media.ffycdn.net/eu/supercell/gqVypArSvuUyubYnzCcK.png
+Goblin Floor,https://media.ffycdn.net/eu/supercell/LffzPCDKAvgEX48zoQGQ.png
+Chess Floor,https://media.ffycdn.net/eu/supercell/Mm6boxDkeXpJ3GJvyEQQ.png
+Bakery Ground,https://media.ffycdn.net/eu/supercell/nd4TEHS4HKT2dWMKnhUz.png
+Lunar New Year 2024 Floor,https://static.wikia.nocookie.net/clashofclans/images/b/b5/Clan_House_Ground_LNY_2024_Ground.png
+Football Floor,https://static.wikia.nocookie.net/clashofclans/images/a/a2/Clan_House_Ground_Football_Ground.png
 Sports Track Floor,https://static.wikia.nocookie.net/clashofclans/images/5/5f/Clan_House_Ground_Clash_Games_Floor.png
+Anime Floor,https://static.wikia.nocookie.net/clashofclans/images/9/92/Clan_House_Ground_Anime_Ground.png
+ClashaMania Floor,https://static.wikia.nocookie.net/clashofclans/images/6/66/Clan_House_Ground_WWE_Ground.png
 Dark Days Floor,https://static.wikia.nocookie.net/clashofclans/images/9/9f/Clan_House_Ground_Dark_Days_Ground.png
-Tree Decorationration,https://media.ffycdn.net/eu/supercell/nEtmqfzbFKpbMy5upVei.png
-Gingerbread Decoration,https://media.ffycdn.net/eu/supercell/PnDre5CR6nVCjvSdcqXR.png
-Candy Cane Decoration,https://media.ffycdn.net/eu/supercell/ie5YwZw7quyuXRxwBKCM.png
+Clash-A-Rama Floor,https://static.wikia.nocookie.net/clashofclans/images/c/cd/Clan_House_Ground_ClashaRama_Ground.png
+Cosmic Rock Floor,https://static.wikia.nocookie.net/clashofclans/images/7/72/Clan_House_Ground_Cosmic_Rock_Ground.png
+Wise Warriors Floor,https://static.wikia.nocookie.net/clashofclans/images/1/11/Clan_House_Ground_LNY26_Ground.png
+Anime Fury Floor,https://static.wikia.nocookie.net/clashofclans/images/9/92/Clan_House_Ground_Anime_Fury_Ground.png
+The Awesome Quest Floor,https://static.wikia.nocookie.net/clashofclans/images/2/2d/Clan_House_Ground_Quest_Chase_Ground.png
+Tag Team Floor,https://static.wikia.nocookie.net/clashofclans/images/f/f1/Clan_House_Ground_Tag_Team_Ground.png
+Barrel Decoration,https://media.ffycdn.net/eu/supercell/Sn87dzVMUZrFoS1ZcFY7.png
+Practice Target Decoration,https://media.ffycdn.net/eu/supercell/Pcrh9tL6LHL5zUnMbkhe.png
+Tree Decoration,https://media.ffycdn.net/eu/supercell/nEtmqfzbFKpbMy5upVei.png
 Snowman Decoration,https://media.ffycdn.net/eu/supercell/HZTMih2Ff6XnipToMWE3.png
 Flamingo Decoration,https://media.ffycdn.net/eu/supercell/VJpEGPaRSi8oxRdWpjj8.png
 Stone Decoration,https://media.ffycdn.net/eu/supercell/itBp6WfZKqX6UXR585yq.png
-Torch Decoration,https://static.wikia.nocookie.net/clashofclans/images/8/8d/Clan_House_Decorationration_Clash_Games_Decorationration.png
+Gingerbread Decoration,https://media.ffycdn.net/eu/supercell/PnDre5CR6nVCjvSdcqXR.png
+Candy Cane Decoration,https://media.ffycdn.net/eu/supercell/ie5YwZw7quyuXRxwBKCM.png
+Goblin Spears Decoration,https://media.ffycdn.net/eu/supercell/BxgmnqAAnDuxs1oeKYhc.png
+Dinosaur Decoration,https://media.ffycdn.net/eu/supercell/qMPN33fuAJAM2EwgvK97.png
+Bakery Decoration,https://media.ffycdn.net/eu/supercell/Nt88MnuFC5rtHCdRoyiA.png
+Lunar New Year Decoration,https://static.wikia.nocookie.net/clashofclans/images/6/65/Clan_House_Decoration_LNY_2024_Decoration.png
+Football Decoration,https://static.wikia.nocookie.net/clashofclans/images/0/0d/Clan_House_Decoration_Football_Decoration.png
+Torch Decoration,https://static.wikia.nocookie.net/clashofclans/images/8/8d/Clan_House_Decoration_Clash_Games_Decoration.png
+Vending Machine Decoration,https://static.wikia.nocookie.net/clashofclans/images/3/30/Clan_House_Decoration_Anime_Decoration.png
+Dice Decoration,https://static.wikia.nocookie.net/clashofclans/images/d/dc/Clan_House_Decoration_TTRPG_Decoration.png
+Jack-o'-Lantern Decoration,https://static.wikia.nocookie.net/clashofclans/images/a/ab/Clan_House_Decoration_Jack_o_lantern_Decoration.png
+Nutcracker Decoration,https://static.wikia.nocookie.net/clashofclans/images/3/3e/Clan_House_Decoration_Toyshop_Decoration.png
+Snake Decoration,https://static.wikia.nocookie.net/clashofclans/images/4/46/Clan_House_Decoration_Snake_Decoration.png
+Tombstone Decoration,https://static.wikia.nocookie.net/clashofclans/images/1/1e/Clan_House_Decoration_WWE_Decoration.png
+Cartoon Barrel Decoration,https://static.wikia.nocookie.net/clashofclans/images/8/89/Clan_House_Decoration_ClashaRama_Deco.png
+Meltdown Mayhem Decoration,https://static.wikia.nocookie.net/clashofclans/images/0/06/Clan_House_Decoration_Frost_Age_Deco.png
+Sound of Clash Decoration,https://static.wikia.nocookie.net/clashofclans/images/a/ad/Clan_House_Decoration_Sound_of_Clash_Deco.png
+Anime Fury Decoration,https://static.wikia.nocookie.net/clashofclans/images/b/b3/Clan_House_Decoration_Anime_Fury_Deco.png
+The Awesome Quest Decoration,https://static.wikia.nocookie.net/clashofclans/images/c/cb/Clan_House_Decoration_Quest_Chase_Deco.png
+Portal Panic Decoration,https://static.wikia.nocookie.net/clashofclans/images/2/2a/Clan_House_Decoration_Portal_Panic_Deco.png
