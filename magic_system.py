@@ -128,18 +128,16 @@ class MagicSystem:
             raise MagicRejected("The quantity to sell must be a positive whole number")
         item = self.resolve(name)
         with self.store.transaction(user_id) as (village, collection):
-            self._owned(village, item, quantity)
+            self._owned(village, item, quantity, action="sell")
             gems = self._credit_gems(village, item.sell * quantity)
             if gems <= 0:
                 raise MagicRejected("No Gems can be received from this sale")
             village[item.name] -= quantity
             return MagicResult(item.name, quantity, [f"Sold {quantity:,} for {gems:,} Gems."])
 
-    def _owned(self, village, item, count=1):
+    def _owned(self, village, item, count=1, action="use"):
         if village[item.name] < count:
-            if count - village[item.name] == 1:
-                raise MagicRejected(f"You are missing {item.name}")
-            raise MagicRejected(f"You need {count:,} {item.name}; you have {village[item.name]:,}")
+            raise MagicRejected(f"You don't have enough {item.name}, you only have {village[item.name]:,} and tried to {action} {count:,}")
 
     def can_target_upgrade(self, item, field):
         if item.name == "Pet Potion" and field.category not in {"Pet Level", "Pet"}:
