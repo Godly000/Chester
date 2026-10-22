@@ -1175,7 +1175,7 @@ async def chest_slash_error(interaction: discord.Interaction, error: app_command
         )
     else:
         log.error("Unexpected error in /chest: %s", error, exc_info=(type(error), error, error.__traceback__))
-        await _send_chest_error(interaction, f"⚠️ Something went wrong: {error}")
+        await _send_chest_error(interaction, f"⚠️ {_error_text(error)}")
 
 
 async def rarity_autocomplete(interaction: discord.Interaction, current: str):
@@ -1237,9 +1237,9 @@ async def test_slash(
     except Exception as e:
         log.exception("Error forcing roll for rarity '%s': %s", match, e)
         if interaction.response.is_done():
-            await interaction.followup.send(f"⚠️ Something went wrong: {e}", ephemeral=True)
+            await interaction.followup.send(f"⚠️ {_error_text(e)}", ephemeral=True)
         else:
-            await interaction.response.send_message(f"⚠️ Something went wrong: {e}", ephemeral=True)
+            await interaction.response.send_message(f"⚠️ {_error_text(e)}", ephemeral=True)
 
 
 @test_slash.error
@@ -1250,7 +1250,7 @@ async def test_slash_error(interaction: discord.Interaction, error: app_commands
         )
     else:
         log.exception("Unexpected error in /test: %s", error)
-        await interaction.response.send_message(f"⚠️ Something went wrong: {error}", ephemeral=True)
+        await interaction.response.send_message(f"⚠️ {_error_text(error)}", ephemeral=True)
 
 
 @bot.tree.command(name="fight", description="[Moderator] Practice the Gem Box encounter without rewards or failure logs.")
@@ -1598,6 +1598,8 @@ class BuildingPaymentView(discord.ui.View):
 
 
 def _error_text(error):
+    while isinstance(error, app_commands.CommandInvokeError):
+        error = error.original
     return "\n".join(dict.fromkeys(line.strip() for line in str(error).splitlines() if line.strip()))
 
 
@@ -1641,8 +1643,7 @@ def _unavailable_upgrade_reason(village, collection, category, group, rings_only
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
             reasons.extend(str(error).splitlines())
     reason = _error_text("\n".join(reasons)) or "There are no eligible items of this type."
-    action = "use any Wall Rings" if rings_only else f"upgrade any {group}"
-    return f"You can't {action}.\n{reason}"[:1900]
+    return reason[:1900]
 
 
 def _format_upgrade_costs(costs: Dict[str, int]) -> str:
@@ -2611,7 +2612,7 @@ class MagicItemView(discord.ui.View):
                 raise MagicRejected("Invalid selection. Run /use again")
             result = magic_system.use(self.user_id, self.item.name, option=option, expected_item=self.item, quantity=self.quantity)
         except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-            await interaction.response.send_message(f"{_error_text(error)}", ephemeral=True)
+            await interaction.response.send_message(_error_text(error), ephemeral=True)
             if self.message is not None:
                 await self.message.edit(view=None)
             return
@@ -2676,7 +2677,7 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
             return
         result = magic_system.use(interaction.user.id, item, quantity=amount)
     except (MagicRejected, UpgradeRejected, ResourceRejected) as error:
-        await interaction.response.send_message(f"{_error_text(error)}", ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /use: %s", error)
@@ -2835,7 +2836,7 @@ async def cancel_upgrade_slash(interaction: discord.Interaction, item: str):
     try:
         outcome = upgrade_system.cancel_upgrade(interaction.user.id, item)
     except (UpgradeRejected, ResourceRejected) as error:
-        await interaction.response.send_message(f"Cancellation rejected: {error}", ephemeral=True)
+        await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     except Exception as error:
         log.exception("Unexpected error in /cancel_upgrade: %s", error)
@@ -3108,7 +3109,7 @@ async def update_saves_slash_error(
         message = "⚠️ You need Moderator permissions to use `/update_saves`."
     else:
         log.exception("Unexpected error in /update_saves: %s", error)
-        message = f"⚠️ Something went wrong: {error}"
+        message = f"⚠️ {_error_text(error)}"
     if interaction.response.is_done():
         await interaction.followup.send(message, ephemeral=True)
     else:
@@ -3141,7 +3142,7 @@ async def reload_loot_error(interaction: discord.Interaction, error: app_command
         message = "You need Moderator permissions (Moderate Members) to use `/reload_loot`."
     else:
         log.exception("Unexpected error in /reload_loot: %s", error)
-        message = f"Something went wrong: {error}"
+        message = _error_text(error)
     if interaction.response.is_done():
         await interaction.followup.send(message, ephemeral=True)
     else:
