@@ -1,0 +1,190 @@
+Level,Name,Data Type
+Hero Equipment,Giant Gauntlet,boolean
+Hero Equipment,Spiky Ball,boolean
+Hero Equipment,Snake Bracelet,boolean
+Hero Equipment,Stick Horse,boolean
+Hero Equipment,Frozen Arrow,boolean
+Hero Equipment,Magic Mirror,boolean
+Hero Equipment,Action Figure,boolean
+Hero Equipment,Monolith Arrow,boolean
+Hero Equipment,Dark Crown,boolean
+Hero Equipment,Meteor Staff,boolean
+Hero Equipment,Portal Pendant,boolean
+Hero Equipment,Fireball,boolean
+Hero Equipment,Lavaloon Puppet,boolean
+Hero Equipment,Heroic Torch,boolean
+Hero Equipment,Rocket Spear,boolean
+Hero Equipment,Electro Boots,boolean
+Hero Equipment,Frost Flake,boolean
+Hero Equipment,Rocket Backpack,boolean
+Hero Equipment,Revenge Deck,boolean
+Clan Capital House Part,Brown Tent Roof,boolean
+Clan Capital House Part,Red Tent Roof,boolean
+Clan Capital House Part,Yellow Tent Roof,boolean
+Clan Capital House Part,Blue Tent Roof,boolean
+Clan Capital House Part,Blue Cross Roof,boolean
+Clan Capital House Part,Green Cross Roof,boolean
+Clan Capital House Part,Red Cross Roof,boolean
+Clan Capital House Part,Orange Castle Roof,boolean
+Clan Capital House Part,Blue Castle Roof,boolean
+Clan Capital House Part,Black Castle Roof,boolean
+Clan Capital House Part,Red Castle Roof,boolean
+Clan Capital House Part,Yellow Castle Roof,boolean
+Clan Capital House Part,Red Pagoda,boolean
+Clan Capital House Part,Blue Pagoda,boolean
+Clan Capital House Part,Black Pagoda,boolean
+Clan Capital House Part,Green Pagoda,boolean
+Clan Capital House Part,White Pagoda,boolean
+Clan Capital House Part,Stone Roof,boolean
+Clan Capital House Part,Grass Roof 1,boolean
+Clan Capital House Part,Grass Roof 2,boolean
+Clan Capital House Part,White Windmill Roof,boolean
+Clan Capital House Part,Blue Windmill Roof,boolean
+Clan Capital House Part,Orange Windmill Roof,boolean
+Clan Capital House Part,Red Windmill Roof,boolean
+Clan Capital House Part,Green Windmill Roof,boolean
+Clan Capital House Part,Winter Roof,boolean
+Clan Capital House Part,Igloo Roof,boolean
+Clan Capital House Part,Gingerbread Roof,boolean
+Clan Capital House Part,Dark Stone Walls,boolean
+Clan Capital House Part,Stilt Walls,boolean
+Clan Capital House Part,Grass Walls,boolean
+Clan Capital House Part,Winter Walls,boolean
+Clan Capital House Part,Igloo Walls,boolean
+Clan Capital House Part,Gingerbread Walls,boolean
+Clan Capital House Part,Dark Days Walls,boolean
+Clan Capital House Part,Checkered Floor,boolean
+Clan Capital House Part,Snow Floor,boolean
+Clan Capital House Part,Grass Floor,boolean
+Clan Capital House Part,White Fence Floor,boolean
+Clan Capital House Part,Gold Floor,boolean
+Clan Capital House Part,Gingerbread Floor,boolean
+Clan Capital House Part,Sports Track Floor,boolean
+Clan Capital House Part,Dark Days Floor,boolean
+Clan Capital House Part,Tree Decorationration,boolean
+Clan Capital House Part,Gingerbread Decoration,boolean
+Clan Capital House Part,Candy Cane Decoration,boolean
+Clan Capital House Part,Snowman Decoration,boolean
+Clan Capital House Part,Flamingo Decoration,boolean
+Clan Capital House Part,Stone Decoration,boolean
+Clan Capital House Part,Torch Decoration,boolean
+Decoration,Pirate Flag,boolean
+Decoration,Anniversary Fountain,boolean
+Decoration,A Piece of Birthday Cake,boolean
+Decoration,Storied Statue,boolean
+Decoration,Logmas Tree,boolean
+Decoration,Flowing Fountain,boolean
+Decoration,Fiery Figure,boolean
+Decoration,Wizard Statue,boolean
+Decoration,Goblin King Tribute,boolean
+Decoration,Eternal Flame,boolean
+Decoration,Clashmas Sleigh,boolean
+Decoration,Decorated Dragon Statue,boolean
+Decoration,Books of Clash,boolean
+Decoration,Goblin Dragon Statue,boolean
+Decoration,Sour Elixir Cauldron,boolean
+Decoration,World Finals 23 Statue,boolean
+Decoration,Cozy Clam,boolean
+Decoration,Hog Pen,boolean
+Decoration,Duck Bath,boolean
+Decoration,Gingerbread Bakery,boolean
+Decoration,Jingle Bell,boolean
+Decoration,Dragon Pinata,boolean
+Decoration,Goblin Explorer,boolean
+Decoration,Baby Ptah,boolean
+Decoration,Crown Sword,boolean
+Decoration,Surprising Squad,boolean
+Decoration,Celebration Cup,boolean
+Decoration,Mighty Statue,boolean
+Decoration,Mighty Hero Statue,boolean
+Decoration,Archer Queen Statue,boolean
+Decoration,Ancient Barbarian Statue,boolean
+Decoration,Haaland Statue,boolean
+Decoration,Football Camp,boolean
+Decoration,Cowboy Skeleton,boolean
+Decoration,Wizard Vendor,boolean
+Decoration,Hydra Headstone,boolean
+Decoration,Rocking Reindeer,boolean
+Decoration,Gift Bag,boolean
+Decoration,Snake Shrine,boolean
+Decoration,Rumbling Goblins,boolean
+Decoration,Looter Wagon,boolean
+Decoration,Justice Crown,boolean
+Decoration,Party Bench,boolean
+Decoration,Boom Box,boolean
+Decoration,Electro Skull,boolean
+Decoration,Smoky Stove,boolean
+Decoration,Meteor Observer,boolean
+Decoration,Handsome Scroll,boolean
+Hero Skin,Gladiator King,boolean
+Hero Skin,P.E.K.K.A King,boolean
+Hero Skin,Skeleton King,boolean
+Hero Skin,Jolly King,boolean
+Hero Skin,Primal King,boolean
+Hero Skin,Clockwork King,boolean
+Hero Skin,Party King,boolean
+Hero Skin,Pirate King,boolean
+Hero Skin,Rogue King,boolean
+Hero Skin,Jungle King,boolean
+Hero Skin,Golem King,boolean
+Hero Skin,Shadow King,boolean
+Hero Skin,Clash Fest King,boolean
+Hero Skin,Beast King,boolean
+Hero Skin,Dark Ages King,boolean
+Hero Skin,Goblin King,boolean
+Hero Skin,King of the North,boolean
+Hero Skin,Clash Games King,boolean
+Hero Skin,Judgement King,boolean
+Hero Skin,Combat King,boolean
+Hero Skin,Gladiator Queen,boolean
+Hero Skin,Valkyrie Queen,boolean
+Hero Skin,Autumn Queen,boolean
+Hero Skin,Ice Queen,boolean
+Hero Skin,Primal Queen,boolean
+Hero Skin,Clockwork Queen,boolean
+Hero Skin,Pirate Queen,boolean
+Hero Skin,Rogue Queen,boolean
+Hero Skin,Jungle Queen,boolean
+Hero Skin,Party Queen,boolean
+Hero Skin,Shadow Queen,boolean
+Hero Skin,Miner Queen,boolean
+Hero Skin,Summer Queen,boolean
+Hero Skin,Spooky Queen,boolean
+Hero Skin,Jolly Queen,boolean
+Hero Skin,Goblin Queen,boolean
+Hero Skin,Chess Queen,boolean
+Hero Skin,Space Queen,boolean
+Hero Skin,Dark Minion Queen,boolean
+Hero Skin,Puppet Queen,boolean
+Hero Skin,Kyudo Queen,boolean
+Hero Skin,Party Warden,boolean
+Hero Skin,Primal Warden,boolean
+Hero Skin,Clockwork Warden,boolean
+Hero Skin,Gladiator Warden,boolean
+Hero Skin,Pirate Warden,boolean
+Hero Skin,Warden of the North,boolean
+Hero Skin,Jungle Warden,boolean
+Hero Skin,Warden Master,boolean
+Hero Skin,Jolly Warden,boolean
+Hero Skin,Warrior Warden,boolean
+Hero Skin,Summer Warden,boolean
+Hero Skin,Dark Ages Warden,boolean
+Hero Skin,Future Warden,boolean
+Hero Skin,Gingerbread Warden,boolean
+Hero Skin,Egypt Warden,boolean
+Hero Skin,Wild West Warden,boolean
+Hero Skin,Snake Warden,boolean
+Hero Skin,Winter Champion,boolean
+Hero Skin,Rogue Champion,boolean
+Hero Skin,Gladiator Champion,boolean
+Hero Skin,Shadow Champion,boolean
+Hero Skin,Party Champion,boolean
+Hero Skin,Pirate Champion,boolean
+Hero Skin,Warrior Champion,boolean
+Hero Skin,Ghost Champion,boolean
+Hero Skin,Champions’ Champion,boolean
+Hero Skin,Dragon Champion,boolean
+Hero Skin,Football Champion,boolean
+Hero Skin,Anime Champion,boolean
+Hero Skin,Ice Champion,boolean
+Hero Skin,Armored Machine,boolean
