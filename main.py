@@ -101,6 +101,9 @@ DECORATION_GEM_COST = 500
 CLAN_CAPITAL_HOUSE_GEM_COST = 500
 EPIC_EQUIPMENT_GEM_COST = 1500
 HERO_SKIN_GEM_COST = 1500
+DUPLICATE_COSMETIC_EXTRA_ATTEMPTS = 1
+DUPLICATE_COSMETIC_REFUND_PERCENT = 10
+DUPLICATE_COSMETIC_CATEGORIES = {"Decoration", "Clan Capital House Part"}
 COLLECTION_SHOP_COSTS = {
     "Decoration": DECORATION_GEM_COST,
     "Clan Capital House Part": CLAN_CAPITAL_HOUSE_GEM_COST,
@@ -616,6 +619,8 @@ def weighted_choice(names: List[str], weights: List[float]) -> str:
 def _unique_reward_options(item, village, collection):
     def available(name):
         field = save_store.collection_by_name.get(name)
+        if field is not None and field.category in DUPLICATE_COSMETIC_CATEGORIES:
+            return name in collection
         return (
             name in collection and not collection[name] and village.get(name, 0) == 0
             and field is not None
@@ -658,6 +663,11 @@ def _roll_unowned_loot(categories, village, collection, rarity_key=None):
     item = roll_item_from_category(Category(category.name, category.weight, eligible))
     choices = options[id(item)]
     resolved = random.choice(choices) if choices is not None else resolve_item_display(item)
+    if choices is not None:
+        for _ in range(DUPLICATE_COSMETIC_EXTRA_ATTEMPTS):
+            if resolved.collection_category not in DUPLICATE_COSMETIC_CATEGORIES or not collection.get(resolved.reward_name, 0):
+                break
+            resolved = random.choice(choices)
     return category, item, resolved
 
 
@@ -1004,6 +1014,7 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
         for resource in COLLECTIBLE_RESOURCES if resource in village_additions
     }
     magic_awards = []
+    duplicate_reward = None
     with save_store.transaction(user_id) as (values, collection):
         received = resource_system.deposit(values, resource_amounts)
         for name, amount in village_additions.items():
@@ -1014,6 +1025,11 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
             else:
                 values[name] = save_store._bounded_add(values[name], amount, field.data_type)
         for name in collection_unlocks:
+            field = save_store.collection_by_name[name]
+            if collection.get(name, 0) and field.category in DUPLICATE_COSMETIC_CATEGORIES:
+                refund = COLLECTION_SHOP_COSTS[field.category] * DUPLICATE_COSMETIC_REFUND_PERCENT // 100
+                credited = magic_system._credit_gems(values, refund)
+                duplicate_reward = (name, credited)
             collection[name] = 1
         new_xp = values["Experience"]
         currency_fields = []
@@ -1034,6 +1050,9 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
         embed.title = f"{resolved.reward_name} x{resolved.reward_amount:,}"
         for name, value in currency_fields:
             embed.add_field(name=name, value=value, inline=False)
+    if duplicate_reward is not None:
+        name, gems = duplicate_reward
+        embed.add_field(name="Duplicate cosmetic", value=f"You already own {name}. Awarded {gems:,} Gems instead ({DUPLICATE_COSMETIC_REFUND_PERCENT}% of its buy value, subject to your Gem limit).", inline=False)
     for name, stored, sold, gems in magic_awards:
         description = f"Stored {stored:,} {name}."
         if sold:
@@ -2145,7 +2164,9 @@ async def history_slash(interaction: discord.Interaction, category: str):
             entries.append((timestamp, name))
     entries.sort(key=lambda entry: entry[0], reverse=True)
     lines = [f"**{name}** — <t:{timestamp}:R> (<t:{timestamp}:F>)" for timestamp, name in entries]
-    await interaction.response.send_message(embed=discord.Embed(title="Upgrade history", description="\n".join(lines) or "No completed upgrades have been recorded yet.", color=discord.Color.blue()))
+    embed = discord.Embed(title="Upgrade history", description="\n".join(lines) or "No completed upgrades have been recorded yet.", color=discord.Color.blue())
+    embed.set_footer(text="Made by __godly__")
+    await interaction.response.send_message(embed=embed)
 
 
 def _remaining_display_rows(entries):
