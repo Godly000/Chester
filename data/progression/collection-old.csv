@@ -18,6 +18,9 @@ Hero Equipment,Electro Boots,boolean
 Hero Equipment,Frost Flake,boolean
 Hero Equipment,Rocket Backpack,boolean
 Hero Equipment,Revenge Deck,boolean
+Clan Capital House Part,Orange Classic Roof,boolean
+Clan Capital House Part,Blue Classic Roof,boolean
+Clan Capital House Part,Red Classic Roof,boolean
 Clan Capital House Part,Brown Tent Roof,boolean
 Clan Capital House Part,Red Tent Roof,boolean
 Clan Capital House Part,Yellow Tent Roof,boolean
@@ -30,11 +33,11 @@ Clan Capital House Part,Blue Castle Roof,boolean
 Clan Capital House Part,Black Castle Roof,boolean
 Clan Capital House Part,Red Castle Roof,boolean
 Clan Capital House Part,Yellow Castle Roof,boolean
-Clan Capital House Part,Red Pagoda,boolean
-Clan Capital House Part,Blue Pagoda,boolean
-Clan Capital House Part,Black Pagoda,boolean
-Clan Capital House Part,Green Pagoda,boolean
-Clan Capital House Part,White Pagoda,boolean
+Clan Capital House Part,Red Pagoda Roof,boolean
+Clan Capital House Part,Blue Pagoda Roof,boolean
+Clan Capital House Part,Black Pagoda Roof,boolean
+Clan Capital House Part,Green Pagoda Roof,boolean
+Clan Capital House Part,White Pagoda Roof,boolean
 Clan Capital House Part,Stone Roof,boolean
 Clan Capital House Part,Grass Roof 1,boolean
 Clan Capital House Part,Grass Roof 2,boolean
@@ -46,76 +49,260 @@ Clan Capital House Part,Green Windmill Roof,boolean
 Clan Capital House Part,Winter Roof,boolean
 Clan Capital House Part,Igloo Roof,boolean
 Clan Capital House Part,Gingerbread Roof,boolean
+Clan Capital House Part,Goblin Roof,boolean
+Clan Capital House Part,Halloween Roof,boolean
+Clan Capital House Part,Bakery Roof,boolean
+Clan Capital House Part,Lunar New Year 2024 Roof,boolean
+Clan Capital House Part,Football Roof,boolean
+Clan Capital House Part,Anime Roof,boolean
+Clan Capital House Part,TTRPG Roof,boolean
+Clan Capital House Part,Cyan Crystal Roof,boolean
+Clan Capital House Part,Toyshop Roof,boolean
+Clan Capital House Part,Lunar New Year 2025 Roof,boolean
+Clan Capital House Part,Clash-A-Rama Roof,boolean
+Clan Capital House Part,Meltdown Mayhem Roof,boolean
+Clan Capital House Part,Sound of Clash Roof,boolean
+Clan Capital House Part,Anime Fury Roof,boolean
+Clan Capital House Part,The Awesome Quest Roof,boolean
+Clan Capital House Part,Portal Panic Roof,boolean
+Clan Capital House Part,Classic Walls,boolean
 Clan Capital House Part,Dark Stone Walls,boolean
 Clan Capital House Part,Stilt Walls,boolean
 Clan Capital House Part,Grass Walls,boolean
 Clan Capital House Part,Winter Walls,boolean
 Clan Capital House Part,Igloo Walls,boolean
 Clan Capital House Part,Gingerbread Walls,boolean
+Clan Capital House Part,Goblin Walls,boolean
+Clan Capital House Part,White Chess Walls,boolean
+Clan Capital House Part,Bakery Walls,boolean
+Clan Capital House Part,Lunar New Year 2024 Walls,boolean
+Clan Capital House Part,Football Walls,boolean
+Clan Capital House Part,Anime Walls,boolean
 Clan Capital House Part,Dark Days Walls,boolean
+Clan Capital House Part,Clash-A-Rama Walls,boolean
+Clan Capital House Part,Cosmic Rock Walls,boolean
+Clan Capital House Part,Wise Warriors Walls,boolean
+Clan Capital House Part,Anime Fury Wall,boolean
+Clan Capital House Part,The Awesome Quest Walls,boolean
+Clan Capital House Part,Tag Team Walls,boolean
+Clan Capital House Part,Brown Fence Floor,boolean
 Clan Capital House Part,Checkered Floor,boolean
 Clan Capital House Part,Snow Floor,boolean
 Clan Capital House Part,Grass Floor,boolean
 Clan Capital House Part,White Fence Floor,boolean
 Clan Capital House Part,Gold Floor,boolean
 Clan Capital House Part,Gingerbread Floor,boolean
+Clan Capital House Part,Goblin Floor,boolean
+Clan Capital House Part,Chess Floor,boolean
+Clan Capital House Part,Bakery Ground,boolean
+Clan Capital House Part,Lunar New Year 2024 Floor,boolean
+Clan Capital House Part,Football Floor,boolean
 Clan Capital House Part,Sports Track Floor,boolean
+Clan Capital House Part,Anime Floor,boolean
+Clan Capital House Part,ClashaMania Floor,boolean
 Clan Capital House Part,Dark Days Floor,boolean
-Clan Capital House Part,Tree Decorationration,boolean
-Clan Capital House Part,Gingerbread Decoration,boolean
-Clan Capital House Part,Candy Cane Decoration,boolean
+Clan Capital House Part,Clash-A-Rama Floor,boolean
+Clan Capital House Part,Cosmic Rock Floor,boolean
+Clan Capital House Part,Wise Warriors Floor,boolean
+Clan Capital House Part,Anime Fury Floor,boolean
+Clan Capital House Part,The Awesome Quest Floor,boolean
+Clan Capital House Part,Tag Team Floor,boolean
+Clan Capital House Part,Barrel Decoration,boolean
+Clan Capital House Part,Practice Target Decoration,boolean
+Clan Capital House Part,Tree Decoration,boolean
 Clan Capital House Part,Snowman Decoration,boolean
 Clan Capital House Part,Flamingo Decoration,boolean
 Clan Capital House Part,Stone Decoration,boolean
+Clan Capital House Part,Gingerbread Decoration,boolean
+Clan Capital House Part,Candy Cane Decoration,boolean
+Clan Capital House Part,Goblin Spears Decoration,boolean
+Clan Capital House Part,Dinosaur Decoration,boolean
+Clan Capital House Part,Bakery Decoration,boolean
+Clan Capital House Part,Lunar New Year Decoration,boolean
+Clan Capital House Part,Football Decoration,boolean
 Clan Capital House Part,Torch Decoration,boolean
+Clan Capital House Part,Vending Machine Decoration,boolean
+Clan Capital House Part,Dice Decoration,boolean
+Clan Capital House Part,Jack-o'-Lantern Decoration,boolean
+Clan Capital House Part,Nutcracker Decoration,boolean
+Clan Capital House Part,Snake Decoration,boolean
+Clan Capital House Part,Tombstone Decoration,boolean
+Clan Capital House Part,Cartoon Barrel Decoration,boolean
+Clan Capital House Part,Meltdown Mayhem Decoration,boolean
+Clan Capital House Part,Sound of Clash Decoration,boolean
+Clan Capital House Part,Anime Fury Decoration,boolean
+Clan Capital House Part,The Awesome Quest Decoration,boolean
+Clan Capital House Part,Portal Panic Decoration,boolean
+Decoration,Torch,boolean
+Decoration,White Flag,boolean
+Decoration,Cornflower Bed,boolean
+Decoration,Sunflower Bed,boolean
+Decoration,Weather Vane,boolean
+Decoration,Rally Flag,boolean
+Decoration,Point Flag,boolean
+Decoration,Ancient Skull,boolean
+Decoration,Statue of P.E.K.K.A.,boolean
 Decoration,Pirate Flag,boolean
+Decoration,Mighty Statue,boolean
+Decoration,Barbarian King Statue,boolean
+Decoration,Archer Queen Statue,boolean
+Decoration,Ancient Barbarian Statue,boolean
+Decoration,Eagle Monument,boolean
+Decoration,Crafted Statue,boolean
+Decoration,Builder Bust,boolean
+Decoration,Builder Statue,boolean
+Decoration,Snowman,boolean
+Decoration,Golden Hog,boolean
+Decoration,Dragon Statue,boolean
+Decoration,Golden Poet,boolean
+Decoration,Super Statue,boolean
 Decoration,Anniversary Fountain,boolean
+Decoration,Clockwork Statue,boolean
 Decoration,A Piece of Birthday Cake,boolean
 Decoration,Storied Statue,boolean
+Decoration,Retired Anchor,boolean
 Decoration,Logmas Tree,boolean
+Decoration,Firework Fanboy,boolean
 Decoration,Flowing Fountain,boolean
 Decoration,Fiery Figure,boolean
 Decoration,Wizard Statue,boolean
 Decoration,Goblin King Tribute,boolean
 Decoration,Eternal Flame,boolean
 Decoration,Clashmas Sleigh,boolean
+Decoration,Magic Show Statue,boolean
 Decoration,Decorated Dragon Statue,boolean
+Decoration,Dragon Trophy,boolean
 Decoration,Books of Clash,boolean
 Decoration,Goblin Dragon Statue,boolean
+Decoration,Goblin Cellar,boolean
 Decoration,Sour Elixir Cauldron,boolean
+Decoration,Cozy Coffin,boolean
+Decoration,Spooky Spa,boolean
+Decoration,Pumpkin Scarecrow,boolean
+Decoration,Friendly Clown,boolean
 Decoration,World Finals 23 Statue,boolean
 Decoration,Cozy Clam,boolean
 Decoration,Hog Pen,boolean
 Decoration,Duck Bath,boolean
 Decoration,Gingerbread Bakery,boolean
 Decoration,Jingle Bell,boolean
+Decoration,Barbarian Santa,boolean
+Decoration,Skeleton Sock,boolean
 Decoration,Dragon Pinata,boolean
+Decoration,Baby Dragon Statue,boolean
+Decoration,Lucky Anchor,boolean
+Decoration,Crab at Home,boolean
 Decoration,Goblin Explorer,boolean
+Decoration,Stone Globe,boolean
+Decoration,Clashy Crater,boolean
 Decoration,Baby Ptah,boolean
+Decoration,Goblin Pharaoh,boolean
+Decoration,Hog Sphinx,boolean
 Decoration,Crown Sword,boolean
 Decoration,Surprising Squad,boolean
 Decoration,Celebration Cup,boolean
-Decoration,Mighty Statue,boolean
-Decoration,Mighty Hero Statue,boolean
-Decoration,Archer Queen Statue,boolean
-Decoration,Ancient Barbarian Statue,boolean
 Decoration,Haaland Statue,boolean
 Decoration,Football Camp,boolean
+Decoration,Victory Milk,boolean
+Decoration,Bestest Ball,boolean
+Decoration,Golden Boot,boolean
+Decoration,Triumphant Trophy,boolean
 Decoration,Cowboy Skeleton,boolean
+Decoration,Cactus Guy,boolean
+Decoration,Dragon Totem,boolean
+Decoration,Goblin High Dive,boolean
+Decoration,Foot Tribute,boolean
+Decoration,Champion's Flame,boolean
 Decoration,Wizard Vendor,boolean
+Decoration,Kawaii Giant,boolean
+Decoration,Cherry Bonsai,boolean
+Decoration,Chibi Archer,boolean
+Decoration,Decision Dice,boolean
+Decoration,Pretty Portal,boolean
+Decoration,Cuddly Chest,boolean
 Decoration,Hydra Headstone,boolean
+Decoration,Bubble Boil Cauldron,boolean
+Decoration,Jailbroken Box,boolean
+Decoration,Abra-Cada-Brewer,boolean
 Decoration,Rocking Reindeer,boolean
+Decoration,Snow Globe,boolean
+Decoration,Clcokwork Choir,boolean
 Decoration,Gift Bag,boolean
+Decoration,Gargantuan Gauntlet,boolean
+Decoration,Cozy Sauna,boolean
+Decoration,Sleepy King,boolean
+Decoration,Brawl's Star,boolean
 Decoration,Snake Shrine,boolean
+Decoration,Lucky Cookies,boolean
+Decoration,Monk Statue,boolean
+Decoration,Shooting Range,boolean
 Decoration,Rumbling Goblins,boolean
+Decoration,Surprise Wheel,boolean
+Decoration,Golden Giant,boolean
+Decoration,WWE Title,boolean
+Decoration,Creator Fountain,boolean
+Decoration,Sacred Gate,boolean
 Decoration,Looter Wagon,boolean
+Decoration,Jingle Maker,boolean
 Decoration,Justice Crown,boolean
+Decoration,Cyber Hologram,boolean
+Decoration,Clashy Carving,boolean
 Decoration,Party Bench,boolean
+Decoration,Frozen Wizard,boolean
+Decoration,Soda Stand,boolean
+Decoration,Sketch Summoner,boolean
 Decoration,Boom Box,boolean
+Decoration,Cursed Tome,boolean
+Decoration,Cosmic Lantern,boolean
+Decoration,Festival Lantern,boolean
+Decoration,Fortune Printer,boolean
 Decoration,Electro Skull,boolean
 Decoration,Smoky Stove,boolean
+Decoration,Hungry Hound,boolean
+Decoration,Frozen Stone,boolean
+Decoration,Brawny Battleaxe,boolean
+Decoration,Wish Lamp,boolean
 Decoration,Meteor Observer,boolean
 Decoration,Handsome Scroll,boolean
+Decoration,Flame Horse,boolean
+Decoration,Lucky Shoe,boolean
+Decoration,Electro Dragon Statue,boolean
+Decoration,Mech Bull,boolean
+Decoration,Barbble Head,boolean
+Decoration,Face Melter,boolean
+Decoration,Team Jade,boolean
+Decoration,Team Amethyst,boolean
+Decoration,Dragon Fountain,boolean
+Decoration,Bone Idol,boolean
+Decoration,Lucky Cat,boolean
+Decoration,Fury Figurine,boolean
+Decoration,Barbarian Fury,boolean
+Decoration,Sports Ball 2026,boolean
+Decoration,Meteor Crown,boolean
+Decoration,Immortal Monument,boolean
+Decoration,Kingly Helmet,boolean
+Decoration,Medusa's Masterpice,boolean
+Decoration,Card Collector,boolean
+Decoration,Clan Chief 2026,boolean
+Decoration,Lone Chief 2026,boolean
+Decoration,Fresh Chief 2026,boolean
+Decoration,Comeback Chief 2026,boolean
+Decoration,War Chief 2026,boolean
+Decoration,Loyal Chief 2026,boolean
+Decoration,Teamwork Chief 2026,boolean
+Decoration,Awesome Orb,boolean
+Decoration,Card Flipper,boolean
+Decoration,Money in the Bank Title,boolean
+Decoration,Cody’s Callout,boolean
+Decoration,Bro Force,boolean
+Decoration,Clash Contest,boolean
+Decoration,Superstar Trophy,boolean
+Decoration,Sour Elixir Fountain,boolean
+Decoration,Coin Collector,boolean
+Decoration,Portal Staff,boolean
+Decoration,Amber Hot Streak,boolean
+Decoration,Violet Hot Streak,boolean
+Decoration,Emerald Hot Streak,boolean
 Hero Skin,Gladiator King,boolean
 Hero Skin,P.E.K.K.A King,boolean
 Hero Skin,Skeleton King,boolean
