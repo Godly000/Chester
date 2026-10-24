@@ -2316,6 +2316,7 @@ class RemainingUpgradesView(discord.ui.View):
         self.pages = pages
         self.page = 0
         self.message = None
+        self._page_lock = asyncio.Lock()
         self._update_buttons()
 
     def _update_buttons(self):
@@ -2323,20 +2324,38 @@ class RemainingUpgradesView(discord.ui.View):
         self.next_page.disabled = self.page == len(self.pages) - 1
 
     async def interaction_check(self, interaction):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("Only the player who opened this list can change its page.", ephemeral=True)
-            return False
-        if self.is_finished():
-            await interaction.response.send_message(f"This list expired. Run /{self.command} again.", ephemeral=True)
+        try:
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message("Only the player who opened this list can change its page.", ephemeral=True)
+                return False
+            if self.is_finished():
+                await interaction.response.send_message(f"This list expired. Run /{self.command} again.", ephemeral=True)
+                return False
+            if not interaction.response.is_done():
+                await interaction.response.defer()
+        except discord.NotFound as error:
+            if error.code != 10062:
+                raise
+            log.debug("Expired /%s page interaction for %s", self.command, interaction.user.id)
             return False
         return True
 
     async def _move(self, interaction, direction):
-        if not await self.interaction_check(interaction):
-            return
-        self.page = min(len(self.pages) - 1, max(0, self.page + direction))
-        self._update_buttons()
-        await interaction.response.edit_message(embed=self.pages[self.page], view=self)
+        async with self._page_lock:
+            if self.is_finished():
+                return
+            previous_page = self.page
+            self.page = min(len(self.pages) - 1, max(0, self.page + direction))
+            self._update_buttons()
+            try:
+                await interaction.edit_original_response(embed=self.pages[self.page], view=self)
+            except discord.HTTPException as error:
+                self.page = previous_page
+                self._update_buttons()
+                if isinstance(error, discord.NotFound) and error.code in (10062, 10008, 10015):
+                    log.debug("Expired or deleted /%s page response for %s", self.command, interaction.user.id)
+                    return
+                raise
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
