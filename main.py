@@ -1970,6 +1970,50 @@ async def upgrade_level_autocomplete(interaction: discord.Interaction, current: 
         return []
 
 
+def _parse_upgrade_quantity(quantity):
+    text = str(quantity if quantity is not None else "1").strip()
+    if text.casefold() == "max":
+        return "max"
+    if not text.isascii() or not text.isdigit() or int(text) < 1:
+        raise UpgradeRejected("Quantity must be a positive whole number or max.")
+    return int(text)
+
+
+def _maximum_upgrade_quantity(village, collection, category, group, level, levels=1):
+    low = 0
+    high = sum(village[field.name] == level for field in _upgrade_groups(category).get(group, []))
+    while low < high:
+        amount = (low + high + 1) // 2
+        try:
+            if group == "Walls":
+                quote = _wall_quote(village, collection, level, amount, levels=levels)
+                if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items() if resource != "Wall Rings"):
+                    raise UpgradeRejected("Not enough resources.")
+            else:
+                _building_payment_options(village, collection, category, group, level, amount, include_hammers=False, levels=levels)
+            low = amount
+        except (UpgradeRejected, MagicRejected, ResourceRejected):
+            high = amount - 1
+    return low
+
+
+def _maximum_upgrade_levels(village, collection, category, group, level, quantity):
+    pending = upgrade_system._pending_serials(village)
+    fields = [field for field in _upgrade_groups(category).get(group, [])
+              if village[field.name] == level and upgrade_system.serial_for(field) not in pending]
+    if not fields:
+        return 0
+    maximum = upgrade_system._availability(fields[0], village, collection, reject_at_maximum=False)
+    result = 0
+    for count in range(1, maximum - level + 1):
+        if any(upgrade_system._price_for(field, level + count).duration for field in fields[:quantity]):
+            break
+        if _maximum_upgrade_quantity(village, collection, category, group, level, levels=count) < quantity:
+            break
+        result = count
+    return result
+
+
 async def upgrade_quantity_autocomplete(interaction: discord.Interaction, current: str):
     try:
         levels, _ = _upgrade_argument_options(interaction)
@@ -1980,7 +2024,10 @@ async def upgrade_quantity_autocomplete(interaction: discord.Interaction, curren
         numbers = [count for count in range(1, maximum + 1) if str(count).startswith(str(current))]
         if len(numbers) > 25:
             numbers = numbers[:24] + [numbers[-1]]
-        return [app_commands.Choice(name=f"{count} (maximum)" if count == maximum else str(count), value=count) for count in numbers]
+        options = [app_commands.Choice(name=f"{count} (maximum)" if count == maximum else str(count), value=str(count)) for count in numbers]
+        if "max".startswith(str(current).strip().casefold()) and maximum:
+            options = [app_commands.Choice(name="max — available resources and workers", value="max")] + options[:24]
+        return options
     except Exception:
         log.exception("Could not load upgrade quantity suggestions")
         return []
@@ -1993,11 +2040,13 @@ async def upgrade_levels_autocomplete(interaction: discord.Interaction, current:
             return []
         target = getattr(interaction.namespace, "level", None)
         target = min(targets) if target is None else target
-        quantity = getattr(interaction.namespace, "quantity", None) or 1
-        if target not in targets or not 1 <= quantity <= targets[target]:
-            return []
+        quantity = _parse_upgrade_quantity(getattr(interaction.namespace, "quantity", None))
         category = getattr(interaction.namespace, "category", "") or ""
         village, collection = _upgrade_snapshot(interaction.user.id)
+        if quantity == "max":
+            quantity = _maximum_upgrade_quantity(village, collection, category, group, target - 1)
+        if target not in targets or not 1 <= quantity <= targets[target]:
+            return []
         fields = _upgrade_groups(category)[group]
         pending = upgrade_system._pending_serials(village)
         field = next(field for field in fields if village[field.name] == target - 1
@@ -2020,8 +2069,12 @@ async def upgrade_levels_autocomplete(interaction: discord.Interaction, current:
             if str(count).startswith(str(current)):
                 options.append(app_commands.Choice(
                     name=f"{count} level{'s' if count != 1 else ''} — to Level {target + count - 1}",
-                    value=count,
+                    value=str(count),
                 ))
+        if "max".startswith(str(current).strip().casefold()):
+            maximum_count = _maximum_upgrade_levels(village, collection, category, group, target - 1, quantity)
+            if maximum_count:
+                options.insert(0, app_commands.Choice(name=f"max — up to {maximum_count} instant levels", value="max"))
         return options[:25]
     except Exception:
         log.exception("Could not load consecutive upgrade level suggestions")
@@ -2045,9 +2098,9 @@ def _upgrade_payment_duration(quote):
 
 
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
-@app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or one if omitted", levels="Number of consecutive levels to upgrade defaults to one and requires zero time at every level")
+@app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or max for available resources and workers defaults to one", levels="Consecutive instant levels or max for the most affordable defaults to one")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete, levels=upgrade_levels_autocomplete)
-async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[app_commands.Range[int, 1]] = None, levels: app_commands.Range[int, 1] = 1):
+async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[str] = None, levels: str = "1"):
     if not await enforce_chester_channel(interaction):
         return
     try:
@@ -2061,8 +2114,20 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
         if not available_levels:
             raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
         target = level if level is not None else min(available_levels) + 1
-        amount = quantity if quantity is not None else 1
+        amount = _parse_upgrade_quantity(quantity)
         current = target - 1
+        try:
+            levels = _parse_upgrade_quantity(levels)
+        except UpgradeRejected:
+            raise UpgradeRejected("Levels must be a positive whole number or max.") from None
+        if amount == "max":
+            amount = _maximum_upgrade_quantity(village, collection, category, group, current, levels=1 if levels == "max" else levels)
+            if amount == 0:
+                raise UpgradeRejected(f"You cannot upgrade any {group} with your available resources and workers. Check the upgrade requirements and requested levels.")
+        if levels == "max":
+            levels = _maximum_upgrade_levels(village, collection, category, group, current, amount)
+            if levels == 0:
+                raise UpgradeRejected("No instant upgrade levels are available with your resources and requirements. Use a numeric level count for timed upgrades.")
         if current not in available_levels:
             raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
         if amount < 1 or amount > available_levels[current]:
