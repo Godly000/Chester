@@ -1190,7 +1190,7 @@ async def _open_chest(interaction: discord.Interaction):
 async def chest_slash_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CommandOnCooldown):
         await _send_chest_error(
-            interaction, f"⏳ Slow down! You can open another chest in {error.retry_after:.1f}s."
+            interaction, f"⏳ Slow down! You can open another chest in {error.retry_after:.3f}s."
         )
     else:
         log.error("Unexpected error in /chest: %s", error, exc_info=(type(error), error, error.__traceback__))
