@@ -141,10 +141,10 @@ GEM_BOX_LOG_FILE = SCRIPT_DIR / "gembox_log.csv"
 
 # XP awarded to the player who rolled, per rarity of the item they got.
 XP_REWARDS = {
-    "legendary": 4640,
-    "epic": 1160,
-    "rare": 290,
-    "common": 160,
+    "legendary": 2320,
+    "epic": 580,
+    "rare": 145,
+    "common": 80,
 }
 
 # Accept a couple of common alternate names in case the hosting panel's
@@ -230,13 +230,24 @@ class ChesterBot(commands.Bot):
         if event == "interaction" and args and self.is_ready():
             interaction = args[0]
             if not save_migration_active and save_store.player_path(interaction.user.id).is_file():
-                try:
-                    interaction.extras["upgrade_refresh"] = upgrade_system.refresh(interaction.user.id)
-                except SaveSchemaMismatch:
-                    pass
-                except Exception:
-                    log.exception("Could not refresh upgrades for %s", interaction.user.id)
+                if interaction.type == discord.InteractionType.autocomplete:
+                    asyncio.create_task(self._refresh_autocomplete_upgrades(interaction))
+                else:
+                    try:
+                        interaction.extras["upgrade_refresh"] = upgrade_system.refresh(interaction.user.id)
+                    except SaveSchemaMismatch:
+                        pass
+                    except Exception:
+                        log.exception("Could not refresh upgrades for %s", interaction.user.id)
         super().dispatch(event, *args, **kwargs)
+
+    async def _refresh_autocomplete_upgrades(self, interaction):
+        try:
+            interaction.extras["upgrade_refresh"] = await asyncio.to_thread(upgrade_system.refresh, interaction.user.id)
+        except SaveSchemaMismatch:
+            pass
+        except Exception:
+            log.exception("Could not refresh upgrades for %s", interaction.user.id)
 
 
 bot = ChesterBot(command_prefix="!", intents=intents)
@@ -2205,7 +2216,27 @@ def _prepare_upgrade(user_id, category, item, level, quantity, levels):
     return village, group, current, target, amount, quotes
 
 
-@bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
+class UpgradeCommand(app_commands.Command):
+    async def _invoke_autocomplete(self, interaction, *args, **kwargs):
+        try:
+            return await super()._invoke_autocomplete(interaction, *args, **kwargs)
+        except discord.NotFound as error:
+            if error.code != 10062:
+                raise
+            log.debug("Expired upgrade autocomplete for player %s", interaction.user.id)
+
+
+def _register_upgrade_command(callback):
+    command = UpgradeCommand(
+        name="upgrade",
+        description="Choose upgrades and confirm payment with resources or magic items.",
+        callback=callback,
+    )
+    bot.tree.add_command(command)
+    return command
+
+
+@_register_upgrade_command
 @app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or max for available resources and workers defaults to one", levels="Consecutive instant levels or max for the most affordable defaults to one")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete, levels=upgrade_levels_autocomplete)
 async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[str] = None, levels: str = "1"):
@@ -3622,13 +3653,15 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
 @bot.tree.command(name="profile", description="Show a player's saved values by category.")
 @app_commands.describe(
     category="The save category to display defaults to Currency",
-    member="View someone else's profile instead of your own."
+    member="View someone else's profile instead of your own.",
+    user_id="Discord user ID for a player including someone outside this server"
 )
 @app_commands.autocomplete(category=profile_category_autocomplete)
 async def profile_slash(
     interaction: discord.Interaction,
     category: Optional[str] = None,
-    member: Optional[discord.Member] = None,
+    member: Optional[discord.User] = None,
+    user_id: Optional[str] = None,
 ):
     if not await enforce_chester_channel(interaction):
         return
@@ -3636,9 +3669,22 @@ async def profile_slash(
     category = category or "Currency"
     if category.casefold() == "unlocked epic equipment":
         category = "Hero Equipment"
+    if member is not None and user_id is not None:
+        await interaction.response.send_message("Choose either a member or a user ID, not both.", ephemeral=True)
+        return
     target = member or interaction.user
+    target_id = target.id
+    target_name = target.display_name
+    if user_id is not None:
+        entered_id = user_id.strip()
+        if not entered_id.isascii() or not entered_id.isdigit() or not 0 < int(entered_id) < 2 ** 64:
+            await interaction.response.send_message("Enter a valid Discord user ID.", ephemeral=True)
+            return
+        target_id = int(entered_id)
+        target = bot.get_user(target_id)
+        target_name = target.display_name if target else f"Player {target_id}"
 
-    if not save_store.player_path(target.id).is_file():
+    if not save_store.player_path(target_id).is_file():
         await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
         return
     try:
@@ -3653,11 +3699,11 @@ async def profile_slash(
         important_values = []
         for section in save_store.categories:
             if section.casefold() == "important":
-                important_values = save_store.category_values(target.id, section)
+                important_values = save_store.category_values(target_id, section)
                 break
-        values = save_store.category_values(target.id, resolved_category)
+        values = save_store.category_values(target_id, resolved_category)
         if resolved_category.casefold() == "currency":
-            village, _ = save_store.player_values(target.id)
+            village, _ = save_store.player_values(target_id)
             listed_names = {name for name, _ in values}
             values.extend(
                 (name, village[name])
@@ -3672,7 +3718,7 @@ async def profile_slash(
         )
         return
 
-    village, collection = save_store.player_values(target.id)
+    village, collection = save_store.player_values(target_id)
     town_hall_icon = TOWN_HALL_PROFILE_IMAGES.get(village.get("Town Hall", 0))
     important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
     if resolved_category in {"Hero Equipment", "Clan Capital House Part", "Decoration", "Hero Skin"}:
@@ -3682,7 +3728,7 @@ async def profile_slash(
         important_text = f"{progress_text}\n\n{important_text}" if important_text else progress_text
     profile_capacities = {}
     if resolved_category.casefold() in {"currency", "treasury"}:
-        village, _ = save_store.player_values(target.id)
+        village, _ = save_store.player_values(target_id)
         main_capacities, treasury_capacities = resource_system.capacities(village)
         profile_capacities = {TREASURY_FIELDS[resource]: capacity for resource, capacity in treasury_capacities.items()}
         if resolved_category.casefold() == "currency":
@@ -3695,7 +3741,7 @@ async def profile_slash(
         kwargs = {"ephemeral": True}
         if important_text:
             kwargs["embed"] = discord.Embed(
-                title=f"{target.display_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}",
+                title=f"{target_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}",
                 description=important_text,
                 color=discord.Color.blue(),
             )
@@ -3709,7 +3755,7 @@ async def profile_slash(
     for page_number, page in enumerate(pages, start=1):
         page_label = f" ({page_number}/{len(pages)})" if len(pages) > 1 else ""
         embed = discord.Embed(
-            title=f"{target.display_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}{page_label}",
+            title=f"{target_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}{page_label}",
             description=f"{important_text}\n\n{page}" if important_text else page,
             color=discord.Color.blue(),
         )
