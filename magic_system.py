@@ -140,7 +140,7 @@ class MagicSystem:
             raise MagicRejected(f"You don't have enough {item.name}, you only have {village[item.name]:,} and tried to {action} {count:,}")
 
     def can_target_upgrade(self, item, field):
-        if item.name in {"Hammer of Building", "Hammer of Buildings"}:
+        if item.name in {"Hammer of Building", "Hammer of Buildings", "Book of Building", "Book of Buildings"}:
             return field.name == "Town Hall" or field.category in STRUCTURE_CATEGORIES
         if item.name == "Pet Potion" and field.category not in {"Pet Level", "Pet"}:
             return False
