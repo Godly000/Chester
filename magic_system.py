@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 from player_saves import FORMAT_DETAILS
 from resource_system import LAST_RESOURCE_CHECK, RESOURCE_CODES, RESOURCE_TYPES
-from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, UpgradeRejected, RefreshReport
+from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, STRUCTURE_CATEGORIES, UpgradeRejected, RefreshReport
 
 
 BULK_MAGIC_SELL_VALUE = 2
@@ -140,6 +140,8 @@ class MagicSystem:
             raise MagicRejected(f"You don't have enough {item.name}, you only have {village[item.name]:,} and tried to {action} {count:,}")
 
     def can_target_upgrade(self, item, field):
+        if item.name in {"Hammer of Building", "Hammer of Buildings"}:
+            return field.name == "Town Hall" or field.category in STRUCTURE_CATEGORIES
         if item.name == "Pet Potion" and field.category not in {"Pet Level", "Pet"}:
             return False
         builder = field.name == "Town Hall" or field.category in BUILDER_CATEGORIES
