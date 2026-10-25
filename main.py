@@ -2,6 +2,7 @@
 
 import asyncio
 import csv
+from contextvars import ContextVar
 from fractions import Fraction
 import logging
 import os
@@ -219,6 +220,9 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 # much faster for testing. Global sync still runs either way so the
 # commands eventually appear everywhere else too.
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
+
+UPGRADE_AUTOCOMPLETE_TIMEOUT = 1.5
+_upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
 intents = discord.Intents.default()
 class ChesterBot(commands.Bot):
@@ -826,7 +830,7 @@ async def _require_chest_first(interaction: discord.Interaction) -> bool:
     if command is not None and command.name == "chest":
         return True
     if not save_store.player_path(interaction.user.id).is_file():
-        await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=True)
+        await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=command is None or command.name != "view")
         return False
     return True
 
@@ -839,20 +843,21 @@ async def enforce_chester_channel(
     initialize_save: bool = True,
     initialize_obstacles: bool = True,
     create_save: bool = False,
+    ephemeral: bool = True,
 ) -> bool:
     if save_migration_active:
         message = "⚠️ Player saves are being updated. Please try again shortly."
         if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
+            await interaction.followup.send(message, ephemeral=ephemeral)
         else:
-            await interaction.response.send_message(message, ephemeral=True)
+            await interaction.response.send_message(message, ephemeral=ephemeral)
         return False
 
     if not create_save and not save_store.player_path(interaction.user.id).is_file():
         if interaction.response.is_done():
-            await interaction.followup.send(NEW_PLAYER_MESSAGE, ephemeral=True)
+            await interaction.followup.send(NEW_PLAYER_MESSAGE, ephemeral=ephemeral)
         else:
-            await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=True)
+            await interaction.response.send_message(NEW_PLAYER_MESSAGE, ephemeral=ephemeral)
         return False
 
     if initialize_save:
@@ -866,17 +871,17 @@ async def enforce_chester_channel(
                 "A moderator must run `/update_saves`."
             )
             if interaction.response.is_done():
-                await interaction.followup.send(message, ephemeral=True)
+                await interaction.followup.send(message, ephemeral=ephemeral)
             else:
-                await interaction.response.send_message(message, ephemeral=True)
+                await interaction.response.send_message(message, ephemeral=ephemeral)
             return False
         except Exception as e:
             log.exception("Failed to initialize player save for %s: %s", interaction.user.id, e)
             message = "⚠️ Your player save could not be initialized. Please contact an admin."
             if interaction.response.is_done():
-                await interaction.followup.send(message, ephemeral=True)
+                await interaction.followup.send(message, ephemeral=ephemeral)
             else:
-                await interaction.response.send_message(message, ephemeral=True)
+                await interaction.response.send_message(message, ephemeral=ephemeral)
             return False
 
     command_name = getattr(interaction.command, "name", "")
@@ -884,9 +889,9 @@ async def enforce_chester_channel(
     if message is None:
         return True
     if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
+        await interaction.followup.send(message, ephemeral=ephemeral)
     else:
-        await interaction.response.send_message(message, ephemeral=True)
+        await interaction.response.send_message(message, ephemeral=ephemeral)
     return False
 
 
@@ -1523,6 +1528,10 @@ def _group_can_upgrade(village, collection, category, group):
 
 
 async def upgrade_category_autocomplete(interaction: discord.Interaction, current: str):
+    return await _upgrade_suggestions(_upgrade_category_autocomplete, interaction, current)
+
+
+def _upgrade_category_autocomplete(interaction: discord.Interaction, current: str):
     if not save_store.player_path(interaction.user.id).is_file():
         return []
     if save_migration_active:
@@ -1545,6 +1554,10 @@ async def upgrade_category_autocomplete(interaction: discord.Interaction, curren
 
 
 async def upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
+    return await _upgrade_suggestions(_upgrade_item_autocomplete, interaction, current)
+
+
+def _upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
     if not save_store.player_path(interaction.user.id).is_file():
         return []
     if save_migration_active:
@@ -1799,7 +1812,35 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
     return embed
 
 
+def _run_upgrade_calculation(function, *args):
+    token = _upgrade_calculation_cache.set({})
+    try:
+        return function(*args)
+    finally:
+        _upgrade_calculation_cache.reset(token)
+
+
+async def _upgrade_suggestions(function, interaction, current):
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_run_upgrade_calculation, function, interaction, current),
+            timeout=UPGRADE_AUTOCOMPLETE_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        return []
+
+
 def _dark_elixir_upgrades_finished(village, collection):
+    cache = _upgrade_calculation_cache.get()
+    if cache is None:
+        return _calculate_dark_elixir_finished(village, collection)
+    key = (tuple(sorted(village.items())), tuple(sorted(collection.items())))
+    if key not in cache:
+        cache[key] = _calculate_dark_elixir_finished(village, collection)
+    return cache[key]
+
+
+def _calculate_dark_elixir_finished(village, collection):
     for entry in upgrade_system.remaining_upgrades(village, collection):
         field = upgrade_system.fields_by_name.get(entry.item)
         if field is None:
@@ -1961,6 +2002,10 @@ def _upgrade_argument_options(interaction):
 
 
 async def upgrade_level_autocomplete(interaction: discord.Interaction, current: str):
+    return await _upgrade_suggestions(_upgrade_level_autocomplete, interaction, current)
+
+
+def _upgrade_level_autocomplete(interaction: discord.Interaction, current: str):
     try:
         levels, _ = _upgrade_argument_options(interaction)
         return [app_commands.Choice(name=f"Level {level} — up to {count} upgrades", value=level)
@@ -2008,13 +2053,24 @@ def _maximum_upgrade_levels(village, collection, category, group, level, quantit
     for count in range(1, maximum - level + 1):
         if any(upgrade_system._price_for(field, level + count).duration for field in fields[:quantity]):
             break
-        if _maximum_upgrade_quantity(village, collection, category, group, level, levels=count) < quantity:
+        try:
+            if group == "Walls":
+                quote = _wall_quote(village, collection, level, quantity, levels=count)
+                if not any(village.get(resource, 0) >= cost for resource, cost in quote["costs"].items() if resource != "Wall Rings"):
+                    break
+            else:
+                _building_payment_options(village, collection, category, group, level, quantity, include_hammers=False, levels=count)
+        except (UpgradeRejected, MagicRejected, ResourceRejected):
             break
         result = count
     return result
 
 
 async def upgrade_quantity_autocomplete(interaction: discord.Interaction, current: str):
+    return await _upgrade_suggestions(_upgrade_quantity_autocomplete, interaction, current)
+
+
+def _upgrade_quantity_autocomplete(interaction: discord.Interaction, current: str):
     try:
         levels, _ = _upgrade_argument_options(interaction)
         level = getattr(interaction.namespace, "level", None)
@@ -2034,6 +2090,10 @@ async def upgrade_quantity_autocomplete(interaction: discord.Interaction, curren
 
 
 async def upgrade_levels_autocomplete(interaction: discord.Interaction, current: str):
+    return await _upgrade_suggestions(_upgrade_levels_autocomplete, interaction, current)
+
+
+def _upgrade_levels_autocomplete(interaction: discord.Interaction, current: str):
     try:
         targets, group = _upgrade_argument_options(interaction)
         if not targets or group is None:
@@ -2097,44 +2157,56 @@ def _upgrade_payment_duration(quote):
     return ", ".join(labels)
 
 
+def _prepare_upgrade(user_id, category, item, level, quantity, levels):
+    groups = _upgrade_groups(category)
+    group = next((name for name in groups if name.casefold() == item.strip().casefold()), None)
+    if group is None:
+        raise UpgradeRejected("Choose a valid upgrade category and item.")
+    upgrade_system.refresh(user_id)
+    village, collection = save_store.player_values(user_id)
+    available_levels = _available_group_levels(village, collection, category, group)
+    if not available_levels:
+        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
+    target = level if level is not None else min(available_levels) + 1
+    amount = _parse_upgrade_quantity(quantity)
+    current = target - 1
+    try:
+        levels = _parse_upgrade_quantity(levels)
+    except UpgradeRejected:
+        raise UpgradeRejected("Levels must be a positive whole number or max.") from None
+    if amount == "max":
+        amount = _maximum_upgrade_quantity(village, collection, category, group, current, levels=1 if levels == "max" else levels)
+        if amount == 0:
+            raise UpgradeRejected(f"You cannot upgrade any {group} with your available resources and workers. Check the upgrade requirements and requested levels.")
+    if levels == "max":
+        levels = _maximum_upgrade_levels(village, collection, category, group, current, amount)
+        if levels == 0:
+            raise UpgradeRejected("No instant upgrade levels are available with your resources and requirements. Use a numeric level count for timed upgrades.")
+    if current not in available_levels:
+        raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
+    if amount < 1 or amount > available_levels[current]:
+        raise UpgradeRejected(f"You can upgrade at most {available_levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
+    target = current + levels
+    if group == "Walls":
+        quotes = _wall_quote(village, collection, current, amount, levels=levels)
+    else:
+        quotes = _building_payment_options(village, collection, category, group, current, amount, levels=levels)
+    return village, group, current, target, amount, quotes
+
+
 @bot.tree.command(name="upgrade", description="Choose upgrades and confirm payment with resources or magic items.")
 @app_commands.describe(category="The category of the upgrade", item="The item or building type", level="First target level or the lowest available target if omitted", quantity="Number to upgrade or max for available resources and workers defaults to one", levels="Consecutive instant levels or max for the most affordable defaults to one")
 @app_commands.autocomplete(category=upgrade_category_autocomplete, item=upgrade_item_autocomplete, level=upgrade_level_autocomplete, quantity=upgrade_quantity_autocomplete, levels=upgrade_levels_autocomplete)
 async def upgrade_slash(interaction: discord.Interaction, category: str, item: str, level: Optional[app_commands.Range[int, 1]] = None, quantity: Optional[str] = None, levels: str = "1"):
     if not await enforce_chester_channel(interaction):
         return
+    await interaction.response.defer(ephemeral=False, thinking=True)
     try:
-        groups = _upgrade_groups(category)
-        group = next((name for name in groups if name.casefold() == item.strip().casefold()), None)
-        if group is None:
-            raise UpgradeRejected("Choose a valid upgrade category and item.")
-        upgrade_system.refresh(interaction.user.id)
-        village, collection = save_store.player_values(interaction.user.id)
-        available_levels = _available_group_levels(village, collection, category, group)
-        if not available_levels:
-            raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
-        target = level if level is not None else min(available_levels) + 1
-        amount = _parse_upgrade_quantity(quantity)
-        current = target - 1
-        try:
-            levels = _parse_upgrade_quantity(levels)
-        except UpgradeRejected:
-            raise UpgradeRejected("Levels must be a positive whole number or max.") from None
-        if amount == "max":
-            amount = _maximum_upgrade_quantity(village, collection, category, group, current, levels=1 if levels == "max" else levels)
-            if amount == 0:
-                raise UpgradeRejected(f"You cannot upgrade any {group} with your available resources and workers. Check the upgrade requirements and requested levels.")
-        if levels == "max":
-            levels = _maximum_upgrade_levels(village, collection, category, group, current, amount)
-            if levels == 0:
-                raise UpgradeRejected("No instant upgrade levels are available with your resources and requirements. Use a numeric level count for timed upgrades.")
-        if current not in available_levels:
-            raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
-        if amount < 1 or amount > available_levels[current]:
-            raise UpgradeRejected(f"You can upgrade at most {available_levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
-        target = current + levels
+        village, group, current, target, amount, quotes = await asyncio.to_thread(
+            _run_upgrade_calculation, _prepare_upgrade, interaction.user.id, category, item, level, quantity, levels,
+        )
         if group == "Walls":
-            quote = _wall_quote(village, collection, current, amount, levels=levels)
+            quote = quotes
             view = WallPaymentView(interaction.user.id, quote)
             for button in view.children:
                 if button.label.startswith("Use "):
@@ -2143,7 +2215,7 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
             costs = "\n".join(f"**{name}:** {cost:,}" for name, cost in quote["costs"].items())
             costs += f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
         else:
-            options = _building_payment_options(village, collection, category, group, current, amount, levels=levels)
+            options = quotes
             view = BuildingPaymentView(interaction.user.id, options)
             costs = "\n\nOR\n\n".join(
                 _format_upgrade_costs(quote["costs"]) + f"\n**Duration per upgrade:** {_upgrade_payment_duration(quote)}"
@@ -2154,25 +2226,36 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
         image_url = _upgrade_image_url(image_item, target)
         if image_url:
             embed.set_image(url=proxy_upgrade_image_url(image_url))
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+        await interaction.edit_original_response(embed=embed, view=view)
     except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-        await interaction.response.send_message(_error_text(error), ephemeral=True)
+        await interaction.edit_original_response(content=_error_text(error), embed=None, view=None)
 
 
-@bot.tree.command(
-    name="view_upgrades",
-    description="See current upgrades in progress.",
-)
-async def view_upgrades_slash(interaction: discord.Interaction):
-    if not await enforce_chester_channel(interaction):
+@bot.tree.command(name="view", description="View resource collectors or upgrades in progress.")
+@app_commands.describe(category="What to view")
+@app_commands.choices(category=[
+    app_commands.Choice(name="Collectors", value="collectors"),
+    app_commands.Choice(name="Upgrades", value="upgrades"),
+])
+async def view_slash(interaction: discord.Interaction, category: str):
+    if not await enforce_chester_channel(interaction, ephemeral=False):
         return
+    if category == "collectors":
+        await _view_collectors(interaction)
+    elif category == "upgrades":
+        await _view_upgrades(interaction)
+    else:
+        await interaction.response.send_message("Choose Collectors or Upgrades.", ephemeral=False)
+
+
+async def _view_upgrades(interaction: discord.Interaction):
     try:
         report = interaction.extras.get("upgrade_refresh") or upgrade_system.refresh(interaction.user.id)
     except Exception as e:
-        log.exception("Unexpected error in /view_upgrades: %s", e)
+        log.exception("Unexpected error in /view upgrades: %s", e)
         await interaction.response.send_message(
             f"⚠️ Upgrades could not be refreshed: {e}",
-            ephemeral=True,
+            ephemeral=False,
         )
         return
 
@@ -2334,7 +2417,7 @@ def _remaining_pages(entries, town_hall, sort_order=None, category=None):
     total = sum(entry.count for entry in entries)
     rows = _remaining_level_rows(entries, int(time.time()))
     if sort_order:
-        metric = "cost" if sort_order.startswith("Cost") else "duration"
+        metric = "start" if sort_order.startswith("Starting Level") else "cost" if sort_order.startswith("Cost") else "duration"
         rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
     heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per unit for the entire displayed level range. In progress rows show paid costs and time left.\n"
     if sort_order and sort_order.startswith("Cost"):
@@ -2542,13 +2625,15 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
-@app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost or duration")
+@app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost duration or starting level")
 @app_commands.autocomplete(category=upgradeinfo_category_autocomplete)
 @app_commands.choices(sorted=[
     app_commands.Choice(name="Cost Ascending", value="Cost Ascending"),
     app_commands.Choice(name="Cost Descending", value="Cost Descending"),
     app_commands.Choice(name="Time Ascending", value="Time Ascending"),
     app_commands.Choice(name="Time Descending", value="Time Descending"),
+    app_commands.Choice(name="Starting Level Ascending", value="Starting Level Ascending"),
+    app_commands.Choice(name="Starting Level Descending", value="Starting Level Descending"),
 ])
 async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None):
     if not await enforce_chester_channel(interaction):
@@ -3103,17 +3188,14 @@ def _collector_display_fields(village, statuses, now):
     return fields
 
 
-@bot.tree.command(name="view_collectors", description="View producer rates, stored loot, and capacities.")
-async def view_collectors_slash(interaction: discord.Interaction):
-    if not await enforce_chester_channel(interaction):
-        return
+async def _view_collectors(interaction: discord.Interaction):
     try:
         now = int(time.time())
         village, _ = save_store.player_values(interaction.user.id)
         statuses = resource_system.collector_status(village, now)
     except Exception as error:
-        log.exception("Unexpected error in /view_collectors: %s", error)
-        await interaction.response.send_message("Your collectors could not be displayed.", ephemeral=True)
+        log.exception("Unexpected error in /view collectors: %s", error)
+        await interaction.response.send_message("Your collectors could not be displayed.", ephemeral=False)
         return
     embed = discord.Embed(title="Resource collectors", color=discord.Color.blue())
     if not statuses:
@@ -3125,7 +3207,7 @@ async def view_collectors_slash(interaction: discord.Interaction):
             inline=False,
         )
     embed.set_footer(text="Use collect_loot to move these resources into storage")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
 def _migrate_save_files() -> MigrationReport:
@@ -3318,11 +3400,10 @@ async def help_slash(
         ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
         ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
-        ("view_upgrades", "Shows completed upgrades and upgrades still in progress."),
+        ("view", "Choose Collectors for production and capacity or Upgrades for upgrade status."),
         ("history", "Shows your ten most recent completed upgrades."),
         ("remaining", "Lists remaining Town Hall requirements with page controls."),
         ("cancel_upgrade", "Cancels an active item or slot and refunds half its cost."),
-        ("view_collectors", "Shows producer rates, fill progress, and capacities."),
         ("collect_loot", "Collects resources and ores produced by collectors and the Blacksmith."),
         ("check_obstacles", "Checks for newly spawned obstacles."),
         ("remove_obstacle", "Spends resources to remove obstacles and earn Gems."),
