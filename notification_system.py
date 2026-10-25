@@ -5,6 +5,8 @@ import os
 import time
 from pathlib import Path
 
+import discord
+
 from player_saves import SaveSchemaMismatch
 
 NOTIFICATION_INTERVAL = 60
@@ -85,7 +87,7 @@ class NotificationSystem:
             sent = set(previous.get("sent", []))
             for key, job in jobs.items():
                 if job["finish"] <= now and key not in sent:
-                    messages.append(("upgrade", key, f"{job['name']} reached level {job['level']} <t:{job['finish']}:R>. Use /view_upgrades to view your upgrades."))
+                    messages.append(("upgrade", key, f"{job['name']} reached level {job['level']} <t:{job['finish']}:R>. Use /view category:Upgrades to view your upgrades."))
             previous["jobs"] = {key: job for key, job in jobs.items() if key not in sent}
             previous["sent"] = list(sent.intersection(active_keys))
         else:
@@ -139,6 +141,10 @@ class NotificationSystem:
             except SaveSchemaMismatch:
                 state["schema_mismatch"] = marker
                 log.warning("Notifications skipped for player %s because the save schema differs from village.csv and collection.csv. Restore matching schema files or run /update_saves with the correct previous files.", user_id)
+            except discord.Forbidden as error:
+                reason = "no mutual servers" if error.code == 50278 else "direct messages unavailable"
+                log.warning("Notification not sent to %s: %s.", user_id, reason)
+                self.state.setdefault(str(user_id), {})["retry"] = now + NOTIFICATION_RETRY_SECONDS
             except Exception:
                 log.exception("Could not process notifications for player %s", user_id)
                 self.state.setdefault(str(user_id), {})["retry"] = now + NOTIFICATION_RETRY_SECONDS
