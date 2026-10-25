@@ -52,10 +52,10 @@ Square brackets below denote optional arguments.
 | `/profile category [member]` | View saved values, grouped walls, and applicable resource capacities. |
 | `/upgrade category item [level] [quantity]` | Choose a target level and batch size, then confirm a payment method. |
 | `/upgradeinfo category item level` | Show the cost, duration, and image for the specified target level. |
-| `/refresh_upgrades` | Complete finished upgrades and display active Builder and Researcher slots. |
+| `/view category` | Publicly display Collectors production and capacity or Upgrades completion and active slots. |
+| `/history category:upgrade` | Display the ten most recent completions using scheduled finish timestamps without images. |
 | `/cancel_upgrade item` | Cancel an active upgrade and refund half its resource cost within storage limits. |
 | `/remaining [sorted]` | Page through upgrades required before the next Town Hall, with per-upgrade costs and times. |
-| `/view_collectors` | Show production rates, pending amounts, and capacities, including Blacksmith ores. |
 | `/collect_loot` | Collect resources and ores generated since the last resource check. |
 | `/collect_treasury` | Transfer treasury resources into main storage at a one-to-one ratio. |
 | `/use item` | Use an owned magic item; Wall Rings open the wall upgrade flow. |
@@ -208,7 +208,7 @@ The three Option fields default to disabled:
 - Hide tutorial replaces chest tutorial tips with the standard author footer.
 
 The notification task checks approximately once per minute. Notifications do not
-apply completed upgrades themselves; use `/refresh_upgrades`. Delivered payloads
+apply completed upgrades themselves; any player interaction refreshes upgrades. Delivered payloads
 are removed from `notification_state.json`, while minimal state prevents duplicate
 notifications for unchanged slots or full collectors.
 
