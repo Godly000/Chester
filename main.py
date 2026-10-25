@@ -865,6 +865,13 @@ async def enforce_chester_channel(
             save_store.ensure_player(interaction.user.id)
             if initialize_obstacles:
                 obstacle_system.initialize(interaction.user.id)
+        except ObstacleRejected:
+            message = "Obstacle data is unavailable. Please ask a moderator to check the bot setup."
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=ephemeral)
+            else:
+                await interaction.response.send_message(message, ephemeral=ephemeral)
+            return False
         except SaveSchemaMismatch:
             message = (
                 "⚠️ Player saves need to be updated for the new progression files. "
@@ -918,7 +925,6 @@ async def on_ready():
         resource_system.load()
         upgrade_system.load()
         magic_system.load()
-        obstacle_system.load()
         xp_levels = load_xp_levels()
         if not hasattr(bot, "player_notifications"):
             bot.player_notifications = NotificationSystem(bot, save_store, upgrade_system, resource_system, NOTIFICATION_STATE_FILE, lambda: save_migration_active)
@@ -931,6 +937,11 @@ async def on_ready():
         log.info("Loaded %d XP level thresholds.", len(xp_levels))
     except Exception as e:
         log.exception("Failed to set up save system: %s", e)
+
+    try:
+        obstacle_system.load()
+    except (OSError, ValueError) as error:
+        log.warning("Obstacle data unavailable at %s: %s", DATA_DIR / "obstacles.csv", error)
 
     try:
         synced = await bot.tree.sync()
@@ -3047,7 +3058,7 @@ async def cancel_upgrade_slash(interaction: discord.Interaction, item: str):
 async def obstacle_type_autocomplete(interaction: discord.Interaction, current: str):
     if not save_store.player_path(interaction.user.id).is_file():
         return []
-    if save_migration_active:
+    if save_migration_active or not obstacle_system.items:
         return []
     try:
         obstacle_system.initialize(interaction.user.id)
@@ -3057,6 +3068,8 @@ async def obstacle_type_autocomplete(interaction: discord.Interaction, current: 
             for item in obstacle_system.items.values()
             if current.casefold() in item.name.casefold() and obstacle_system.maximum(village, item) > 0
         ][:25]
+    except (ObstacleRejected, SaveSchemaMismatch):
+        return []
     except Exception:
         log.exception("Failed to load obstacle choices")
         return []
@@ -3065,7 +3078,7 @@ async def obstacle_type_autocomplete(interaction: discord.Interaction, current: 
 async def obstacle_amount_autocomplete(interaction: discord.Interaction, current: str):
     if not save_store.player_path(interaction.user.id).is_file():
         return []
-    if save_migration_active:
+    if save_migration_active or not obstacle_system.items:
         return []
     try:
         obstacle_system.initialize(interaction.user.id)
