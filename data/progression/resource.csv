@@ -200,36 +200,90 @@ Clan Castle,11,Dark Elixir,0,39000
 Clan Castle,12,Dark Elixir,0,42000
 Clan Castle,13,Dark Elixir,0,45000
 Clan Castle,14,Dark Elixir,0,48000
-Blacksmith,1,Shiny Ore,25,10000
-Blacksmith,2,Shiny Ore,28,15000
-Blacksmith,3,Shiny Ore,32,20000
-Blacksmith,4,Shiny Ore,37,25000
-Blacksmith,5,Shiny Ore,43,30000
-Blacksmith,6,Shiny Ore,50,35000
-Blacksmith,7,Shiny Ore,58,40000
-Blacksmith,8,Shiny Ore,67,45000
-Blacksmith,9,Shiny Ore,77,50000
-Blacksmith,10,Shiny Ore,88,55000
-Blacksmith,11,Shiny Ore,100,60000
-Blacksmith,1,Glowy Ore,1.25,1000
-Blacksmith,2,Glowy Ore,1.40,1500
-Blacksmith,3,Glowy Ore,1.60,2000
-Blacksmith,4,Glowy Ore,1.85,2500
-Blacksmith,5,Glowy Ore,2.15,3000
-Blacksmith,6,Glowy Ore,2.50,3500
-Blacksmith,7,Glowy Ore,2.90,4000
-Blacksmith,8,Glowy Ore,3.35,4500
-Blacksmith,9,Glowy Ore,3.85,5000
-Blacksmith,10,Glowy Ore,4.40,5500
-Blacksmith,11,Glowy Ore,5.00,6000
-Blacksmith,1,Starry Ore,0.100,200
-Blacksmith,2,Starry Ore,0.112,300
-Blacksmith,3,Starry Ore,0.128,400
-Blacksmith,4,Starry Ore,0.148,500
-Blacksmith,5,Starry Ore,0.172,600
-Blacksmith,6,Starry Ore,0.200,700
-Blacksmith,7,Starry Ore,0.232,800
-Blacksmith,8,Starry Ore,0.268,900
-Blacksmith,9,Starry Ore,0.308,1000
-Blacksmith,10,Starry Ore,0.352,1100
-Blacksmith,11,Starry Ore,0.400,1200
+Town Hall,1,Shiny Ore,0,0
+Town Hall,2,Shiny Ore,0,0
+Town Hall,3,Shiny Ore,0,0
+Town Hall,4,Shiny Ore,0,0
+Town Hall,5,Shiny Ore,0,0
+Town Hall,6,Shiny Ore,0,0
+Town Hall,7,Shiny Ore,0,0
+Town Hall,8,Shiny Ore,0,5000
+Town Hall,9,Shiny Ore,0,5000
+Town Hall,10,Shiny Ore,0,5000
+Town Hall,11,Shiny Ore,0,5000
+Town Hall,12,Shiny Ore,0,5000
+Town Hall,13,Shiny Ore,0,5000
+Town Hall,14,Shiny Ore,0,5000
+Town Hall,15,Shiny Ore,0,5000
+Town Hall,16,Shiny Ore,0,5000
+Town Hall,17,Shiny Ore,0,5000
+Town Hall,18,Shiny Ore,0,5000
+Town Hall,1,Glowy Ore,0,0
+Town Hall,2,Glowy Ore,0,0
+Town Hall,3,Glowy Ore,0,0
+Town Hall,4,Glowy Ore,0,0
+Town Hall,5,Glowy Ore,0,0
+Town Hall,6,Glowy Ore,0,0
+Town Hall,7,Glowy Ore,0,0
+Town Hall,8,Glowy Ore,0,500
+Town Hall,9,Glowy Ore,0,500
+Town Hall,10,Glowy Ore,0,500
+Town Hall,11,Glowy Ore,0,500
+Town Hall,12,Glowy Ore,0,500
+Town Hall,13,Glowy Ore,0,500
+Town Hall,14,Glowy Ore,0,500
+Town Hall,15,Glowy Ore,0,500
+Town Hall,16,Glowy Ore,0,500
+Town Hall,17,Glowy Ore,0,500
+Town Hall,18,Glowy Ore,0,500
+Town Hall,1,Starry Ore,0,0
+Town Hall,2,Starry Ore,0,0
+Town Hall,3,Starry Ore,0,0
+Town Hall,4,Starry Ore,0,0
+Town Hall,5,Starry Ore,0,0
+Town Hall,6,Starry Ore,0,0
+Town Hall,7,Starry Ore,0,0
+Town Hall,8,Starry Ore,0,100
+Town Hall,9,Starry Ore,0,100
+Town Hall,10,Starry Ore,0,100
+Town Hall,11,Starry Ore,0,100
+Town Hall,12,Starry Ore,0,100
+Town Hall,13,Starry Ore,0,100
+Town Hall,14,Starry Ore,0,100
+Town Hall,15,Starry Ore,0,100
+Town Hall,16,Starry Ore,0,100
+Town Hall,17,Starry Ore,0,100
+Town Hall,18,Starry Ore,0,100
+Blacksmith,1,Shiny Ore,25,5000
+Blacksmith,2,Shiny Ore,28,10000
+Blacksmith,3,Shiny Ore,32,15000
+Blacksmith,4,Shiny Ore,37,20000
+Blacksmith,5,Shiny Ore,43,25000
+Blacksmith,6,Shiny Ore,50,30000
+Blacksmith,7,Shiny Ore,58,35000
+Blacksmith,8,Shiny Ore,67,40000
+Blacksmith,9,Shiny Ore,77,45000
+Blacksmith,10,Shiny Ore,88,50000
+Blacksmith,11,Shiny Ore,100,55000
+Blacksmith,1,Glowy Ore,1.25,500
+Blacksmith,2,Glowy Ore,1.40,1000
+Blacksmith,3,Glowy Ore,1.60,1500
+Blacksmith,4,Glowy Ore,1.85,2000
+Blacksmith,5,Glowy Ore,2.15,2500
+Blacksmith,6,Glowy Ore,2.50,3000
+Blacksmith,7,Glowy Ore,2.90,3500
+Blacksmith,8,Glowy Ore,3.35,4000
+Blacksmith,9,Glowy Ore,3.85,4500
+Blacksmith,10,Glowy Ore,4.40,5000
+Blacksmith,11,Glowy Ore,5.00,5500
+Blacksmith,1,Starry Ore,0.100,100
+Blacksmith,2,Starry Ore,0.112,200
+Blacksmith,3,Starry Ore,0.128,300
+Blacksmith,4,Starry Ore,0.148,400
+Blacksmith,5,Starry Ore,0.172,500
+Blacksmith,6,Starry Ore,0.200,600
+Blacksmith,7,Starry Ore,0.232,700
+Blacksmith,8,Starry Ore,0.268,800
+Blacksmith,9,Starry Ore,0.308,900
+Blacksmith,10,Starry Ore,0.352,1000
+Blacksmith,11,Starry Ore,0.400,1100
