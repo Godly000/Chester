@@ -166,7 +166,7 @@ class ResourceSystem:
     def _collection_amount(amount: Fraction, randomize: bool) -> int:
         whole = amount.numerator // amount.denominator
         remainder = amount - whole
-        if randomize and remainder and random.random() >= remainder:
+        if randomize and remainder and random.random() < remainder:
             return whole + 1
         return whole
 
