@@ -3430,13 +3430,14 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester Alpha v0.0.1 created by __godly__ on August 30, 2026. "
-            "Please submit bugs through her direct messages and use the "
-            "/help command to see a list of all commands"
+            "Chester version 0.9.5 updated 2026 October 24\n"
+            "https://github.com/Godly000/Chester\n"
+            "Terms of Service: https://pastebin.com/0T6GMB5t\n"
+            "Privacy Policy: https://pastebin.com/zhfg4af1"
         ),
         color=discord.Color.blue(),
     )
-    embed.set_image(url=proxy_image_url("https://media.ffycdn.net/eu/supercell/cE9WaY3WgjeuJ9ChgYkU.png?width=2400"))
+    embed.set_image(url=proxy_image_url("https://i.imgur.com/0ZahMiF.png"))
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
