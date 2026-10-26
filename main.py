@@ -221,10 +221,7 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 # commands eventually appear everywhere else too.
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
-UPGRADE_AUTOCOMPLETE_TIMEOUT = 1.5
-MAX_AUTOCOMPLETE_CALCULATIONS = 4
 MAX_AUTOCOMPLETE_REFRESHES = 8
-_autocomplete_calculations = {}
 _autocomplete_refreshes = {}
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
@@ -1843,32 +1840,17 @@ def _build_upgrade_embed(outcome: UpgradeOutcome, refreshed: RefreshReport) -> d
 
 
 def _run_upgrade_calculation(function, *args):
-    token = _upgrade_calculation_cache.set({})
+    cache = {}
+    token = _upgrade_calculation_cache.set(cache)
     try:
         return function(*args)
     finally:
+        cache.clear()
         _upgrade_calculation_cache.reset(token)
 
 
 async def _upgrade_suggestions(function, interaction, current):
-    user_id = interaction.user.id
-    if user_id in _autocomplete_calculations or len(_autocomplete_calculations) >= MAX_AUTOCOMPLETE_CALCULATIONS:
-        return []
-    task = asyncio.create_task(asyncio.to_thread(_run_upgrade_calculation, function, interaction, current))
-    _autocomplete_calculations[user_id] = task
-
-    def finished(calculation):
-        _autocomplete_calculations.pop(user_id, None)
-        if not calculation.cancelled():
-            error = calculation.exception()
-            if error is not None:
-                log.error("Upgrade suggestion calculation failed: %s", error)
-
-    task.add_done_callback(finished)
-    try:
-        return await asyncio.wait_for(asyncio.shield(task), timeout=UPGRADE_AUTOCOMPLETE_TIMEOUT)
-    except asyncio.TimeoutError:
-        return []
+    return await asyncio.to_thread(_run_upgrade_calculation, function, interaction, current)
 
 
 def _dark_elixir_upgrades_finished(village, collection):
