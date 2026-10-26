@@ -142,8 +142,7 @@ class NotificationSystem:
                 state["schema_mismatch"] = marker
                 log.warning("Notifications skipped for player %s because the save schema differs from village.csv and collection.csv. Restore matching schema files or run /update_saves with the correct previous files.", user_id)
             except discord.Forbidden as error:
-                reason = "no mutual servers" if error.code == 50278 else "direct messages unavailable"
-                log.warning("Notification not sent to %s: %s.", user_id, reason)
+                log.warning("Notification not sent to %s: Discord rejected the DM with code %s. Check DM privacy and shared server access.", user_id, error.code)
                 self.state.setdefault(str(user_id), {})["retry"] = now + NOTIFICATION_RETRY_SECONDS
             except Exception:
                 log.exception("Could not process notifications for player %s", user_id)
