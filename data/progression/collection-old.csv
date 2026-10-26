@@ -145,8 +145,6 @@ Decoration,Statue of P.E.K.K.A.,boolean
 Decoration,Pirate Flag,boolean
 Decoration,Mighty Statue,boolean
 Decoration,Barbarian King Statue,boolean
-Decoration,Archer Queen Statue,boolean
-Decoration,Ancient Barbarian Statue,boolean
 Decoration,Eagle Monument,boolean
 Decoration,Crafted Statue,boolean
 Decoration,Builder Bust,boolean
@@ -303,8 +301,19 @@ Decoration,Portal Staff,boolean
 Decoration,Amber Hot Streak,boolean
 Decoration,Violet Hot Streak,boolean
 Decoration,Emerald Hot Streak,boolean
-Hero Skin,Gladiator King,boolean
-Hero Skin,P.E.K.K.A King,boolean
+Decoration,Bonfire,boolean
+Decoration,Wood Target,boolean
+Decoration,Small Spruce Tree,boolean
+Decoration,Large Spruce Tree,boolean
+Decoration,Stone Path,boolean
+Decoration,Blue Torch,boolean
+Decoration,Blue Bonfire,boolean
+Decoration,Stone Target,boolean
+Decoration,Archer Queen Statue,boolean
+Decoration,Ancient Barbarian Statue,boolean
+Decoration,Battle Machine Statue,boolean
+Hero Skin,Festive Firecrackers,boolean
+Hero Skin,Master Builder's Return,boolean
 Hero Skin,Skeleton King,boolean
 Hero Skin,Jolly King,boolean
 Hero Skin,Primal King,boolean
