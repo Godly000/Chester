@@ -222,6 +222,10 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 UPGRADE_AUTOCOMPLETE_TIMEOUT = 1.5
+MAX_AUTOCOMPLETE_CALCULATIONS = 4
+MAX_AUTOCOMPLETE_REFRESHES = 8
+_autocomplete_calculations = {}
+_autocomplete_refreshes = {}
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
 intents = discord.Intents.default()
@@ -231,7 +235,11 @@ class ChesterBot(commands.Bot):
             interaction = args[0]
             if not save_migration_active and save_store.player_path(interaction.user.id).is_file():
                 if interaction.type == discord.InteractionType.autocomplete:
-                    asyncio.create_task(self._refresh_autocomplete_upgrades(interaction))
+                    user_id = interaction.user.id
+                    if user_id not in _autocomplete_refreshes and len(_autocomplete_refreshes) < MAX_AUTOCOMPLETE_REFRESHES:
+                        task = asyncio.create_task(self._refresh_autocomplete_upgrades(interaction))
+                        _autocomplete_refreshes[user_id] = task
+                        task.add_done_callback(lambda finished, uid=user_id: _autocomplete_refreshes.pop(uid, None))
                 else:
                     try:
                         interaction.extras["upgrade_refresh"] = upgrade_system.refresh(interaction.user.id)
@@ -250,7 +258,7 @@ class ChesterBot(commands.Bot):
             log.exception("Could not refresh upgrades for %s", interaction.user.id)
 
 
-bot = ChesterBot(command_prefix="!", intents=intents)
+bot = ChesterBot(command_prefix="!", intents=intents, max_messages=None)
 save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
 resource_system = ResourceSystem(PROGRESSION_DIR, save_store, CLAN_CASTLE_RESOURCE_RATIO)
 upgrade_system = UpgradeSystem(
@@ -1843,11 +1851,22 @@ def _run_upgrade_calculation(function, *args):
 
 
 async def _upgrade_suggestions(function, interaction, current):
+    user_id = interaction.user.id
+    if user_id in _autocomplete_calculations or len(_autocomplete_calculations) >= MAX_AUTOCOMPLETE_CALCULATIONS:
+        return []
+    task = asyncio.create_task(asyncio.to_thread(_run_upgrade_calculation, function, interaction, current))
+    _autocomplete_calculations[user_id] = task
+
+    def finished(calculation):
+        _autocomplete_calculations.pop(user_id, None)
+        if not calculation.cancelled():
+            error = calculation.exception()
+            if error is not None:
+                log.error("Upgrade suggestion calculation failed: %s", error)
+
+    task.add_done_callback(finished)
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(_run_upgrade_calculation, function, interaction, current),
-            timeout=UPGRADE_AUTOCOMPLETE_TIMEOUT,
-        )
+        return await asyncio.wait_for(asyncio.shield(task), timeout=UPGRADE_AUTOCOMPLETE_TIMEOUT)
     except asyncio.TimeoutError:
         return []
 
@@ -3950,6 +3969,6 @@ def main():
             "     process environment variable (some panels only substitute variables into the\n"
             "     startup command string, not into os.environ)."
         )
-    bot.run(DISCORD_TOKEN)
+    bot.run(DISCORD_TOKEN, log_handler=None)
 if __name__ == "__main__":
     main()
