@@ -3768,6 +3768,94 @@ async def profile_slash(
             await interaction.followup.send(embed=embed)
 
 
+def _reset_player(user_id):
+    if save_migration_active:
+        raise ValueError("Player saves are being updated. Try again shortly.")
+    with save_store.lock:
+        path = save_store.player_path(user_id)
+        if not path.is_file():
+            raise ValueError("That player has no save to reset.")
+        backup_dir = SAVE_BACKUPS_DIR / f"reset-{user_id}-{time.time_ns()}"
+        backup_dir.mkdir(parents=True, exist_ok=False)
+        backup = backup_dir / path.name
+        os.replace(path, backup)
+        notifications = getattr(bot, "player_notifications", None)
+        if notifications is not None:
+            previous = notifications.state.pop(str(user_id), None)
+            try:
+                notifications.save_state()
+            except Exception:
+                os.replace(backup, path)
+                if previous is not None:
+                    notifications.state[str(user_id)] = previous
+                raise
+        return backup
+
+
+class ResetPlayerView(discord.ui.View):
+    def __init__(self, user_id):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+        self.used = False
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != SET_COMMAND_OWNER_ID:
+            await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Reset player", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.used:
+            await interaction.response.send_message("This reset has already been handled.", ephemeral=True)
+            return
+        self.used = True
+        await interaction.response.defer()
+        try:
+            backup = _reset_player(self.user_id)
+        except ValueError as error:
+            await interaction.edit_original_response(content=str(error), view=None)
+        except Exception:
+            log.exception("Could not reset player %s", self.user_id)
+            await interaction.edit_original_response(content="The player could not be reset. Check the console for details.", view=None)
+        else:
+            await interaction.edit_original_response(
+                content=f"Reset player {self.user_id}. They can start again with /chest. Backup: `{backup.parent.name}/{backup.name}`.",
+                view=None,
+            )
+        self.stop()
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.used:
+            await interaction.response.send_message("This reset has already been handled.", ephemeral=True)
+            return
+        self.used = True
+        self.stop()
+        await interaction.response.edit_message(content="Reset cancelled.", view=None)
+
+
+@bot.tree.command(name="reset", description="Reset a player's progress. Bot owner only.")
+@app_commands.describe(user_id="Discord User ID of the player to reset")
+async def reset_slash(interaction: discord.Interaction, user_id: str):
+    if interaction.user.id != SET_COMMAND_OWNER_ID:
+        await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
+        return
+    if not await enforce_chester_channel(interaction):
+        return
+    if not re.fullmatch(r"[0-9]{1,20}", user_id) or not 0 < int(user_id) < 2 ** 64:
+        await interaction.response.send_message("Enter a valid numeric Discord User ID.", ephemeral=True)
+        return
+    target_id = int(user_id)
+    if not save_store.player_path(target_id).is_file():
+        await interaction.response.send_message("That player has no save to reset.", ephemeral=True)
+        return
+    await interaction.response.send_message(
+        f"Reset all village and collection progress for player {target_id}? Their current save will be backed up.",
+        view=ResetPlayerView(target_id), ephemeral=True,
+    )
+
+
 def _set_category(category: str) -> str:
     return save_store.resolve_category("Obstacle" if category.strip().casefold() == "obstacles" else category.strip())
 
