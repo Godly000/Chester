@@ -3512,15 +3512,15 @@ async def attack_slash(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="test_attack", description="[Moderator] Instantly simulate an attack with random armies and defenses, without rewards.")
-@app_commands.describe(town_hall="Town Hall level to simulate from 1 through 18")
+@app_commands.describe(town_hall="Town Hall level to simulate from 1 through 18", offense="Offense score from 0 to 1; leave blank to randomize", defense="Defense score from 0 to 1; leave blank to randomize")
 @app_commands.default_permissions(moderate_members=True)
 @app_commands.checks.has_permissions(moderate_members=True)
-async def test_attack_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18]):
+async def test_attack_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18], offense: app_commands.Range[float, 0, 1] = None, defense: app_commands.Range[float, 0, 1] = None):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     await interaction.response.defer(thinking=True)
     try:
-        result = await asyncio.to_thread(attack_system.simulate, town_hall)
+        result = await asyncio.to_thread(attack_system.simulate, town_hall, offense=offense, defense=defense)
     except AttackRejected as error:
         await interaction.edit_original_response(content=str(error))
         return
