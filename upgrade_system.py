@@ -14,6 +14,7 @@ STRUCTURE_CATEGORIES = {
     "Structure Level", "Defense Level", "Wall Level", "Trap Level",
     "Resource Level", "Army Level",
 }
+MAX_TOWN_HALL_LEVEL = 18
 BUILDER_CATEGORIES = STRUCTURE_CATEGORIES | {"Hero Level"}
 SECOND_BUILDER_COST = 250
 THIRD_BUILDER_COST = 500
@@ -511,9 +512,9 @@ class UpgradeSystem:
         ):
             raise UpgradeLocked(f"{field.name} is not unlocked in your collection. Obtain it from a Chest or /buy first.")
         if field.name == "Town Hall":
-            if current_level >= 18 and reject_at_maximum:
-                raise UpgradeRejected("Town Hall is already at its maximum level")
-            return 18
+            if current_level >= MAX_TOWN_HALL_LEVEL and reject_at_maximum:
+                raise UpgradeRejected(f"Town Hall is already at its maximum level of {MAX_TOWN_HALL_LEVEL}")
+            return MAX_TOWN_HALL_LEVEL
 
         allowed_count, requirement, prerequisite = self._allowed_count(
             field, village, collection
@@ -551,6 +552,8 @@ class UpgradeSystem:
         return self._parse_number(row["19"])
 
     def _price_for(self, field: SaveField, target_level: int) -> UpgradePrice:
+        if field.name == "Town Hall" and target_level > MAX_TOWN_HALL_LEVEL:
+            raise UpgradeRejected(f"Town Hall cannot exceed level {MAX_TOWN_HALL_LEVEL}")
         if target_level == 1:
             builder = re.fullmatch(r"Builder's Hut #(\d+)", field.name)
             if builder:
@@ -824,6 +827,10 @@ class UpgradeSystem:
             field = self.fields_by_name.get(item)
             if field is None:
                 warnings.append(f"{upgrade_name} referred to removed item {item} and was cleared")
+                self._clear_slot(village, upgrade_name, time_name)
+                continue
+            if item == "Town Hall" and village[item] >= MAX_TOWN_HALL_LEVEL:
+                warnings.append(f"Invalid Town Hall upgrade above level {MAX_TOWN_HALL_LEVEL} was cleared")
                 self._clear_slot(village, upgrade_name, time_name)
                 continue
             if finish_time > now:
