@@ -2,9 +2,11 @@
 
 import asyncio
 import csv
+from copy import copy
 from contextvars import ContextVar
 from fractions import Fraction
 import logging
+import math
 import os
 import random
 import re
@@ -15,6 +17,8 @@ from typing import Dict, List, Optional, Tuple
 
 import discord
 
+from attack_system import ATTACK_DURATION, ATTACK_REQUIRED_CHESTS, AttackRejected, AttackSystem
+from attack_views import AttackController
 from notification_system import NotificationSystem
 from image_proxy import proxy_image_url, proxy_upgrade_image_url
 from discord import app_commands
@@ -75,7 +79,42 @@ def _manual_env_fallback(path: Path) -> None:
 # Configuration / constants
 # ---------------------------------------------------------------------------
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+class ConsoleFormatter(logging.Formatter):
+    def format(self, record):
+        if record.levelno >= logging.CRITICAL:
+            return super().format(record)
+        compact = copy(record)
+        message = record.getMessage()
+        if record.exc_info and record.exc_info[1] is not None:
+            error = record.exc_info[1]
+            seen = set()
+            while id(error) not in seen:
+                seen.add(id(error))
+                cause = getattr(error, "original", None) or error.__cause__
+                if not isinstance(cause, BaseException) or id(cause) in seen:
+                    break
+                error = cause
+            reason = str(error)
+            details = type(error).__name__
+            if reason and reason not in message:
+                details += f": {reason}"
+            trace = error.__traceback__ or record.exc_info[2]
+            if trace is not None:
+                while trace.tb_next is not None:
+                    trace = trace.tb_next
+                details += f" at {Path(trace.tb_frame.f_code.co_filename).name}:{trace.tb_lineno}"
+            message += f" | {details}"
+        compact.msg = " ".join(message.splitlines())
+        compact.args = ()
+        compact.exc_info = None
+        compact.exc_text = None
+        compact.stack_info = None
+        return super().format(compact)
+
+
+logging.basicConfig(level=logging.INFO)
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(ConsoleFormatter("%(asctime)s %(levelname)s %(message)s"))
 log = logging.getLogger("loot_bot")
 
 SCRIPT_DIR = Path(__file__).parent
@@ -268,6 +307,8 @@ upgrade_system = UpgradeSystem(
 magic_system = MagicSystem(PROGRESSION_DIR, save_store, upgrade_system, resource_system)
 obstacle_system = ObstacleSystem(DATA_DIR, save_store)
 save_migration_active = False
+attack_system = AttackSystem(PROGRESSION_DIR, save_store, resource_system)
+attack_controller = AttackController(bot, attack_system, lambda: save_migration_active)
 gembox_system = GemBoxSystem(save_store, GEM_BOX_LOG_FILE, GEM_BOX_CHANCE, lambda: save_migration_active)
 
 
@@ -960,6 +1001,12 @@ async def on_ready():
         log.warning("Obstacle data unavailable at %s: %s", DATA_DIR / "obstacles.csv", error)
 
     try:
+        attack_system.load()
+        attack_controller.start()
+    except Exception:
+        log.exception("Failed to load attack data")
+
+    try:
         synced = await bot.tree.sync()
         log.info(
             "Synced %d global slash command(s) (can take up to 1 hour to "
@@ -1049,6 +1096,7 @@ async def _do_loot_roll(user_id: int, rarity_key=None) -> Tuple[discord.Embed, O
     duplicate_reward = None
     with save_store.transaction(user_id) as (values, collection):
         received = resource_system.deposit(values, resource_amounts)
+        attack_system.count_chest(values)
         for name, amount in village_additions.items():
             field = save_store.village_by_name[name]
             if name in magic_system.items:
@@ -2336,12 +2384,34 @@ async def _view_upgrades(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="history", description="View recent attack and upgrade history.")
-@app_commands.choices(category=[app_commands.Choice(name="upgrade", value="upgrade")])
+@app_commands.choices(category=[app_commands.Choice(name="Upgrade", value="upgrade"), app_commands.Choice(name="Attack", value="attack")])
 async def history_slash(interaction: discord.Interaction, category: str):
     if not await enforce_chester_channel(interaction):
         return
+    if category == "attack":
+        await interaction.response.defer(thinking=True)
+        try:
+            await asyncio.to_thread(attack_system.status, interaction.user.id)
+            village, _ = save_store.player_values(interaction.user.id)
+            lines = []
+            for index in range(1, 11):
+                timestamp = village.get(f"Attack #{index} Timestamp", 0)
+                if not timestamp:
+                    continue
+                kind = "Air" if village[f"Attack #{index} Type"] else "Ground"
+                percentage = village[f"Attack #{index} Percentage"]
+                stars = village[f"Attack #{index} Stars"]
+                result = f"{stars} stars · {percentage}%" if percentage else "Cancelled — Chest requirement not met"
+                lines.append(f"**{kind}: {result}** — <t:{timestamp}:R> (<t:{timestamp}:F>)")
+            embed = discord.Embed(title="Attack history", description="\n".join(lines) or "No attacks have been recorded yet.", color=discord.Color.blue())
+            embed.set_footer(text="Made by __godly__")
+            await interaction.edit_original_response(embed=embed)
+        except Exception:
+            log.exception("Could not display attack history for %s", interaction.user.id)
+            await interaction.edit_original_response(content="Attack history could not be loaded. Please try again.")
+        return
     if category != "upgrade":
-        await interaction.response.send_message("Choose the upgrade category.", ephemeral=True)
+        await interaction.response.send_message("Choose the Upgrade or Attack category.", ephemeral=True)
         return
     village, _ = save_store.player_values(interaction.user.id)
     entries = []
@@ -2499,6 +2569,10 @@ def _remaining_pages(entries, town_hall, sort_order=None, category=None):
     return pages
 
 
+def _page_jump_size(page_count):
+    return math.ceil(math.sqrt(max(1, page_count)))
+
+
 class RemainingUpgradesView(discord.ui.View):
     def __init__(self, user_id, pages, command="remaining"):
         super().__init__(timeout=180)
@@ -2506,6 +2580,7 @@ class RemainingUpgradesView(discord.ui.View):
         self.command = command
         self.pages = pages
         self.page = 0
+        self.jump_size = _page_jump_size(len(pages))
         self.message = None
         self._page_lock = asyncio.Lock()
         self._update_buttons()
@@ -2513,6 +2588,10 @@ class RemainingUpgradesView(discord.ui.View):
     def _update_buttons(self):
         self.previous.disabled = self.page == 0
         self.next_page.disabled = self.page == len(self.pages) - 1
+        self.jump_back.disabled = self.previous.disabled
+        self.jump_forward.disabled = self.next_page.disabled
+        self.jump_back.label = f"Back {self.jump_size}"
+        self.jump_forward.label = f"Forward {self.jump_size}"
 
     async def interaction_check(self, interaction):
         try:
@@ -2548,6 +2627,10 @@ class RemainingUpgradesView(discord.ui.View):
                     return
                 raise
 
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary)
+    async def jump_back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._move(interaction, -self.jump_size)
+
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._move(interaction, -1)
@@ -2555,6 +2638,10 @@ class RemainingUpgradesView(discord.ui.View):
     @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._move(interaction, 1)
+
+    @discord.ui.button(label="Forward", style=discord.ButtonStyle.secondary)
+    async def jump_forward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._move(interaction, self.jump_size)
 
     async def on_timeout(self):
         self.stop()
@@ -2786,6 +2873,8 @@ class MagicItemView(discord.ui.View):
         self.option_list = list(options)
         self.page = 0
         self.pages = pages
+        self.page_count = max(1, len(pages) if pages is not None else (len(self.option_list) + 24) // 25)
+        self.jump_size = _page_jump_size(self.page_count)
         self.selection = discord.ui.Select(
             placeholder="Choose an upgrade" if item.name.startswith(("Hammer of ", "Book of ")) else ("Choose a Wall level" if item.target == "Wall" else "Choose a worker"),
             options=[discord.SelectOption(label=option.label[:100], value=option.value, description=option.description[:100]) for option in options[:25]] or [discord.SelectOption(label="No eligible upgrades in progress", value="unavailable")],
@@ -2793,8 +2882,19 @@ class MagicItemView(discord.ui.View):
         )
         self.selection.callback = self.choose
         self.add_item(self.selection)
-        self.previous_page.disabled = True
-        self.next_page.disabled = len(pages) <= 1 if pages is not None else len(self.option_list) <= 25
+        self._update_page_buttons()
+
+    def _update_page_buttons(self):
+        self.previous_page.disabled = self.page == 0
+        self.next_page.disabled = self.page == self.page_count - 1
+        self.jump_back.disabled = self.previous_page.disabled
+        self.jump_forward.disabled = self.next_page.disabled
+        self.jump_back.label = f"Back {self.jump_size}"
+        self.jump_forward.label = f"Forward {self.jump_size}"
+
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary)
+    async def jump_back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.change_page(interaction, -self.jump_size)
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2804,21 +2904,23 @@ class MagicItemView(discord.ui.View):
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.change_page(interaction, 1)
 
+    @discord.ui.button(label="Forward", style=discord.ButtonStyle.secondary)
+    async def jump_forward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.change_page(interaction, self.jump_size)
+
     async def change_page(self, interaction, delta):
         if not await self.interaction_check(interaction):
             return
         if self.pages is not None:
             self.page = max(0, min(len(self.pages) - 1, self.page + delta))
             self.selection.disabled = self.page != 0 or not self.option_list
-            self.previous_page.disabled = self.page == 0
-            self.next_page.disabled = self.page == len(self.pages) - 1
+            self._update_page_buttons()
             await interaction.response.edit_message(embed=self.pages[self.page], view=self)
             return
         self.page = max(0, min((len(self.option_list) - 1) // 25, self.page + delta))
         entries = self.option_list[self.page * 25:(self.page + 1) * 25]
         self.selection.options = [discord.SelectOption(label=entry.label[:100], value=entry.value, description=entry.description[:100]) for entry in entries]
-        self.previous_page.disabled = self.page == 0
-        self.next_page.disabled = (self.page + 1) * 25 >= len(self.option_list)
+        self._update_page_buttons()
         await interaction.response.edit_message(view=self)
 
     async def interaction_check(self, interaction):
@@ -3284,6 +3386,7 @@ def _migrate_save_files() -> MigrationReport:
     new_upgrade_system.load()
     MagicSystem(PROGRESSION_DIR, new_store, new_upgrade_system, new_resource_system).load()
     ObstacleSystem(DATA_DIR, new_store).load()
+    AttackSystem(PROGRESSION_DIR, new_store, new_resource_system).load()
     return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR)
 
 
@@ -3307,6 +3410,8 @@ async def update_saves_slash(interaction: discord.Interaction):
         upgrade_system.load()
         magic_system.load()
         obstacle_system.load()
+        attack_system.load()
+        attack_controller.start()
         save_store.ensure_player(interaction.user.id)
         obstacle_system.initialize(interaction.user.id)
         await interaction.followup.send(
@@ -3399,11 +3504,56 @@ async def support_slash(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="attack", description="Attack feature coming soon.")
+@bot.tree.command(name="attack", description="Attack a rival village by opening Chests and choose a reward.")
 async def attack_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
-    await interaction.response.send_message("Work in Progress", ephemeral=True)
+    await attack_controller.open(interaction)
+
+
+@bot.tree.command(name="test_attack", description="[Moderator] Instantly simulate an attack with random armies and defenses, without rewards.")
+@app_commands.describe(town_hall="Town Hall level to simulate from 1 through 18")
+@app_commands.default_permissions(moderate_members=True)
+@app_commands.checks.has_permissions(moderate_members=True)
+async def test_attack_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18]):
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    await interaction.response.defer(thinking=True)
+    try:
+        result = await asyncio.to_thread(attack_system.simulate, town_hall)
+    except AttackRejected as error:
+        await interaction.edit_original_response(content=str(error))
+        return
+    embed = discord.Embed(
+        title=f"Town Hall {town_hall} — Test attack",
+        description=(
+            f"**{result['stars']} stars · {result['percentage']}% destruction**\n"
+            f"Town Hall: **{'Destroyed' if result['destroyed'] else 'Survived'}**\n"
+            "Instant simulation. No Chests required, rewards awarded, or attack history recorded."
+        ),
+        color=discord.Color.blue(),
+    )
+    embed.add_field(name="Attack type", value=result["type"])
+    embed.add_field(name="Offense", value=f"{result['offense']:.3f} / 1")
+    embed.add_field(name="Defense difficulty", value=f"{result['difficulty']:.3f} / 1")
+    embed.add_field(name="Offset", value=f"{result['offense'] - result['difficulty']:+.3f}")
+    embed.add_field(name="Town Hall destruction chance", value=f"{result['chance']:.1%}")
+    embed.add_field(name="Expected destruction before limits", value=f"{result['expected_percentage']:.1f}%")
+    embed.set_footer(text="Made by __godly__")
+    await interaction.edit_original_response(embed=embed)
+
+
+@test_attack_slash.error
+async def test_attack_slash_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        message = "You need Moderator permissions (Moderate Members) to use /test_attack."
+    else:
+        log.error("Test attack failed: %s", error, exc_info=(type(error), error, error.__traceback__))
+        message = "The test attack could not be completed. Please try again."
+    if interaction.response.is_done():
+        await interaction.edit_original_response(content=message, embed=None, view=None)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)
 
 
 @bot.tree.command(name="about", description="About Chester")
@@ -3441,13 +3591,13 @@ async def help_slash(
         return
     commands = [
         ("chest", "Opens a Treasure Chest using your Town Hall loot table."),
-        ("attack", "Work in Progress"),
+        ("attack", f"Open {ATTACK_REQUIRED_CHESTS} Chests in {ATTACK_DURATION} seconds to attack a rival village and choose one reward."),
         ("option", "Enable or disable notifications and chest tutorial tips."),
         ("leaderboard", "Shows the top ten players and your placement for a selected statistic."),
         ("profile", "Shows nonzero saved values by category and groups walls by level."),
         ("upgrade", "Choose category, item, optional target level and quantity, then confirm payment with resources or Hammers/Wall Rings."),
         ("view", "Choose Collectors for production and capacity or Upgrades for upgrade status."),
-        ("history", "Shows your ten most recent completed upgrades."),
+        ("history", "Shows your ten most recent attacks or completed upgrades."),
         ("remaining", "Lists remaining Town Hall requirements with page controls."),
         ("cancel_upgrade", "Cancels an active item or slot and refunds half its cost."),
         ("collect_loot", "Collects resources and ores produced by collectors and the Blacksmith."),
@@ -3463,6 +3613,7 @@ async def help_slash(
     if mod_only == "Yes":
         commands.extend([
             ("test", "Moderator only. Tests a rarity from a selected Town Hall loot table."),
+            ("test_attack", "Moderator only. Instantly tests random offense and defense at a selected Town Hall without rewards or Chests."),
             ("fight", "Moderator only. Practices the Gem Box encounter with optional image 1–4, without rewards or failure logs."),
             ("reload_loot", "Moderator only. Reloads loot tables and XP thresholds from CSV."),
             ("update_saves", "Moderator only. Migrates saves after progression CSV changes."),
@@ -3595,7 +3746,7 @@ async def profile_category_autocomplete(interaction: discord.Interaction, curren
 
 
 def _profile_value(name: str, value: int) -> str:
-    if name in {"Last Resource Check", "Last Obstacle Check"} or re.fullmatch(r"(?:Builder|Researcher) #\d+ Time", name):
+    if name in {"Last Resource Check", "Last Obstacle Check"} or name.endswith(" Timestamp") or re.fullmatch(r"(?:Builder|Researcher|Upgrade) #\d+ Time", name):
         return f"<t:{value}:R>" if value > 0 else "Not set"
     return f"{value:,}"
 
@@ -3754,6 +3905,7 @@ async def profile_slash(
             **kwargs,
         )
         return
+    embeds = []
     for page_number, page in enumerate(pages, start=1):
         page_label = f" ({page_number}/{len(pages)})" if len(pages) > 1 else ""
         embed = discord.Embed(
@@ -3764,10 +3916,13 @@ async def profile_slash(
         if town_hall_icon:
             embed.set_thumbnail(url=proxy_image_url(town_hall_icon))
         embed.set_footer(text="Made by __godly__")
-        if page_number == 1:
-            await interaction.response.send_message(embed=embed)
-        else:
-            await interaction.followup.send(embed=embed)
+        embeds.append(embed)
+    if len(embeds) == 1:
+        await interaction.response.send_message(embed=embeds[0])
+    else:
+        view = RemainingUpgradesView(interaction.user.id, embeds, command="profile")
+        await interaction.response.send_message(embed=embeds[0], view=view)
+        view.message = await interaction.original_response()
 
 
 def _reset_player(user_id):
