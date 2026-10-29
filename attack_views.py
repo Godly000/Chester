@@ -6,11 +6,27 @@ import discord
 
 from attack_system import ATTACK_DURATION, ATTACK_POLL_SECONDS, ATTACK_REQUIRED_CHESTS, AttackRejected, AttackSystem
 from player_saves import SaveError
+from image_proxy import proxy_image_url
 
 
 log = logging.getLogger("loot_bot")
 ATTACK_RETRY_SECONDS = 30
 ATTACK_FOOTER = "Made by __godly__"
+ATTACK_ACTIVE_IMAGE = "https://i.imgur.com/mptiULK.png"
+ATTACK_RESULT_IMAGES = {
+    0: "https://i.imgur.com/TYRvJ2i.png",
+    1: "https://i.imgur.com/eHgaQq3.png",
+    2: "https://i.imgur.com/30CqQ2f.png",
+    3: "https://i.imgur.com/16gQxiH.png",
+}
+
+
+def attack_thumbnail_url(state):
+    if state["status"] == "active":
+        return proxy_image_url(ATTACK_ACTIVE_IMAGE)
+    if state["status"] == "complete":
+        return proxy_image_url(ATTACK_RESULT_IMAGES.get(state["stars"]))
+    return None
 
 
 def attack_embed(state):
@@ -37,16 +53,22 @@ def attack_embed(state):
         color = discord.Color.green()
     embed = discord.Embed(title=title, description=description, color=color)
     embed.add_field(name="Attack type", value=state["type"])
-    embed.add_field(name="Town Hall", value=str(state["town_hall"]))
-    embed.add_field(name="Defense scaled score" if status == "complete" else "Difficulty", value=f"{state['difficulty']:.3f} / 1")
     if status == "complete":
         chance, expected = AttackSystem.expectations(state["offense"] - state["difficulty"])
         chance = state.get("chance", chance)
         expected = state.get("expected_percentage", expected)
-        embed.add_field(name="Offense scaled score", value=f"{state['offense']:.3f} / 1")
-        embed.add_field(name="Town Hall destruction chance", value=f"{chance:.1%}")
+        embed.add_field(name="Offense score", value=f"{state['offense']:.3f} / 1")
+        embed.add_field(name="TH destruction chance", value=f"{chance:.1%}")
+        embed.add_field(name="Town Hall", value=str(state["town_hall"]))
+        embed.add_field(name="Defense score", value=f"{state['difficulty']:.3f} / 1")
         embed.add_field(name="Expected percentage", value=f"{expected:.1f}%")
         embed.add_field(name="Reward choices", value="\n".join(f"**{name}:** {amount:,}" for name, amount in state["rewards"].items()), inline=False)
+    else:
+        embed.add_field(name="Town Hall", value=str(state["town_hall"]))
+        embed.add_field(name="Difficulty", value=f"{state['difficulty']:.3f} / 1")
+    thumbnail = attack_thumbnail_url(state)
+    if thumbnail:
+        embed.set_thumbnail(url=thumbnail)
     embed.set_footer(text=ATTACK_FOOTER)
     return embed
 
@@ -91,6 +113,7 @@ class AttackRewardsView(discord.ui.View):
             return
         self.controller.release(self.user_id)
         self.stop()
+        self.clear_items()
         embed = attack_embed(state)
         embed.title = "Attack reward collected"
         embed.description = f"**{state['stars']} stars · {state['percentage']}% destruction**\nSelected **{state['rewards'][resource]:,} {resource}**."
