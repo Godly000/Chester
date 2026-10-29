@@ -312,47 +312,158 @@ Decoration,Stone Target,boolean
 Decoration,Archer Queen Statue,boolean
 Decoration,Ancient Barbarian Statue,boolean
 Decoration,Battle Machine Statue,boolean
-Hero Skin,Festive Firecrackers,boolean
-Hero Skin,Master Builder's Return,boolean
+Hero Skin,Gladiator King,boolean
+Hero Skin,P.E.K.K.A King,boolean
 Hero Skin,Skeleton King,boolean
 Hero Skin,Jolly King,boolean
 Hero Skin,Primal King,boolean
 Hero Skin,Clockwork King,boolean
 Hero Skin,Party King,boolean
+Hero Skin,Champion King,boolean
 Hero Skin,Pirate King,boolean
+Hero Skin,Warrior King,boolean
 Hero Skin,Rogue King,boolean
+Hero Skin,Fierce King,boolean
 Hero Skin,Jungle King,boolean
+Hero Skin,Beat King,boolean
 Hero Skin,Golem King,boolean
+Hero Skin,Ice King,boolean
+Hero Skin,Lunar King,boolean
 Hero Skin,Shadow King,boolean
+Hero Skin,Summer King,boolean
+Hero Skin,Pixel King,boolean
 Hero Skin,Clash Fest King,boolean
+Hero Skin,Magic King,boolean
 Hero Skin,Beast King,boolean
+Hero Skin,Painter King,boolean
 Hero Skin,Dark Ages King,boolean
 Hero Skin,Goblin King,boolean
+Hero Skin,Future King,boolean
+Hero Skin,Chess King,boolean
+Hero Skin,Ghost King,boolean
+Hero Skin,Gingerbread King,boolean
 Hero Skin,King of the North,boolean
+Hero Skin,Dragon King,boolean
+Hero Skin,Space King,boolean
+Hero Skin,Egypt King,boolean
+Hero Skin,Football King,boolean
+Hero Skin,King Haaland,boolean
+Hero Skin,Super Squad King,boolean
+Hero Skin,Wild West King,boolean
 Hero Skin,Clash Games King,boolean
-Hero Skin,Judgement King,boolean
+Hero Skin,Anime King,boolean
+Hero Skin,Barbarian Orc,boolean
+Hero Skin,Dark Minion King,boolean
+Hero Skin,Judgment King,boolean
+Hero Skin,Robo King,boolean
+Hero Skin,Fire King,boolean
+Hero Skin,Snake King,boolean
 Hero Skin,Combat King,boolean
+Hero Skin,King Cody,boolean
+Hero Skin,Samurai King,boolean
+Hero Skin,Barbarian Butcher,boolean
+Hero Skin,Renegade King,boolean
+Hero Skin,Clash-A-Rama King,boolean
+Hero Skin,Jelly King,boolean
+Hero Skin,Berserker King,boolean
+Hero Skin,Bruiser King,boolean
+Hero Skin,Awakened King,boolean
+Hero Skin,Desert King,boolean
+Hero Skin,Monkey King,boolean
+Hero Skin,Dragonscale King,boolean
+Hero Skin,Stringshredder King,boolean
+Hero Skin,Skeleton King Resurrected,boolean
+Hero Skin,Anime Fury King,boolean
+Hero Skin,Sapphire Half-Time King,boolean
+Hero Skin,Zeus King,boolean
+Hero Skin,King Barbarian,boolean
+Hero Skin,King Rhodes,boolean
+Hero Skin,Savage King,boolean
 Hero Skin,Gladiator Queen,boolean
 Hero Skin,Valkyrie Queen,boolean
 Hero Skin,Autumn Queen,boolean
 Hero Skin,Ice Queen,boolean
+Hero Skin,Warrior Queen,boolean
 Hero Skin,Primal Queen,boolean
 Hero Skin,Clockwork Queen,boolean
 Hero Skin,Pirate Queen,boolean
 Hero Skin,Rogue Queen,boolean
 Hero Skin,Jungle Queen,boolean
 Hero Skin,Party Queen,boolean
+Hero Skin,Champion Queen,boolean
 Hero Skin,Shadow Queen,boolean
 Hero Skin,Miner Queen,boolean
 Hero Skin,Summer Queen,boolean
+Hero Skin,Pixel Queen,boolean
 Hero Skin,Spooky Queen,boolean
+Hero Skin,Magic Queen,boolean
 Hero Skin,Jolly Queen,boolean
+Hero Skin,Lunar Queen,boolean
+Hero Skin,Heart Hunter Queen,boolean
+Hero Skin,Painter Queen,boolean
+Hero Skin,Dark Ages Queen,boolean
 Hero Skin,Goblin Queen,boolean
+Hero Skin,Future Queen,boolean
 Hero Skin,Chess Queen,boolean
+Hero Skin,Ghost Queen,boolean
+Hero Skin,Gingerbread Queen,boolean
+Hero Skin,Queen of the North,boolean
+Hero Skin,Dragon Queen,boolean
 Hero Skin,Space Queen,boolean
+Hero Skin,Egypt Queen,boolean
+Hero Skin,Football Queen,boolean
+Hero Skin,Wild West Queen,boolean
+Hero Skin,Clash Games Queen,boolean
+Hero Skin,Anime Queen,boolean
+Hero Skin,Archer Satyr,boolean
 Hero Skin,Dark Minion Queen,boolean
+Hero Skin,Justice Queen,boolean
 Hero Skin,Puppet Queen,boolean
+Hero Skin,Fire Queen,boolean
+Hero Skin,Snake Queen,boolean
+Hero Skin,Quickfire Queen,boolean
+Hero Skin,Brutality Queen,boolean
 Hero Skin,Kyudo Queen,boolean
+Hero Skin,Queen Fatale,boolean
+Hero Skin,Renegade Queen,boolean
+Hero Skin,Clash-A-Rama Queen,boolean
+Hero Skin,P.E.Q.Q.A Queen,boolean
+Hero Skin,Archer Hunter,boolean
+Hero Skin,Fury Queen,boolean
+Hero Skin,Blizzard Queen,boolean
+Hero Skin,Queen of the Dunes,boolean
+Hero Skin,Phantom Queen,boolean
+Hero Skin,Dragonscale Queen,boolean
+Hero Skin,Bassbow Queen,boolean
+Hero Skin,Skeleton Queen,boolean
+Hero Skin,Anime Fury Queen,boolean
+Hero Skin,Rosy Half-Time Queen,boolean
+Hero Skin,Medusa Queen,boolean
+Hero Skin,Elven Archer,boolean
+Hero Skin,Alexa Queen,boolean
+Hero Skin,Shroud Queen,boolean
+Hero Skin,Snake Prince,boolean
+Hero Skin,Minion General,boolean
+Hero Skin,Prince Mysterio,boolean
+Hero Skin,Cyclone Prince,boolean
+Hero Skin,Minion Cop,boolean
+Hero Skin,Minion Inventor,boolean
+Hero Skin,Clash-A-Rama Prince,boolean
+Hero Skin,Lava Prince,boolean
+Hero Skin,Nightmare Prince,boolean
+Hero Skin,Armored Prince,boolean
+Hero Skin,Frost Prince,boolean
+Hero Skin,Genie Prince,boolean
+Hero Skin,Ox Prince,boolean
+Hero Skin,Dragonscale Prince,boolean
+Hero Skin,Beatsmasher Prince,boolean
+Hero Skin,Skeleton Prince,boolean
+Hero Skin,Anime Fury Prince,boolean
+Hero Skin,Midas Prince,boolean
+Hero Skin,Manga Fury Prince,boolean
+Hero Skin,Lich Prince,boolean
+Hero Skin,Uso Prince,boolean
+Hero Skin,Nasty Prince,boolean
 Hero Skin,Party Warden,boolean
 Hero Skin,Primal Warden,boolean
 Hero Skin,Clockwork Warden,boolean
@@ -363,24 +474,111 @@ Hero Skin,Jungle Warden,boolean
 Hero Skin,Warden Master,boolean
 Hero Skin,Jolly Warden,boolean
 Hero Skin,Warrior Warden,boolean
+Hero Skin,Shadow Warden,boolean
 Hero Skin,Summer Warden,boolean
+Hero Skin,Pixel Warden,boolean
+Hero Skin,Champion Warden,boolean
+Hero Skin,Magic Warden,boolean
+Hero Skin,Painter Warden,boolean
 Hero Skin,Dark Ages Warden,boolean
+Hero Skin,Goblin Warden,boolean
 Hero Skin,Future Warden,boolean
+Hero Skin,Ghost Warden,boolean
 Hero Skin,Gingerbread Warden,boolean
+Hero Skin,Dragon Warden,boolean
+Hero Skin,Space Warden,boolean
 Hero Skin,Egypt Warden,boolean
+Hero Skin,Football Warden,boolean
 Hero Skin,Wild West Warden,boolean
+Hero Skin,Clash Games Warden,boolean
+Hero Skin,Anime Warden,boolean
+Hero Skin,Grand Dwarf,boolean
+Hero Skin,Dark Minion Warden,boolean
+Hero Skin,Grand Judge,boolean
+Hero Skin,Ice Warden,boolean
 Hero Skin,Snake Warden,boolean
+Hero Skin,Jetpack Warden,boolean
+Hero Skin,Darkness Warden,boolean
+Hero Skin,Grand Monk,boolean
+Hero Skin,Grand Godfather,boolean
+Hero Skin,Grand Doctor,boolean
+Hero Skin,Clash-A-Rama Warden,boolean
+Hero Skin,Ivan Warden,boolean
+Hero Skin,Eternal Warden,boolean
+Hero Skin,Grand Warlock,boolean
+Hero Skin,Grand Sorcerer,boolean
+Hero Skin,Shaman Warden,boolean
+Hero Skin,River Warden,boolean
+Hero Skin,Dragonscale Warden,boolean
+Hero Skin,Keystriker Warden,boolean
+Hero Skin,Skeleton Warden,boolean
+Hero Skin,Anime Fury Warden,boolean
+Hero Skin,Violet Half-Time Warden,boolean
+Hero Skin,Poseidon Warden,boolean
+Hero Skin,Grand Mage,boolean
+Hero Skin,Undertaker Warden,boolean
+Hero Skin,Spider Warden,boolean
 Hero Skin,Winter Champion,boolean
 Hero Skin,Rogue Champion,boolean
+Hero Skin,Jungle Champion,boolean
 Hero Skin,Gladiator Champion,boolean
 Hero Skin,Shadow Champion,boolean
+Hero Skin,Primal Champion,boolean
+Hero Skin,Summer Champion,boolean
 Hero Skin,Party Champion,boolean
+Hero Skin,Pixel Champion,boolean
+Hero Skin,Magic Champion,boolean
 Hero Skin,Pirate Champion,boolean
+Hero Skin,Jolly Champion,boolean
 Hero Skin,Warrior Champion,boolean
+Hero Skin,Painter Champion,boolean
+Hero Skin,Dark Ages Champion,boolean
+Hero Skin,Goblin Champion,boolean
+Hero Skin,Future Champion,boolean
 Hero Skin,Ghost Champion,boolean
-Hero Skin,Champions’ Champion,boolean
+Hero Skin,Champions' Champion,boolean
+Hero Skin,Gingerbread Champion,boolean
 Hero Skin,Dragon Champion,boolean
+Hero Skin,Space Champion,boolean
+Hero Skin,Egypt Champion,boolean
 Hero Skin,Football Champion,boolean
+Hero Skin,Wild West Champion,boolean
 Hero Skin,Anime Champion,boolean
+Hero Skin,Paladin Champion,boolean
 Hero Skin,Ice Champion,boolean
+Hero Skin,Snake Champion,boolean
+Hero Skin,Sniper Champion,boolean
+Hero Skin,The RoyalEST,boolean
+Hero Skin,Royal Ninja,boolean
+Hero Skin,Showtime Champion,boolean
+Hero Skin,Royal Officer,boolean
+Hero Skin,Clash-A-Rama Champion,boolean
+Hero Skin,Yeti Champion,boolean
+Hero Skin,Cursed Champion,boolean
+Hero Skin,Nomad Champion,boolean
+Hero Skin,Explorer Champion,boolean
+Hero Skin,Mirage Champion,boolean
+Hero Skin,Red Champion,boolean
+Hero Skin,Dragonscale Champion,boolean
+Hero Skin,Royal Screamstress,boolean
+Hero Skin,Skeleton Champion,boolean
+Hero Skin,Anime Fury Champion,boolean
+Hero Skin,Amber Half-Time Champion,boolean
+Hero Skin,Hades Champion,boolean
+Hero Skin,Tempest Champion,boolean
+Hero Skin,Royal Enchantress,boolean
+Hero Skin,Sky Champion,boolean
+Hero Skin,Terror Champion,boolean
+Hero Skin,Imprisoned Duke,boolean
+Hero Skin,Showmaster Duke,boolean
+Hero Skin,Skeleton Duke,boolean
+Hero Skin,Anime Fury Duke,boolean
+Hero Skin,Hydra Duke,boolean
+Hero Skin,Drakan Duke,boolean
+Hero Skin,Kane Duke,boolean
+Hero Skin,Behemoth Duke,boolean
 Hero Skin,Armored Machine,boolean
+Hero Skin,Battle Machine of the North,boolean
+Hero Skin,Steampunk Machine,boolean
+Hero Skin,Steampunk Copter,boolean
+Hero Skin,Boat Copter,boolean
