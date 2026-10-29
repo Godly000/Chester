@@ -259,7 +259,7 @@ class AttackSystem:
             values = {name: random.randint(*self.bounds[town_hall][name]) for name, unit_side, _, _ in self.units if unit_side == side}
             scores[side] = self.scaled_score(town_hall, self.score(values, side, kind), side, kind)
         state = {"town_hall": town_hall, "type": kind, "offense": scores["Offense"],
-                 "difficulty": scores["Defense"], "seed": random.getrandbits(128), "reward_ranges": {}}
+                 "difficulty": scores["Defense"], "seed": random.getrandbits(128), "reward_ranges": self.rewards[town_hall]}
         return self._result(state)
 
     @staticmethod
@@ -286,7 +286,8 @@ class AttackSystem:
         rewards = {}
         for resource, (low, high) in state["reward_ranges"].items():
             amount = rng.uniform(low, high) * self.reward_multiplier(stars, percentage, resource in ORE_TYPES)
-            amount *= difficulty_factor * rng.uniform(RANDOM_REWARD_MINIMUM, RANDOM_REWARD_MAXIMUM)
+            resource_multiplier = rng.uniform(RANDOM_REWARD_MINIMUM, RANDOM_REWARD_MAXIMUM)
+            amount *= difficulty_factor * resource_multiplier
             rewards[resource] = math.floor(amount + 0.5)
         return {**state, "status": "complete", "destroyed": destroyed, "percentage": percentage, "stars": stars,
                 "rewards": rewards, "chance": chance, "expected_percentage": expected}
