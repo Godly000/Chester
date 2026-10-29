@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 import discord
 
 from attack_system import ATTACK_DURATION, ATTACK_REQUIRED_CHESTS, AttackRejected, AttackSystem
-from attack_views import AttackController
+from attack_views import AttackController, attack_thumbnail_url
 from notification_system import NotificationSystem
 from image_proxy import proxy_image_url, proxy_upgrade_image_url
 from discord import app_commands
@@ -3534,11 +3534,13 @@ async def test_attack_slash(interaction: discord.Interaction, town_hall: app_com
         color=discord.Color.blue(),
     )
     embed.add_field(name="Attack type", value=result["type"])
-    embed.add_field(name="Offense", value=f"{result['offense']:.3f} / 1")
-    embed.add_field(name="Defense difficulty", value=f"{result['difficulty']:.3f} / 1")
+    embed.add_field(name="Offense score", value=f"{result['offense']:.3f} / 1")
+    embed.add_field(name="Defense score", value=f"{result['difficulty']:.3f} / 1")
     embed.add_field(name="Offset", value=f"{result['offense'] - result['difficulty']:+.3f}")
-    embed.add_field(name="Town Hall destruction chance", value=f"{result['chance']:.1%}")
+    embed.add_field(name="TH destruction chance", value=f"{result['chance']:.1%}")
     embed.add_field(name="Expected destruction before limits", value=f"{result['expected_percentage']:.1f}%")
+    embed.set_thumbnail(url=attack_thumbnail_url(result))
+    embed.add_field(name="Simulated resource rewards (not awarded)", value="\n".join(f"**{name}:** {amount:,}" for name, amount in result["rewards"].items()) or "None", inline=False)
     embed.set_footer(text="Made by __godly__")
     await interaction.edit_original_response(embed=embed)
 
@@ -3562,7 +3564,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester version 1.0.0 updated 2026 October 28\n"
+            "Chester version 0.9.6 updated 2026 October 26\n"
             "https://github.com/Godly000/Chester\n"
             "Terms of Service: https://pastebin.com/0T6GMB5t\n"
             "Privacy Policy: https://pastebin.com/zhfg4af1"
