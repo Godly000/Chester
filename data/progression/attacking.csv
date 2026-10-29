@@ -1,0 +1,171 @@
+Name,Side,Category,Weight
+Town Hall 17 Weapon,Defense,Both,1
+Smasher,Defense,Both,1
+Longshot,Defense,Both,1
+Logger,Defense,Both,1
+Cannon,Defense,Ground,1
+Archer Tower,Defense,Both,1
+Mortar,Defense,Both,1
+Air Defense,Defense,Air,1
+Wizard Tower,Defense,Both,1
+Air Sweeper,Defense,Air,1
+Hidden Tesla,Defense,Ground,1
+Bomb Tower,Defense,Ground,1
+X-Bow,Defense,Both,1
+Inferno Tower,Defense,Both,1
+Eagle Artillery,Defense,Both,1
+Scattershot,Defense,Both,1
+Builder's Hut,Defense,Both,1
+Monolith,Defense,Both,1
+Spell Tower,Defense,Both,1
+Ricochet Cannon,Defense,Ground,1
+Multi-Archer Tower,Defense,Both,1
+Firespitter,Defense,Both,1
+Multi-Gear Tower,Defense,Both,1
+Revenge Tower,Defense,Both,1
+Super Wizard Tower,Defense,Both,1
+Crafted Defense A,Defense,Both,1
+Crafted Defense B,Defense,Both,1
+Crafted Defense C,Defense,Both,1
+Wall,Defense,Ground,0.04
+Bomb,Defense,Ground,1
+Spring Trap,Defense,Ground,1
+Air Bomb,Defense,Air,1
+Giant Bomb,Defense,Ground,1
+Seeking Air Mine,Defense,Air,1
+Skeleton Trap,Defense,Both,1
+Tornado Trap,Defense,Both,1
+Giga Bomb,Defense,Both,1
+Barbarian King,Defense,Ground,1
+Archer Queen,Defense,Both,1
+Minion Prince,Defense,Both,1
+Grand Warden,Defense,Both,1
+Royal Champion,Defense,Both,1
+Dragon Duke,Defense,Both,1
+Army Camp,Offense,Both,1
+Barracks,Offense,Both,1
+Dark Barracks,Offense,Both,1
+Spell Factory,Offense,Both,1
+Dark Spell Factory,Offense,Both,1
+Workshop,Offense,Both,1
+Pet House,Offense,Both,1
+Barbarian King,Offense,Ground,1
+Archer Queen,Offense,Both,1
+Minion Prince,Offense,Air,1
+Grand Warden,Offense,Both,1
+Royal Champion,Offense,Both,1
+Dragon Duke,Offense,Air,1
+Barbarian,Offense,Ground,1
+Archer,Offense,Both,1
+Giant,Offense,Ground,1
+Goblin,Offense,Ground,1
+Wall Breaker,Offense,Both,1
+Balloon,Offense,Air,1
+Wizard,Offense,Ground,1
+Healer,Offense,Both,1
+Dragon,Offense,Air,1
+P.E.K.K.A.,Offense,Ground,1
+Baby Dragon,Offense,Air,1
+Miner,Offense,Ground,1
+Electro Dragon,Offense,Air,1
+Yeti,Offense,Ground,1
+Dragon Rider,Offense,Air,1
+Electro Titan,Offense,Ground,1
+Root Rider,Offense,Ground,1
+Thrower,Offense,Ground,1
+Meteor Golem,Offense,Ground,1
+Minion,Offense,Air,1
+Hog Rider,Offense,Ground,1
+Valkyrie,Offense,Ground,1
+Golem,Offense,Ground,1
+Witch,Offense,Ground,1
+Lava Hound,Offense,Air,1
+Bowler,Offense,Ground,1
+Ice Golem,Offense,Ground,1
+Headhunter,Offense,Both,1
+Apprentice Warden,Offense,Ground,1
+Druid,Offense,Both,1
+Furnace,Offense,Both,1
+Ruin Witch,Offense,Ground,1
+Lightning Spell,Offense,Both,1
+Healing Spell,Offense,Both,1
+Rage Spell,Offense,Both,1
+Jump Spell,Offense,Ground,1
+Freeze Spell,Offense,Both,1
+Clone Spell,Offense,Both,1
+Invisibility Spell,Offense,Both,1
+Recall Spell,Offense,Both,1
+Revive Spell,Offense,Both,1
+Totem Spell,Offense,Both,1
+Poison Spell,Offense,Both,1
+Earthquake Spell,Offense,Ground,1
+Haste Spell,Offense,Air,1
+Skeleton Spell,Offense,Ground,1
+Bat Spell,Offense,Air,1
+Overgrowth Spell,Offense,Both,1
+Ice Block Spell,Offense,Both,1
+Angry Spell,Offense,Both,1
+Wall Wrecker,Offense,Ground,1
+Battle Blimp,Offense,Both,1
+Stone Slammer,Offense,Air,1
+Siege Barracks,Offense,Ground,1
+Log Launcher,Offense,Ground,1
+Flame Flinger,Offense,Both,1
+Battle Drill,Offense,Ground,1
+Troop Launcher,Offense,Both,1
+Sky Wagon,Offense,Air,1
+L.A.S.S.I.,Offense,Ground,1
+Electric Owl,Offense,Air,1
+Yak,Offense,Ground,1
+Unicorn,Offense,Both,1
+Frosty,Offense,Both,1
+Diggy,Offense,Ground,1
+Poison Lizard,Offense,Ground,1
+Phoenix,Offense,Both,1
+Spirit Fox,Offense,Both,1
+Angry Jelly,Offense,Both,1
+Sneezy,Offense,Air,1
+Greedy Raven,Offense,Air,1
+Barbarian Puppet,Offense,Ground,1
+Rage Vial,Offense,Ground,1
+Earthquake Boots,Offense,Ground,1
+Vampstache,Offense,Ground,1
+Giant Gauntlet,Offense,Ground,1
+Spiky Ball,Offense,Ground,1
+Snake Bracelet,Offense,Ground,1
+Stick Horse,Offense,Ground,1
+Archer Puppet,Offense,Both,1
+Invisibility Vial,Offense,Both,1
+Giant Arrow,Offense,Both,1
+Healer Puppet,Offense,Both,1
+Frozen Arrow,Offense,Both,1
+Magic Mirror,Offense,Both,1
+Action Figure,Offense,Both,1
+Monolith Arrow,Offense,Both,1
+Henchmen Puppet,Offense,Air,1
+Dark Orb,Offense,Air,1
+Metal Pants,Offense,Air,1
+Noble Iron,Offense,Air,1
+Dark Crown,Offense,Air,1
+Meteor Staff,Offense,Air,1
+Portal Pendant,Offense,Air,1
+Eternal Tome,Offense,Both,1
+Life Gem,Offense,Both,1
+Rage Gem,Offense,Ground,1
+Healing Tome,Offense,Both,1
+Fireball,Offense,Both,1
+Lavaloon Puppet,Offense,Air,1
+Heroic Torch,Offense,Ground,1
+Royal Gem,Offense,Both,1
+Seeking Shield,Offense,Both,1
+Hog Puppet,Offense,Ground,1
+Haste Vial,Offense,Both,1
+Rocket Spear,Offense,Both,1
+Electro Boots,Offense,Both,1
+Frost Flake,Offense,Both,1
+Fire Heart,Offense,Air,1
+Flame Blower,Offense,Air,1
+Stun Blaster,Offense,Air,1
+Electro Fangs,Offense,Air,1
+Rocket Backpack,Offense,Air,1
+Revenge Deck,Offense,Air,1
