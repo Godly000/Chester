@@ -248,14 +248,21 @@ class AttackSystem:
             field = self.store.village_by_name[ATTACK_CHESTS_FIELD]
             village[field.name] = self.store._bounded_add(village[field.name], 1, field.data_type)
 
-    def simulate(self, town_hall):
+    def simulate(self, town_hall, offense=None, defense=None):
         if not self.ready:
             raise AttackRejected("Attack data is unavailable. Please ask a moderator to check the bot setup.")
         if isinstance(town_hall, bool) or not isinstance(town_hall, int) or town_hall not in self.bounds:
             raise AttackRejected("Choose a Town Hall level from 1 through 18.")
+        overrides = {"Offense": offense, "Defense": defense}
+        for side, value in overrides.items():
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1):
+                raise AttackRejected(f"{side} score must be between 0 and 1.")
         kind = random.choice(ATTACK_TYPES)
         scores = {}
         for side in ATTACK_SIDES:
+            if overrides[side] is not None:
+                scores[side] = float(overrides[side])
+                continue
             values = {name: random.randint(*self.bounds[town_hall][name]) for name, unit_side, _, _ in self.units if unit_side == side}
             scores[side] = self.scaled_score(town_hall, self.score(values, side, kind), side, kind)
         state = {"town_hall": town_hall, "type": kind, "offense": scores["Offense"],
