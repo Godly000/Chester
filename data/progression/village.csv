@@ -124,6 +124,48 @@ Researcher #2 Currency,Upgrade,byte
 Researcher #2 Cost,Upgrade,integer
 Researcher #3 Currency,Upgrade,byte
 Researcher #3 Cost,Upgrade,integer
+Attack End Timestamp,Attack,integer
+Chests Opened While Attacking,Attack,byte
+Attack #1 Type,History,boolean
+Attack #1 Stars,History,byte
+Attack #1 Percentage,History,byte
+Attack #1 Timestamp,History,integer
+Attack #2 Type,History,boolean
+Attack #2 Stars,History,byte
+Attack #2 Percentage,History,byte
+Attack #2 Timestamp,History,integer
+Attack #3 Type,History,boolean
+Attack #3 Stars,History,byte
+Attack #3 Percentage,History,byte
+Attack #3 Timestamp,History,integer
+Attack #4 Type,History,boolean
+Attack #4 Stars,History,byte
+Attack #4 Percentage,History,byte
+Attack #4 Timestamp,History,integer
+Attack #5 Type,History,boolean
+Attack #5 Stars,History,byte
+Attack #5 Percentage,History,byte
+Attack #5 Timestamp,History,integer
+Attack #6 Type,History,boolean
+Attack #6 Stars,History,byte
+Attack #6 Percentage,History,byte
+Attack #6 Timestamp,History,integer
+Attack #7 Type,History,boolean
+Attack #7 Stars,History,byte
+Attack #7 Percentage,History,byte
+Attack #7 Timestamp,History,integer
+Attack #8 Type,History,boolean
+Attack #8 Stars,History,byte
+Attack #8 Percentage,History,byte
+Attack #8 Timestamp,History,integer
+Attack #9 Type,History,boolean
+Attack #9 Stars,History,byte
+Attack #9 Percentage,History,byte
+Attack #9 Timestamp,History,integer
+Attack #10 Type,History,boolean
+Attack #10 Stars,History,byte
+Attack #10 Percentage,History,byte
+Attack #10 Timestamp,History,integer
 Upgrade #1 Name,History,short
 Upgrade #1 Time,History,integer
 Upgrade #2 Name,History,short
@@ -178,6 +220,7 @@ Wizard Tower #2,Defense Level,byte
 Wizard Tower #3,Defense Level,byte
 Wizard Tower #4,Defense Level,byte
 Wizard Tower #5,Defense Level,byte
+Wizard Tower #6,Defense Level,byte
 Air Sweeper #1,Defense Level,byte
 Air Sweeper #2,Defense Level,byte
 Hidden Tesla #1,Defense Level,byte
