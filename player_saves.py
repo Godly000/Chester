@@ -24,6 +24,7 @@ FORMAT_DETAILS = {
 SAVE_MAGIC = b"CHSV"
 SAVE_VERSION = 1
 SAVE_HEADER = struct.Struct("<4sB32s")
+SAVE_FIELD_RENAMES = {"Hide tutorial": "Hide Tutorial", "Obstacles cleared": "Obstacles Cleared"}
 
 
 class SaveError(Exception):
@@ -407,6 +408,8 @@ class SaveStore:
         values = self._default_values()
         fields = {field.identity: field for field in self.fields}
         for source, name, index in layout["fields"]:
+            if source == "village":
+                name = SAVE_FIELD_RENAMES.get(name, name)
             field = fields.get((source, name))
             if field is not None:
                 values[field.index] = self._bounded_value(old_values[index], field.data_type)
@@ -431,6 +434,10 @@ class SaveStore:
 
         old_fields = {field.identity: field for field in old_store.fields}
         new_fields = {field.identity: field for field in self.fields}
+        for previous, current in SAVE_FIELD_RENAMES.items():
+            old_key, new_key = ("village", previous), ("village", current)
+            if old_key in old_fields and new_key in new_fields and new_key not in old_fields:
+                old_fields[new_key] = old_fields.pop(old_key)
         common = old_fields.keys() & new_fields.keys()
         added_fields = len(new_fields.keys() - old_fields.keys())
         removed_fields = len(old_fields.keys() - new_fields.keys())
