@@ -3026,6 +3026,15 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
     await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=False)
 
 
+def _next_builder_hut(village):
+    for number in range(1, 6):
+        name = f"Builder's Hut #{number}"
+        field = save_store.village_by_name.get(name)
+        if field is not None and village.get(name, 0) == 0:
+            return field
+    raise UpgradeRejected(BUILDER_BASE_MESSAGE)
+
+
 def _builder_purchase_cost(field, village, collection):
     match = re.fullmatch(r"Builder's Hut #(\d+)", field.name)
     if not match:
@@ -3085,9 +3094,9 @@ def _builder_reminder_kwargs(user_id, kwargs):
     command = f"</buy:{command_id}>" if command_id else "/buy"
     def decorate(embed):
         result = embed.copy()
-        result.set_footer(text="You can buy an extra Builder!")
+        result.set_footer(text=f"You can buy {available.name.replace(chr(39), chr(8217))}!")
         if len(result.fields) < 25 and not any(field.name == "Extra Builder available" for field in result.fields):
-            result.add_field(name="Extra Builder available", value=f"Use {command} with category **Builder Hut** and item **{available.name}**.", inline=False)
+            result.add_field(name="Extra Builder available", value=f"Buy **{available.name.replace(chr(39), chr(8217))}** using {command} with category **Important** and item **Builder’s Hut**.", inline=False)
         return result
     result = dict(kwargs)
     if isinstance(single, discord.Embed):
@@ -3122,7 +3131,7 @@ _install_builder_reminder()
 
 
 async def buy_category_autocomplete(interaction: discord.Interaction, current: str):
-    return [app_commands.Choice(name=name, value=name) for name in [*COLLECTION_SHOP_COSTS, "Builder Hut"]
+    return [app_commands.Choice(name=name, value=name) for name in [*COLLECTION_SHOP_COSTS, "Important"]
             if current.casefold() in name.casefold()]
 
 
@@ -3133,13 +3142,20 @@ async def buy_item_autocomplete(interaction: discord.Interaction, current: str):
     try:
         village, collection = save_store.player_values(interaction.user.id)
         choices = []
-        builder = category == "Builder Hut"
-        fields = save_store.village_by_name.values() if builder else save_store.collection_by_name.values()
-        for field in fields:
-            if (not builder and field.category != category) or (builder and not field.name.startswith("Builder's Hut #")) or current.casefold() not in field.name.casefold():
+        if (category or "").strip().casefold() == "important":
+            if current.replace("’", "'").casefold() not in "builder's hut":
+                return []
+            try:
+                field = _next_builder_hut(village)
+                cost = _builder_purchase_cost(field, village, collection)
+            except UpgradeRejected:
+                return []
+            return [app_commands.Choice(name=f"Builder’s Hut ({cost:,} Gems)", value="Builder's Hut")]
+        for field in save_store.collection_by_name.values():
+            if field.category != category or current.casefold() not in field.name.casefold():
                 continue
             try:
-                cost = (_builder_purchase_cost if builder else _collection_purchase_cost)(field, village, collection)
+                cost = _collection_purchase_cost(field, village, collection)
             except UpgradeRejected:
                 continue
             choices.append(app_commands.Choice(name=f"{field.name} ({cost:,} Gems)"[:100], value=field.name))
@@ -3150,20 +3166,22 @@ async def buy_item_autocomplete(interaction: discord.Interaction, current: str):
 
 
 @bot.tree.command(name="buy", description="Buy a Builder Hut or a missing collection item with Gems.")
-@app_commands.describe(category="Builder Hut or collection category", item="The Builder Hut or collection item to buy")
+@app_commands.describe(category="Important or collection category", item="The Builder Hut or collection item to buy")
 @app_commands.autocomplete(category=buy_category_autocomplete, item=buy_item_autocomplete)
 async def buy_slash(interaction: discord.Interaction, category: str, item: str):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        builder = category.strip().casefold() == "builder hut"
-        fields = save_store.village_by_name.values() if builder else save_store.collection_by_name.values()
-        field = next((entry for entry in fields
-                      if entry.name.casefold() == item.strip().casefold()
-                      and (builder or entry.category.casefold() == category.strip().casefold())), None)
-        if field is None:
-            raise UpgradeRejected("Choose a valid purchase category and item.")
+        builder = category.strip().casefold() == "important"
+        if builder and item.strip().replace("’", "'").casefold() != "builder's hut":
+            raise UpgradeRejected("Choose Builder’s Hut from the Important category.")
         with save_store.transaction(interaction.user.id) as (village, collection):
+            field = _next_builder_hut(village) if builder else next(
+                (entry for entry in save_store.collection_by_name.values()
+                 if entry.name.casefold() == item.strip().casefold()
+                 and entry.category.casefold() == category.strip().casefold()), None)
+            if field is None:
+                raise UpgradeRejected("Choose a valid purchase category and item.")
             cost = (_builder_purchase_cost if builder else _collection_purchase_cost)(field, village, collection)
             if village["Gems"] < cost:
                 raise UpgradeRejected(f"You need {cost:,} Gems to buy {field.name}; you have {village['Gems']:,}.")
