@@ -5,6 +5,7 @@ import csv
 from copy import copy
 from contextvars import ContextVar
 from fractions import Fraction
+from functools import wraps
 import logging
 import math
 import os
@@ -32,6 +33,8 @@ from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaM
 from resource_system import COLLECTIBLE_RESOURCES, LAST_RESOURCE_CHECK, RESOURCE_PRODUCTION_SECONDS, RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
     STRUCTURE_CATEGORIES,
+    BUILDER_UNLOCK_COSTS,
+    BUILDER_BASE_MESSAGE,
     RefreshReport,
     UpgradeCurrencyChoiceRequired,
     UpgradeOutcome,
@@ -262,6 +265,7 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 MAX_AUTOCOMPLETE_REFRESHES = 8
 _autocomplete_refreshes = {}
+_footer_user_id = ContextVar("footer_user_id", default=None)
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
 intents = discord.Intents.default()
@@ -1008,6 +1012,7 @@ async def on_ready():
 
     try:
         synced = await bot.tree.sync()
+        bot.buy_command_id = next((command.id for command in synced if command.name == "buy"), None)
         log.info(
             "Synced %d global slash command(s) (can take up to 1 hour to "
             "appear in every server's client).",
@@ -3021,6 +3026,21 @@ async def use_slash(interaction: discord.Interaction, item: str, quantity: Optio
     await interaction.response.send_message(embed=_magic_result_embed(result), ephemeral=False)
 
 
+def _builder_purchase_cost(field, village, collection):
+    match = re.fullmatch(r"Builder's Hut #(\d+)", field.name)
+    if not match:
+        raise UpgradeRejected("Choose a Builder Hut to buy.")
+    number = int(match.group(1))
+    if number >= 6:
+        raise UpgradeRejected(BUILDER_BASE_MESSAGE)
+    if village.get(field.name, 0):
+        raise UpgradeRejected(f"You already own {field.name}.")
+    if any(village.get(f"Builder's Hut #{previous}", 0) < 1 for previous in range(1, number)):
+        raise UpgradeRejected("Buy the previous Builder Hut first.")
+    upgrade_system._availability(field, village, collection)
+    return BUILDER_UNLOCK_COSTS.get(number, 0)
+
+
 def _collection_purchase_cost(field, village, collection):
     cost = COLLECTION_SHOP_COSTS.get(field.category)
     if cost is None:
@@ -3035,8 +3055,74 @@ def _collection_purchase_cost(field, village, collection):
     return cost
 
 
+def _builder_reminder_kwargs(user_id, kwargs):
+    embeds = kwargs.get("embeds")
+    single = kwargs.get("embed")
+    if user_id is None or save_migration_active or not (isinstance(single, discord.Embed) or isinstance(embeds, (list, tuple)) and embeds):
+        return kwargs
+    if not save_store.player_path(user_id).is_file():
+        return kwargs
+    try:
+        village, collection = save_store.player_values(user_id)
+        available = None
+        for number in range(1, 6):
+            field = save_store.village_by_name.get(f"Builder's Hut #{number}")
+            if field is None:
+                continue
+            try:
+                cost = _builder_purchase_cost(field, village, collection)
+            except UpgradeRejected:
+                continue
+            if village.get("Gems", 0) >= cost:
+                available = field
+                break
+    except (OSError, ValueError, SaveError) as error:
+        log.warning("Could not check Builder reminder for %s: %s", user_id, error)
+        return kwargs
+    if available is None:
+        return kwargs
+    command_id = getattr(bot, "buy_command_id", None)
+    command = f"</buy:{command_id}>" if command_id else "/buy"
+    def decorate(embed):
+        result = embed.copy()
+        result.set_footer(text="You can buy an extra Builder!")
+        if len(result.fields) < 25 and not any(field.name == "Extra Builder available" for field in result.fields):
+            result.add_field(name="Extra Builder available", value=f"Use {command} with category **Builder Hut** and item **{available.name}**.", inline=False)
+        return result
+    result = dict(kwargs)
+    if isinstance(single, discord.Embed):
+        result["embed"] = decorate(single)
+    if isinstance(embeds, (list, tuple)):
+        result["embeds"] = [decorate(embed) for embed in embeds]
+    return result
+
+
+def _install_builder_reminder():
+    def wrap(owner, name, source):
+        original = getattr(owner, name)
+        if getattr(original, "_builder_reminder", False):
+            return
+        @wraps(original)
+        async def wrapped(self, *args, **kwargs):
+            interaction = self._parent if source == "response" else self if source == "interaction" else None
+            if interaction is not None:
+                _footer_user_id.set(interaction.user.id)
+            user_id = interaction.user.id if interaction is not None else _footer_user_id.get()
+            return await original(self, *args, **_builder_reminder_kwargs(user_id, kwargs))
+        wrapped._builder_reminder = True
+        setattr(owner, name, wrapped)
+    for name in ("send_message", "edit_message", "defer"):
+        wrap(discord.InteractionResponse, name, "response")
+    wrap(discord.Interaction, "edit_original_response", "interaction")
+    for name in ("send", "edit_message"):
+        wrap(discord.Webhook, name, "webhook")
+
+
+_install_builder_reminder()
+
+
 async def buy_category_autocomplete(interaction: discord.Interaction, current: str):
-    return [app_commands.Choice(name=name, value=name) for name in COLLECTION_SHOP_COSTS
+    return [app_commands.Choice(name=name, value=name) for name in [*COLLECTION_SHOP_COSTS, "Builder Hut"]
             if current.casefold() in name.casefold()]
 
 
@@ -3047,11 +3133,13 @@ async def buy_item_autocomplete(interaction: discord.Interaction, current: str):
     try:
         village, collection = save_store.player_values(interaction.user.id)
         choices = []
-        for field in save_store.collection_by_name.values():
-            if field.category != category or current.casefold() not in field.name.casefold():
+        builder = category == "Builder Hut"
+        fields = save_store.village_by_name.values() if builder else save_store.collection_by_name.values()
+        for field in fields:
+            if (not builder and field.category != category) or (builder and not field.name.startswith("Builder's Hut #")) or current.casefold() not in field.name.casefold():
                 continue
             try:
-                cost = _collection_purchase_cost(field, village, collection)
+                cost = (_builder_purchase_cost if builder else _collection_purchase_cost)(field, village, collection)
             except UpgradeRejected:
                 continue
             choices.append(app_commands.Choice(name=f"{field.name} ({cost:,} Gems)"[:100], value=field.name))
@@ -3061,30 +3149,32 @@ async def buy_item_autocomplete(interaction: discord.Interaction, current: str):
         return []
 
 
-@bot.tree.command(name="buy", description="Buy a missing collection item with Gems.")
-@app_commands.describe(category="Collection category", item="The missing collection item to buy")
+@bot.tree.command(name="buy", description="Buy a Builder Hut or a missing collection item with Gems.")
+@app_commands.describe(category="Builder Hut or collection category", item="The Builder Hut or collection item to buy")
 @app_commands.autocomplete(category=buy_category_autocomplete, item=buy_item_autocomplete)
 async def buy_slash(interaction: discord.Interaction, category: str, item: str):
     if not await enforce_chester_channel(interaction):
         return
     try:
-        field = next((entry for entry in save_store.collection_by_name.values()
+        builder = category.strip().casefold() == "builder hut"
+        fields = save_store.village_by_name.values() if builder else save_store.collection_by_name.values()
+        field = next((entry for entry in fields
                       if entry.name.casefold() == item.strip().casefold()
-                      and entry.category.casefold() == category.strip().casefold()), None)
+                      and (builder or entry.category.casefold() == category.strip().casefold())), None)
         if field is None:
-            raise UpgradeRejected("Choose a valid collection category and item.")
+            raise UpgradeRejected("Choose a valid purchase category and item.")
         with save_store.transaction(interaction.user.id) as (village, collection):
-            cost = _collection_purchase_cost(field, village, collection)
+            cost = (_builder_purchase_cost if builder else _collection_purchase_cost)(field, village, collection)
             if village["Gems"] < cost:
                 raise UpgradeRejected(f"You need {cost:,} Gems to buy {field.name}; you have {village['Gems']:,}.")
             village["Gems"] -= cost
-            collection[field.name] = 1
+            (village if builder else collection)[field.name] = 1
             gems_remaining = village["Gems"]
     except UpgradeRejected as error:
         await interaction.response.send_message(_error_text(error), ephemeral=True)
         return
     embed = discord.Embed(
-        title="Collection item purchased",
+        title="Builder Hut purchased" if builder else "Collection item purchased",
         description=f"Bought **{field.name}** for **{cost:,} Gems**.\nGems remaining: **{gems_remaining:,}**.",
         color=discord.Color.green(),
     )
