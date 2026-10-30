@@ -178,6 +178,7 @@ class AttackController:
                 return
             if time.time() < self.retry_at.get(user_id, 0):
                 continue
+            state = None
             try:
                 state = await asyncio.to_thread(self.system.status, user_id)
                 if state is None or state["status"] == "active":
@@ -194,8 +195,17 @@ class AttackController:
                 await asyncio.to_thread(self.system.mark_notified, user_id, state["end"])
                 self.retry_at.pop(user_id, None)
             except discord.HTTPException as error:
-                self.retry_at[user_id] = time.time() + ATTACK_RETRY_SECONDS
-                log.warning("Could not display attack result for %s: %s", user_id, error)
+                if error.status in (403, 404) and state is not None:
+                    detached = await asyncio.to_thread(
+                        self.system.detach_message, user_id, state["end"],
+                        state.get("channel_id"), state.get("message_id"),
+                    )
+                    if detached:
+                        self.release(user_id)
+                    log.warning("Attack result for %s could not be shown in channel %s because the channel or message is inaccessible. Use /attack in an accessible channel to retrieve the result.", user_id, state.get("channel_id"))
+                else:
+                    self.retry_at[user_id] = time.time() + ATTACK_RETRY_SECONDS
+                    log.warning("Could not display attack result for %s: %s", user_id, error)
             except Exception:
                 self.retry_at[user_id] = time.time() + ATTACK_RETRY_SECONDS
                 log.exception("Could not finish attack for %s", user_id)
