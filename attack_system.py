@@ -348,6 +348,17 @@ class AttackSystem:
                 state.update(channel_id=int(channel_id), message_id=int(message_id), notified=state["status"] == "complete")
                 self._write(user_id, state)
 
+    def detach_message(self, user_id, end, channel_id, message_id):
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is None or (state["end"], state.get("channel_id"), state.get("message_id")) != (end, channel_id, message_id):
+                return False
+            state.pop("channel_id", None)
+            state.pop("message_id", None)
+            state["notified"] = False
+            self._write(user_id, state)
+            return True
+
     def mark_notified(self, user_id, end):
         with self.store.lock:
             state = self._read(user_id)
