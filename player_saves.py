@@ -24,7 +24,15 @@ FORMAT_DETAILS = {
 SAVE_MAGIC = b"CHSV"
 SAVE_VERSION = 1
 SAVE_HEADER = struct.Struct("<4sB32s")
-SAVE_FIELD_RENAMES = {"Hide tutorial": "Hide Tutorial", "Obstacles cleared": "Obstacles Cleared"}
+SAVE_FIELD_RENAMES = {
+    "Hide tutorial": "Hide Tutorial",
+    "Obstacles cleared": "Obstacles Cleared",
+    "Power Pancakes Attacks Remaining": "Power Pancakes Expiration",
+    "Mighty Morsel Attacks Remaining": "Mighty Morsel Expiration",
+    "Clan Castle Cake End Timestamp": "Clan Castle Cake Expiration",
+    "Power Potion End Timestamp": "Power Potion Expiration",
+    "Hero Potion End Timestamp": "Hero Potion Expiration",
+}
 
 
 class SaveError(Exception):
