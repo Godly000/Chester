@@ -1,0 +1,22 @@
+Command,Text
+Any,"Check everything about your or someone else's base using the ""/profile"" command."
+Any,"The ""/leaderboard"" command lets you compare your progress against others."
+Any,"Obstacles randomly spawn around your village. ""/check_obstacles"" saves them to your village and ""/remove_obstacle"" removes them for a small amount of Gems."
+Any,"See what Magic Items you have with ""/profile Magic Item"", use them with ""/use [Magic Item name]"", and sell them with ""/sell""."
+Any,"Don't leave your Collectors, Mines, and Drills full! ""/collect_loot"" will generate passive resources for you."
+Any,"Use the ""/view"" command to see how your Resource generators and Upgraders are doing."
+Any,"Type ""/help"" to see a list of all the commands."
+Any,"Do you enjoy playing Chester? Donations are accepted through ""/support""!"
+Chest,Ran out of space to store loot? Either upgrade your storages or Clan Castle (Resources category).
+Chest,"Which Cosmetics and Hero Equipments you own, and which are you still looking for? Check it with ""/profile [Category name]""."
+Chest,"Nowhere to spend your hard-earned resources? Upgrade some buildings using the ""/upgrade [Category name] [Item name]"" command."
+Chest,"Get a specific cosmetic or Epic Equipment with the ""/buy"" command."
+Upgrade,"Need resources in a pinch? Transfer some of your Treasury resources to your storages with ""/collect_treasury""."
+Upgrade,"You can buy more Builders with Gems using the ""/buy"" command."
+Upgrade,"If you want to check how much an upgrade costs or how long it takes, use the ""/upgradeinfo"" command."
+Upgrade,"Want to upgrade your Town Hall? Use the ""/remaining"" command to check which upgrades are left."
+Upgrade,"Started the wrong upgrade? Use the ""/cancel"" command to get half of your resources back."
+Upgrade,See your recent finished upgrades with the /history Upgrades command.
+Attack,Upgrading your offensive units is crucial to strong attacking results.
+Attack,Some Magic Items can increase your attacking power.
+Attack,Some units are used in every type of attack while most aren't. Pay attention to what's used more often and upgrade it first!
