@@ -21,9 +21,9 @@ def format_duration(seconds):
     parts = []
     for unit, label in ((86400, "day"), (3600, "hour"), (60, "minute"), (1, "second")):
         amount, seconds = divmod(seconds, unit)
-        if amount or parts or unit == 1:
+        if amount:
             parts.append(f"{amount:,} {label}{'' if amount == 1 else 's'}")
-    return " ".join(parts)
+    return " ".join(parts) or "0 seconds"
 
 
 def remaining_after_magic(remaining, strength):
