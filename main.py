@@ -2820,7 +2820,7 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
 
 
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
-@app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost duration or starting level")
+@app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost duration or starting level", user_id="Discord user ID for a player including someone outside this server")
 @app_commands.autocomplete(category=upgradeinfo_category_autocomplete)
 @app_commands.choices(sorted=[
     app_commands.Choice(name="Cost Ascending", value="Cost Ascending"),
@@ -2830,17 +2830,27 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
     app_commands.Choice(name="Starting Level Ascending", value="Starting Level Ascending"),
     app_commands.Choice(name="Starting Level Descending", value="Starting Level Descending"),
 ])
-async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None):
+async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None, user_id: Optional[str] = None):
     if not await enforce_chester_channel(interaction):
         return
+    target_id = interaction.user.id
+    if user_id is not None:
+        entered_id = user_id.strip()
+        if not entered_id.isascii() or not entered_id.isdigit() or not 0 < int(entered_id) < 2 ** 64:
+            await interaction.response.send_message("Enter a valid Discord user ID.", ephemeral=True)
+            return
+        target_id = int(entered_id)
+    if not save_store.player_path(target_id).is_file():
+        await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
+        return
     try:
-        village, collection = save_store.player_values(interaction.user.id)
+        village, collection = save_store.player_values(target_id)
         town_hall = village["Town Hall"]
         if town_hall == 0:
-            await interaction.response.send_message("Use /chest to create your village first.", ephemeral=True)
+            await interaction.response.send_message("That player needs to open a Chest using /chest to get started." if target_id != interaction.user.id else "Use /chest to create your village first.", ephemeral=True)
             return
         if town_hall >= 18:
-            await interaction.response.send_message("Your Town Hall is already at its maximum level.", ephemeral=True)
+            await interaction.response.send_message("That player’s Town Hall is already at its maximum level." if target_id != interaction.user.id else "Your Town Hall is already at its maximum level.", ephemeral=True)
             return
         if category is not None:
             categories = dict.fromkeys(field.category for field in upgrade_system.level_fields)
@@ -2852,6 +2862,10 @@ async def remaining_slash(interaction: discord.Interaction, category: Optional[s
         if category is not None:
             entries = [entry for entry in entries if upgrade_system.fields_by_name[entry.item].category == category]
         pages = _remaining_pages(entries, town_hall, sorted, category)
+        if target_id != interaction.user.id:
+            target = bot.get_user(target_id)
+            for page in pages:
+                page.set_author(name=f"{target.display_name} · {target_id}" if target else f"Player {target_id}")
     except Exception as error:
         log.exception("Could not list remaining upgrades: %s", error)
         await interaction.response.send_message("Your remaining upgrades could not be loaded.", ephemeral=True)
