@@ -9,6 +9,7 @@ from player_saves import FORMAT_DETAILS
 
 OBSTACLE_INTERVAL_SECONDS = 28800
 INITIAL_OBSTACLES = 40
+MAX_OBSTACLES = 45
 LAST_OBSTACLE_CHECK = "Last Obstacle Check"
 
 
@@ -73,7 +74,8 @@ class ObstacleSystem:
         names = list(self.items)
         weights = [self.items[name].weight for name in names]
         added = {}
-        for _ in range(count):
+        available = max(0, MAX_OBSTACLES - sum(village[name] for name in self.items))
+        for _ in range(min(count, available)):
             name = self.rng.choices(names, weights=weights, k=1)[0]
             if village[name] < FORMAT_DETAILS["byte"][2]:
                 village[name] += 1
@@ -117,6 +119,42 @@ class ObstacleSystem:
     def maximum(self, village, item):
         owned = village[item.name]
         return min(owned, village[item.resource] // item.cost) if item.cost else owned
+
+    def quote_all(self, village):
+        if not self.items:
+            raise ObstacleRejected("Obstacle data is unavailable")
+        counts = {name: village[name] for name in self.items if village[name] > 0}
+        if not counts:
+            raise ObstacleRejected("You have no obstacles to remove.")
+        costs = {}
+        for name, amount in counts.items():
+            item = self.items[name]
+            costs[item.resource] = costs.get(item.resource, 0) + item.cost * amount
+        return counts, costs
+
+    def remove_all(self, user_id, expected_counts, expected_costs):
+        with self.store.transaction(user_id) as (village, collection):
+            counts, costs = self.quote_all(village)
+            if counts != expected_counts or costs != expected_costs:
+                raise ObstacleRejected("Your obstacles or their costs changed. Run /remove_obstacle with All again to review the new total.")
+            missing = [f"{cost - village[resource]:,} {resource}" for resource, cost in costs.items() if village[resource] < cost]
+            if missing:
+                raise ObstacleRejected("You cannot remove all obstacles. Missing " + ", ".join(missing) + ".")
+            reward = sum(int(self.rng.choice(self.items[name].reward)) for name, amount in counts.items() for _ in range(amount))
+            for resource, cost in costs.items():
+                village[resource] -= cost
+            for name in counts:
+                village[name] = 0
+            field = self.store.village_by_name["Obstacles Cleared"]
+            village[field.name] = self.store._bounded_add(village[field.name], sum(counts.values()), field.data_type)
+            before = village["Gems"]
+            field = self.store.village_by_name["Gems"]
+            village["Gems"] = self.store._bounded_add(before, reward, field.data_type)
+            credited = village["Gems"] - before
+            if "Total Gems" in village:
+                field = self.store.village_by_name["Total Gems"]
+                village[field.name] = self.store._bounded_add(village[field.name], credited, field.data_type)
+            return credited
 
     def remove(self, user_id, name, amount):
         item = self.resolve(name)
