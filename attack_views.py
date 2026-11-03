@@ -11,6 +11,7 @@ from image_proxy import proxy_image_url
 
 log = logging.getLogger("loot_bot")
 ATTACK_RETRY_SECONDS = 30
+ATTACK_RESPONSE_LIFETIME = 840
 ATTACK_FOOTER = "Made by __godly__"
 ATTACK_ACTIVE_IMAGE = "https://i.imgur.com/mptiULK.png"
 ATTACK_RESULT_IMAGES = {
@@ -133,7 +134,44 @@ class AttackController:
         self.is_migrating = is_migrating
         self.views = {}
         self.retry_at = {}
+        self.responses = {}
+        self.redisplaying = set()
         self.task = None
+        self.bot.add_listener(self.on_command, "on_app_command_completion")
+
+    @staticmethod
+    def user_installed(interaction):
+        return bool(interaction.is_user_integration() and not interaction.is_guild_integration()) if hasattr(interaction, "is_user_integration") else False
+
+    async def on_command(self, interaction, command=None):
+        if interaction.type != discord.InteractionType.application_command or self.is_migrating() or not self.system.ready:
+            return
+        user_id = interaction.user.id
+        if user_id in self.redisplaying:
+            return
+        self.redisplaying.add(user_id)
+        view = None
+        try:
+            state = await asyncio.to_thread(self.system.redisplay_state, user_id)
+            if state is None:
+                return
+            if not interaction.response.is_done() or self.is_migrating():
+                return
+            view = self.view(state) if state["status"] == "complete" else None
+            kwargs = {"embed": attack_embed(state), "ephemeral": True, "wait": True}
+            if view is not None:
+                kwargs["view"] = view
+            message = await interaction.followup.send(**kwargs)
+            await asyncio.to_thread(self.system.attach_message, user_id, state["end"], interaction.channel_id, message.id, self.user_installed(interaction))
+            await asyncio.to_thread(self.system.mark_notified, user_id, state["end"])
+        except discord.HTTPException as error:
+            log.warning("Could not redisplay attack result for %s: %s", user_id, error)
+            if view is not None:
+                self.release(user_id)
+        except Exception:
+            log.exception("Could not redisplay attack result for %s", user_id)
+        finally:
+            self.redisplaying.discard(user_id)
 
     def start(self):
         if self.task is None or self.task.done():
@@ -158,17 +196,38 @@ class AttackController:
             view = self.view(state) if state["status"] == "complete" else None
             message = await interaction.edit_original_response(embed=attack_embed(state), view=view)
             if state["status"] != "cancelled":
-                await asyncio.to_thread(self.system.attach_message, interaction.user.id, state["end"], interaction.channel_id, message.id)
+                await asyncio.to_thread(self.system.attach_message, interaction.user.id, state["end"], interaction.channel_id, message.id, self.user_installed(interaction))
+                if state["status"] == "active":
+                    self.responses[interaction.user.id] = (state["end"], message.id, interaction, time.monotonic() + ATTACK_RESPONSE_LIFETIME)
+                else:
+                    self.responses.pop(interaction.user.id, None)
         except (AttackRejected, SaveError) as error:
             await interaction.edit_original_response(content=str(error), embed=None, view=None)
         except Exception:
             log.exception("Could not start attack for %s", interaction.user.id)
             await interaction.edit_original_response(content="The attack could not be displayed. Use /attack to resume it.", embed=None, view=None)
 
+    async def display_result(self, state, view):
+        response = self.responses.get(state["user_id"])
+        if response is not None:
+            end, message_id, interaction, expires = response
+            if end == state["end"] and message_id == state["message_id"] and time.monotonic() < expires:
+                try:
+                    await interaction.edit_original_response(embed=attack_embed(state), view=view)
+                    return
+                except discord.HTTPException as error:
+                    if error.status not in (401, 403, 404):
+                        raise
+        channel = self.bot.get_channel(state["channel_id"]) or await self.bot.fetch_channel(state["channel_id"])
+        await channel.get_partial_message(state["message_id"]).edit(embed=attack_embed(state), view=view)
+
     async def run_once(self):
         if self.is_migrating() or not self.system.ready:
             return
         users = await asyncio.to_thread(self.system.pending_users)
+        for user_id, response in list(self.responses.items()):
+            if user_id not in users or time.monotonic() >= response[3]:
+                self.responses.pop(user_id, None)
         for user_id in set(self.views) - set(users):
             self.release(user_id)
         for user_id in set(self.retry_at) - set(users):
@@ -189,23 +248,23 @@ class AttackController:
                     continue
                 if not state.get("channel_id") or not state.get("message_id"):
                     continue
-                channel = self.bot.get_channel(state["channel_id"]) or await self.bot.fetch_channel(state["channel_id"])
                 view = self.view(state) if state["status"] == "complete" else None
-                await channel.get_partial_message(state["message_id"]).edit(embed=attack_embed(state), view=view)
+                await self.display_result(state, view)
+                self.responses.pop(user_id, None)
                 await asyncio.to_thread(self.system.mark_notified, user_id, state["end"])
                 self.retry_at.pop(user_id, None)
             except discord.HTTPException as error:
-                if error.status in (403, 404) and state is not None:
+                if state is None or not state.get("user_install"):
+                    log.warning("Could not display attack result for %s: %s", user_id, error)
+                if state is not None:
                     detached = await asyncio.to_thread(
-                        self.system.detach_message, user_id, state["end"],
-                        state.get("channel_id"), state.get("message_id"),
+                        self.system.queue_redisplay, state,
                     )
                     if detached:
+                        self.responses.pop(user_id, None)
                         self.release(user_id)
-                    log.warning("Attack result for %s could not be shown in channel %s because the channel or message is inaccessible. Use /attack in an accessible channel to retrieve the result.", user_id, state.get("channel_id"))
                 else:
                     self.retry_at[user_id] = time.time() + ATTACK_RETRY_SECONDS
-                    log.warning("Could not display attack result for %s: %s", user_id, error)
             except Exception:
                 self.retry_at[user_id] = time.time() + ATTACK_RETRY_SECONDS
                 log.exception("Could not finish attack for %s", user_id)
@@ -219,5 +278,6 @@ class AttackController:
                     log.exception("Attack check failed")
                 await asyncio.sleep(ATTACK_POLL_SECONDS)
         finally:
+            self.responses.clear()
             for user_id in list(self.views):
                 self.release(user_id)
