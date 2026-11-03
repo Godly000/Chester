@@ -129,7 +129,7 @@ BULK_MAGIC_SELL_VALUE = 2
 DATA_DIR = SCRIPT_DIR / "data"
 TOWN_HALL_LOOT_DIR = DATA_DIR / "Town Hall Loot Tables"
 LOOT_TABLE_DIR = TOWN_HALL_LOOT_DIR
-TUTORIAL_FILE = DATA_DIR / "tutorial.txt"
+TUTORIAL_FILE = DATA_DIR / "tutorial.csv"
 RARITIES_FILE = LOOT_TABLE_DIR / "rarities.csv"
 IMAGES_FILE = DATA_DIR / "images.csv"
 EQUIPMENT_IMAGES_FILE = DATA_DIR / "equipment_images.csv"
@@ -265,6 +265,7 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 MAX_AUTOCOMPLETE_REFRESHES = 8
 _autocomplete_refreshes = {}
+_footer_command = ContextVar("footer_command", default=None)
 _footer_user_id = ContextVar("footer_user_id", default=None)
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
@@ -1167,18 +1168,49 @@ async def chest_slash(interaction: discord.Interaction):
         gembox_system.rolling.discard(user_id)
 
 
-def _set_chest_footer(embed, hide_tutorial=False):
-    if hide_tutorial:
-        embed.set_footer(text="Made by __godly__")
-        return
+def _tutorial_tip(command):
+    if not command:
+        return None
     try:
-        lines = [line.strip() for line in TUTORIAL_FILE.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
-        if not lines:
-            raise ValueError("No tutorial lines were found")
-        embed.set_footer(text=random.choice(lines))
-    except (OSError, UnicodeError, ValueError) as error:
-        log.warning("Could not load chest tutorial footer: %s", error)
-        embed.remove_footer()
+        with TUTORIAL_FILE.open(newline="", encoding="utf-8-sig") as source:
+            rows = list(csv.DictReader(source))
+        specific = [row["Tip"].strip() for row in rows if row["Command"].strip().lstrip("/").casefold() == command.casefold() and row["Tip"].strip()]
+        if not specific:
+            return None
+        shared = [row["Tip"].strip() for row in rows if row["Command"].strip().casefold() == "all" and row["Tip"].strip()]
+        return random.choice(specific + shared)
+    except (OSError, UnicodeError, ValueError, KeyError, csv.Error) as error:
+        log.warning("Could not load tutorial footer: %s", error)
+        return None
+
+
+def _tutorial_kwargs(user_id, command, kwargs):
+    embeds = kwargs.get("embeds")
+    single = kwargs.get("embed")
+    if not command or user_id is None or save_migration_active or not (isinstance(single, discord.Embed) or isinstance(embeds, (list, tuple)) and embeds):
+        return kwargs
+    if not save_store.player_path(user_id).is_file():
+        return kwargs
+    try:
+        village, _ = save_store.player_values(user_id)
+    except (OSError, ValueError, SaveError):
+        return kwargs
+    if village.get("Hide Tutorial", 0):
+        return kwargs
+    tip = _tutorial_tip(command)
+    if tip is None:
+        return kwargs
+    def decorate(embed):
+        result = embed.copy()
+        if "leveled up to **Level " not in (result.description or ""):
+            result.set_footer(text=tip)
+        return result
+    result = dict(kwargs)
+    if isinstance(single, discord.Embed):
+        result["embed"] = decorate(single)
+    if isinstance(embeds, (list, tuple)):
+        result["embeds"] = [decorate(embed) for embed in embeds]
+    return result
 
 
 def _chest_is_public(guild_id, rarity, categories):
@@ -1244,7 +1276,7 @@ async def _open_chest(interaction: discord.Interaction):
         if new_player:
             save_store.update_village_values(interaction.user.id, set_values={"Town Hall": 1})
         embed, leveled_up_to, rarity = await _do_loot_roll(interaction.user.id, rarity_key)
-        _set_chest_footer(embed, bool(village.get("Hide Tutorial", 0)))
+        embed.set_footer(text="Made by __godly__")
         await interaction.edit_original_response(content=None, embed=embed)
         chest_sent = True
         if new_player:
@@ -3116,7 +3148,14 @@ def _install_builder_reminder():
             interaction = self._parent if source == "response" else self if source == "interaction" else None
             if interaction is not None:
                 _footer_user_id.set(interaction.user.id)
+                command = getattr(interaction, "command", None)
+                name = getattr(command, "name", None)
+                if name is None:
+                    message = getattr(interaction, "message", None)
+                    name = getattr(getattr(message, "interaction", None), "name", None)
+                _footer_command.set(name)
             user_id = interaction.user.id if interaction is not None else _footer_user_id.get()
+            kwargs = _tutorial_kwargs(user_id, _footer_command.get(), kwargs)
             return await original(self, *args, **_builder_reminder_kwargs(user_id, kwargs))
         wrapped._builder_reminder = True
         setattr(owner, name, wrapped)
@@ -3672,7 +3711,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester version 1.0.1 updated 2026 October 30\n"
+            "Chester version 0.9.6 updated 2026 October 26\n"
             "https://github.com/Godly000/Chester\n"
             "Terms of Service: https://pastebin.com/0T6GMB5t\n"
             "Privacy Policy: https://pastebin.com/zhfg4af1"
@@ -3844,17 +3883,6 @@ def _profile_categories():
     return ["Unlocked Epic Equipment" if category == "Hero Equipment" else "Obstacles" if category.casefold() == "obstacle" else category for category in save_store.categories if category.casefold() != "important"]
 
 
-async def profile_category_autocomplete(interaction: discord.Interaction, current: str):
-    if not save_store.player_path(interaction.user.id).is_file():
-        return []
-    current_key = current.casefold()
-    return [
-        app_commands.Choice(name=category, value=category)
-        for category in _profile_categories()
-        if current_key in category.casefold()
-    ][:25]
-
-
 def _profile_value(name: str, value: int) -> str:
     if name in {"Last Resource Check", "Last Obstacle Check"} or name.endswith(" Timestamp") or re.fullmatch(r"(?:Builder|Researcher|Upgrade) #\d+ Time", name):
         return f"<t:{value}:R>" if value > 0 else "Not set"
@@ -3913,74 +3941,20 @@ def _profile_pages(values: List[Tuple[str, int]], maximum_length: int = 3800, ca
     return pages
 
 
-@bot.tree.command(name="profile", description="Show a player's saved values by category.")
-@app_commands.describe(
-    category="The save category to display defaults to Currency",
-    member="View someone else's profile instead of your own.",
-    user_id="Discord user ID for a player including someone outside this server"
-)
-@app_commands.autocomplete(category=profile_category_autocomplete)
-async def profile_slash(
-    interaction: discord.Interaction,
-    category: Optional[str] = None,
-    member: Optional[discord.User] = None,
-    user_id: Optional[str] = None,
-):
-    if not await enforce_chester_channel(interaction):
-        return
-
-    category = category or "Currency"
-    if category.casefold() == "unlocked epic equipment":
-        category = "Hero Equipment"
-    if member is not None and user_id is not None:
-        await interaction.response.send_message("Choose either a member or a user ID, not both.", ephemeral=True)
-        return
-    target = member or interaction.user
-    target_id = target.id
-    target_name = target.display_name
-    if user_id is not None:
-        entered_id = user_id.strip()
-        if not entered_id.isascii() or not entered_id.isdigit() or not 0 < int(entered_id) < 2 ** 64:
-            await interaction.response.send_message("Enter a valid Discord user ID.", ephemeral=True)
-            return
-        target_id = int(entered_id)
-        target = bot.get_user(target_id)
-        target_name = target.display_name if target else f"Player {target_id}"
-
-    if not save_store.player_path(target_id).is_file():
-        await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
-        return
-    try:
-        resolved_category = save_store.resolve_category("Obstacle" if category.casefold() == "obstacles" else category)
-        if resolved_category.casefold() == "important":
-            await interaction.response.send_message(
-                "Important items appear at the top of every profile section. Choose a category: "
-                + ", ".join(_profile_categories()),
-                ephemeral=True,
-            )
-            return
-        important_values = []
-        for section in save_store.categories:
-            if section.casefold() == "important":
-                important_values = save_store.category_values(target_id, section)
-                break
-        values = save_store.category_values(target_id, resolved_category)
-        if resolved_category.casefold() == "currency":
-            village, _ = save_store.player_values(target_id)
-            listed_names = {name for name, _ in values}
-            values.extend(
-                (name, village[name])
-                for name in TREASURY_FIELDS.values()
-                if name in village and name not in listed_names
-            )
-    except KeyError:
-        await interaction.response.send_message(
-            f"⚠️ Unknown category '{category}'. Valid categories: "
-            f"{', '.join(_profile_categories())}",
-            ephemeral=True,
-        )
-        return
-
+def _profile_category_embeds(target_id, target_name, category):
+    resolved_category = save_store.resolve_category(
+        "Hero Equipment" if category == "Unlocked Epic Equipment" else "Obstacle" if category == "Obstacles" else category
+    )
+    important_values = []
+    for section in save_store.categories:
+        if section.casefold() == "important":
+            important_values = save_store.category_values(target_id, section)
+            break
+    values = save_store.category_values(target_id, resolved_category)
+    if resolved_category.casefold() == "currency":
+        village, _ = save_store.player_values(target_id)
+        listed_names = {name for name, _ in values}
+        values.extend((name, village[name]) for name in TREASURY_FIELDS.values() if name in village and name not in listed_names)
     village, collection = save_store.player_values(target_id)
     town_hall_icon = TOWN_HALL_PROFILE_IMAGES.get(village.get("Town Hall", 0))
     important_text = "\n".join(f"**{name}:** {_profile_value(name, value)}" for name, value in important_values)
@@ -3997,24 +3971,11 @@ async def profile_slash(
         if resolved_category.casefold() == "currency":
             profile_capacities.update(main_capacities)
     pages = _profile_pages(
-        values, capacities=profile_capacities,
+        values, maximum_length=max(500, 3800 - len(important_text)), capacities=profile_capacities,
         show_empty_capacity=resolved_category.casefold() == "treasury",
     )
     if not pages:
-        kwargs = {"ephemeral": True}
-        if important_text:
-            kwargs["embed"] = discord.Embed(
-                title=f"{target_name} — {'Unlocked Epic Equipment' if resolved_category == 'Hero Equipment' else resolved_category}",
-                description=important_text,
-                color=discord.Color.blue(),
-            )
-            if town_hall_icon:
-                kwargs["embed"].set_thumbnail(url=proxy_image_url(town_hall_icon))
-        await interaction.response.send_message(
-            "You haven't upgraded anything in this section yet.",
-            **kwargs,
-        )
-        return
+        pages = ["You haven’t upgraded anything in this section yet."]
     embeds = []
     for page_number, page in enumerate(pages, start=1):
         page_label = f" ({page_number}/{len(pages)})" if len(pages) > 1 else ""
@@ -4027,12 +3988,74 @@ async def profile_slash(
             embed.set_thumbnail(url=proxy_image_url(town_hall_icon))
         embed.set_footer(text="Made by __godly__")
         embeds.append(embed)
-    if len(embeds) == 1:
-        await interaction.response.send_message(embed=embeds[0])
-    else:
-        view = RemainingUpgradesView(interaction.user.id, embeds, command="profile")
-        await interaction.response.send_message(embed=embeds[0], view=view)
+    return embeds
+
+
+def _profile_report(target_id, target_name):
+    pages, labels = [], []
+    categories = _profile_categories()
+    categories.sort(key=lambda category: category != "Currency")
+    for category in categories:
+        section = _profile_category_embeds(target_id, target_name, category)
+        pages.extend(section)
+        labels.extend(category if len(section) == 1 else f"{category} ({number}/{len(section)})" for number in range(1, len(section) + 1))
+    return pages, labels
+
+
+class ProfilePageSelect(discord.ui.Select):
+    def __init__(self, labels, start, selected, row):
+        options = [discord.SelectOption(label=label[:100], value=str(index), default=index == selected)
+                   for index, label in enumerate(labels[start:start + 25], start=start)]
+        super().__init__(placeholder="Choose a profile page", options=options, row=row)
+
+    async def callback(self, interaction):
+        await self.view._move(interaction, int(self.values[0]) - self.view.page)
+
+
+class ProfileView(RemainingUpgradesView):
+    def __init__(self, user_id, pages, labels):
+        self.labels = labels
+        super().__init__(user_id, pages, command="profile")
+
+    def _update_buttons(self):
+        super()._update_buttons()
+        for item in list(self.children):
+            if isinstance(item, discord.ui.Select):
+                self.remove_item(item)
+            else:
+                item.row = 0
+        start = (self.page // 100) * 100
+        for row, offset in enumerate(range(start, min(start + 100, len(self.pages)), 25), start=1):
+            self.add_item(ProfilePageSelect(self.labels, offset, self.page, row))
+
+
+@bot.tree.command(name="profile", description="Browse a player’s profile using the page dropdown.")
+@app_commands.describe(user_id="Discord user ID for a player including someone outside this server")
+async def profile_slash(interaction: discord.Interaction, user_id: Optional[str] = None):
+    if not await enforce_chester_channel(interaction):
+        return
+    target_id = interaction.user.id
+    target_name = interaction.user.display_name
+    if user_id is not None:
+        entered_id = user_id.strip()
+        if not entered_id.isascii() or not entered_id.isdigit() or not 0 < int(entered_id) < 2 ** 64:
+            await interaction.response.send_message("Enter a valid Discord user ID.", ephemeral=True)
+            return
+        target_id = int(entered_id)
+        target = bot.get_user(target_id)
+        target_name = target.display_name if target else f"Player {target_id}"
+    if not save_store.player_path(target_id).is_file():
+        await interaction.response.send_message("That player needs to open a Chest using /chest to get started.", ephemeral=True)
+        return
+    await interaction.response.defer(thinking=True)
+    try:
+        pages, labels = await asyncio.to_thread(_profile_report, target_id, target_name)
+        view = ProfileView(interaction.user.id, pages, labels)
+        await interaction.edit_original_response(embed=pages[0], view=view)
         view.message = await interaction.original_response()
+    except Exception:
+        log.exception("Could not load profile for %s", target_id)
+        await interaction.edit_original_response(content="This profile could not be loaded. Please try again shortly.")
 
 
 def _reset_player(user_id):
