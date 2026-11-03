@@ -126,6 +126,11 @@ Researcher #3 Currency,Upgrade,byte
 Researcher #3 Cost,Upgrade,integer
 Attack End Timestamp,Attack,integer
 Chests Opened While Attacking,Attack,byte
+Power Pancakes Expiration,Attack,byte
+Mighty Morsel Expiration,Attack,byte
+Clan Castle Cake Expiration,Attack,integer
+Power Potion Expiration,Attack,integer
+Hero Potion Expiration,Attack,integer
 Attack #1 Type,History,boolean
 Attack #1 Stars,History,byte
 Attack #1 Percentage,History,byte
