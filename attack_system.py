@@ -8,6 +8,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from combat_boosts import BOOST_FIELDS, TIMED_BOOST_FIELDS, NO_CLAN_CASTLE_PENALTY, load_boost_targets, boosted_offense, consume_attack_boosts
 from resource_system import COLLECTIBLE_RESOURCES, ORE_TYPES
 
 
@@ -18,8 +19,8 @@ ATTACK_TYPES = ("Ground", "Air")
 ATTACK_SIDES = ("Offense", "Defense")
 ATTACK_POLL_SECONDS = 2
 ATTACK_HISTORY_SIZE = 10
-TOWN_HALL_CHANCE_EQUAL = 0.95
-TOWN_HALL_CHANCE_MINIMUM = 0.45
+TOWN_HALL_CHANCE_EQUAL = 0.90
+TOWN_HALL_CHANCE_MINIMUM = 0.40
 EXPECTED_PERCENTAGE_EQUAL = 110
 EXPECTED_PERCENTAGE_MINIMUM = 60
 PERCENTAGE_STANDARD_DEVIATION = 20
@@ -27,6 +28,8 @@ MINIMUM_PERCENTAGE = 1
 SURVIVING_TOWN_HALL_MAXIMUM = 99
 DESTROYED_TOWN_HALL_MAXIMUM = 100
 PERCENTAGE_STAR_THRESHOLD = 50
+TOWN_HALL_SACRIFICE_THRESHOLD = 110
+TOWN_HALL_SACRIFICE_PERCENTAGE = 60
 DIFFICULTY_REWARD_MINIMUM = 0.8
 DIFFICULTY_REWARD_MAXIMUM = 1.0
 RANDOM_REWARD_MINIMUM = 0.9
@@ -62,6 +65,7 @@ class AttackSystem:
         self.benchmarks = {}
         self.rewards = {}
         self.ready = False
+        self.boost_targets = {}
 
     def _read_rows(self, filename):
         with (self.progression_dir / filename).open(newline="", encoding="utf-8-sig") as source:
@@ -77,6 +81,9 @@ class AttackSystem:
         ]
         if any(name not in self.store.village_by_name for name in required):
             raise ValueError("Attack fields are missing from village.csv")
+        self.boost_targets = load_boost_targets(self.progression_dir / "magicitems.csv")
+        if any(field not in self.store.village_by_name for field in BOOST_FIELDS.values()):
+            raise ValueError("Attack boost fields are missing from village.csv")
         counts = {row["Name"]: row for row in self._read_rows("counts.csv")}
         levels = {row["Name"]: row for row in self._read_rows("levels.csv")}
         self.units = []
@@ -231,12 +238,16 @@ class AttackSystem:
                 kind = random.choice(ATTACK_TYPES)
                 defense = {name: random.randint(*self.bounds[th][name]) for name, side, _, _ in self.units if side == "Defense"}
                 difficulty = self.scaled_score(th, self.score(defense, "Defense", kind), "Defense", kind)
-                offense = self.scaled_score(th, self.score(village, "Offense", kind), "Offense", kind)
+                offensive_units = boosted_offense(village, self.store.village_by_name, self.bounds[th], self.boost_targets, now)
+                offense = self.scaled_score(th, self.score(offensive_units, "Offense", kind), "Offense", kind)
+                if village[TIMED_BOOST_FIELDS["Clan Castle Cake"]] <= now:
+                    offense *= 1 - NO_CLAN_CASTLE_PENALTY
                 state = {"user_id": int(user_id), "end": now + ATTACK_DURATION, "town_hall": th,
                          "type": kind, "difficulty": difficulty, "offense": offense,
                          "seed": random.getrandbits(128), "status": "active", "notified": False,
                          "reward_ranges": self.rewards[th], "chests": 0}
                 self._write(user_id, state)
+                consume_attack_boosts(village)
                 village[ATTACK_CHESTS_FIELD] = 0
                 village[ATTACK_END_FIELD] = state["end"]
             return state
@@ -265,7 +276,7 @@ class AttackSystem:
                 continue
             values = {name: random.randint(*self.bounds[town_hall][name]) for name, unit_side, _, _ in self.units if unit_side == side}
             scores[side] = self.scaled_score(town_hall, self.score(values, side, kind), side, kind)
-        state = {"town_hall": town_hall, "type": kind, "offense": scores["Offense"],
+        state = {"town_hall": town_hall, "type": kind, "offense": scores["Offense"] * (1 - NO_CLAN_CASTLE_PENALTY),
                  "difficulty": scores["Defense"], "seed": random.getrandbits(128), "reward_ranges": self.rewards[town_hall]}
         return self._result(state)
 
@@ -286,8 +297,12 @@ class AttackSystem:
         rng = random.Random(state["seed"])
         chance, expected = self.expectations(state["offense"] - state["difficulty"])
         destroyed = rng.random() < chance
+        percentage = math.floor(rng.gauss(expected, PERCENTAGE_STANDARD_DEVIATION))
+        if not destroyed and percentage >= TOWN_HALL_SACRIFICE_THRESHOLD:
+            percentage -= TOWN_HALL_SACRIFICE_PERCENTAGE
+            destroyed = True
         ceiling = DESTROYED_TOWN_HALL_MAXIMUM if destroyed else SURVIVING_TOWN_HALL_MAXIMUM
-        percentage = max(MINIMUM_PERCENTAGE, min(ceiling, math.floor(rng.gauss(expected, PERCENTAGE_STANDARD_DEVIATION))))
+        percentage = max(MINIMUM_PERCENTAGE, min(ceiling, percentage))
         stars = int(destroyed) + int(percentage >= PERCENTAGE_STAR_THRESHOLD) + int(destroyed and percentage >= DESTROYED_TOWN_HALL_MAXIMUM)
         difficulty_factor = DIFFICULTY_REWARD_MINIMUM + (DIFFICULTY_REWARD_MAXIMUM - DIFFICULTY_REWARD_MINIMUM) * state["difficulty"]
         rewards = {}
