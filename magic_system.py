@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from player_saves import FORMAT_DETAILS
+from combat_boosts import BOOST_FIELDS, ATTACK_BOOST_FIELDS, load_boost_targets
 from resource_system import LAST_RESOURCE_CHECK, RESOURCE_CODES, RESOURCE_TYPES
 from upgrade_system import BUILDER_CATEGORIES, RESEARCHER_CATEGORIES, STRUCTURE_CATEGORIES, UpgradeRejected, RefreshReport
 
@@ -88,6 +89,9 @@ class MagicSystem:
                     raise ValueError(f"Magic item is missing from the save schema: {name}")
                 numbers[-1] = min(numbers[-1], FORMAT_DETAILS[field.data_type][2])
                 items[name] = MagicItem(name, row["Target"].strip(), *numbers)
+        load_boost_targets(self.progression_dir / "magicitems.csv")
+        if any(field not in self.store.village_by_name for field in BOOST_FIELDS.values()):
+            raise ValueError("Attack boost fields are missing from village.csv")
         self.items = items
         self.by_key = {name.casefold(): item for name, item in items.items()}
 
@@ -306,7 +310,17 @@ class MagicSystem:
             production_saved = 0
             for _ in range(quantity):
                 consumed = 1
-                if item.name.startswith("Hammer of "):
+                if item.name in BOOST_FIELDS:
+                    if item.strength <= 0:
+                        raise MagicRejected("This item has no attack boost strength configured")
+                    field_name = BOOST_FIELDS[item.name]
+                    before = village[field_name]
+                    base = before if item.name in ATTACK_BOOST_FIELDS else max(now, before)
+                    limit = FORMAT_DETAILS[self.store.village_by_name[field_name].data_type][2]
+                    if base + item.strength > limit:
+                        raise MagicRejected("This attack boost cannot be extended further")
+                    village[field_name] = base + item.strength
+                elif item.name.startswith("Hammer of "):
                     if option is None:
                         raise MagicRejected("Choose an item to upgrade first")
                     field = self.upgrades.resolve_item(option.value)
@@ -377,6 +391,9 @@ class MagicSystem:
                     raise MagicRejected(f"{item.name} has no use configured yet. You can sell it for {item.sell:,} Gems")
                 village[item.name] -= consumed
                 total_consumed += consumed
+            if item.name in BOOST_FIELDS:
+                value = village[BOOST_FIELDS[item.name]]
+                lines.append(f"Boost active for {value:,} attacks." if item.name in ATTACK_BOOST_FIELDS else f"Boost ends <t:{value}:R>.")
             lines = [f"{worker}: {name}, reduced by {format_duration(seconds)}." for (worker, name), seconds in time_saved.items()] + lines
             report = self.upgrades._refresh_values(village, now)
             lines.extend(f"{entry.item} completed at level {entry.new_level}." for entry in report.completed)
