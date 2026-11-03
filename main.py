@@ -3377,11 +3377,12 @@ async def obstacle_type_autocomplete(interaction: discord.Interaction, current: 
     try:
         obstacle_system.initialize(interaction.user.id)
         village, _ = save_store.player_values(interaction.user.id)
-        return [
+        all_choice = [app_commands.Choice(name="All", value="All")] if current.casefold() in "all" and any(village[name] > 0 for name in obstacle_system.items) else []
+        return (all_choice + [
             app_commands.Choice(name=f"{item.name} ({obstacle_system.maximum(village, item)} removable)", value=item.name)
             for item in obstacle_system.items.values()
             if current.casefold() in item.name.casefold() and obstacle_system.maximum(village, item) > 0
-        ][:25]
+        ])[:25]
     except (ObstacleRejected, SaveSchemaMismatch):
         return []
     except Exception:
@@ -3427,13 +3428,85 @@ async def check_obstacles_slash(interaction: discord.Interaction):
 
 
 
+class RemoveAllObstaclesView(discord.ui.View):
+    def __init__(self, user_id, counts, costs):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+        self.counts = counts
+        self.costs = costs
+        self.used = False
+        self.message = None
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Only the player who requested this removal can confirm it.", ephemeral=True)
+            return False
+        if self.used or self.is_finished():
+            await interaction.response.send_message("This confirmation is no longer active.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Remove all", style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction, button):
+        if self.used or self.is_finished():
+            await interaction.response.send_message("This confirmation is no longer active.", ephemeral=True)
+            return
+        self.used = True
+        self.stop()
+        await interaction.response.defer()
+        try:
+            if save_migration_active:
+                raise ObstacleRejected("Player saves are being updated. Please try again shortly.")
+            gems = obstacle_system.remove_all(self.user_id, self.counts, self.costs)
+        except (ObstacleRejected, SaveError) as error:
+            await interaction.edit_original_response(content=str(error), embed=None, view=None)
+            return
+        embed = discord.Embed(title="Obstacles removed", description=f"Removed **{sum(self.counts.values()):,} obstacles**.\nReceived **{gems:,} Gems**.", color=discord.Color.green())
+        embed.add_field(name="Spent", value=_format_upgrade_costs(self.costs), inline=False)
+        image_url = OBSTACLE_IMAGES.get(next(iter(self.counts)))
+        if image_url:
+            embed.set_image(url=proxy_image_url(image_url))
+        await interaction.edit_original_response(embed=embed, view=None)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction, button):
+        if self.used or self.is_finished():
+            await interaction.response.send_message("This confirmation is no longer active.", ephemeral=True)
+            return
+        self.used = True
+        self.stop()
+        await interaction.response.edit_message(content="Obstacle removal cancelled.", embed=None, view=None)
+
+    async def on_timeout(self):
+        self.used = True
+        if self.message is not None:
+            try:
+                await self.message.edit(content="Obstacle removal confirmation expired.", embed=None, view=None)
+            except discord.HTTPException:
+                pass
+
+
 @bot.tree.command(name="remove_obstacle", description="Remove obstacles using resources and receive Gems.")
-@app_commands.describe(obstacle="The obstacle type to remove", amount="Number to remove from one to your current removable maximum")
+@app_commands.describe(obstacle="The obstacle type or All to remove every obstacle", amount="Required for individual types and omitted for All")
 @app_commands.autocomplete(obstacle=obstacle_type_autocomplete, amount=obstacle_amount_autocomplete)
-async def remove_obstacle_slash(interaction: discord.Interaction, obstacle: str, amount: app_commands.Range[int, 1, 127]):
+async def remove_obstacle_slash(interaction: discord.Interaction, obstacle: str, amount: Optional[app_commands.Range[int, 1, 127]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
+        if obstacle.strip().casefold() == "all":
+            if amount is not None:
+                raise ObstacleRejected("Leave the quantity empty when choosing All.")
+            village, _ = save_store.player_values(interaction.user.id)
+            counts, costs = obstacle_system.quote_all(village)
+            embed = discord.Embed(title="Remove all obstacles?", description="\n".join(f"**{name}:** {count:,}" for name, count in counts.items()), color=discord.Color.orange())
+            embed.add_field(name="Total cost", value=_format_upgrade_costs(costs), inline=False)
+            embed.set_footer(text="Confirm within sixty seconds to remove all listed obstacles.")
+            view = RemoveAllObstaclesView(interaction.user.id, counts, costs)
+            await interaction.response.send_message(embed=embed, view=view)
+            view.message = await interaction.original_response()
+            return
+        if amount is None:
+            raise ObstacleRejected("Enter a quantity for this obstacle type, or choose All.")
         item, cost, gems = obstacle_system.remove(interaction.user.id, obstacle, amount)
     except ObstacleRejected as error:
         await interaction.response.send_message(_error_text(error), ephemeral=True)
