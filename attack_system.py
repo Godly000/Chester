@@ -227,6 +227,9 @@ class AttackSystem:
         with self.store.lock:
             self._require_player(user_id)
             existing = self.status(user_id, now)
+            if existing is not None and existing["status"] == "cancelled" and existing.get("redisplay"):
+                self._path(user_id).unlink(missing_ok=True)
+                existing = None
             if existing is not None:
                 return existing
             with self.store.transaction(user_id) as (village, _):
@@ -335,6 +338,8 @@ class AttackSystem:
                 self._path(user_id).unlink(missing_ok=True)
                 return None
             self._require_player(user_id)
+            if state["status"] == "cancelled" and state.get("redisplay"):
+                return state
             completed_now = False
             with self.store.transaction(user_id) as (village, _):
                 if village[ATTACK_END_FIELD] != state["end"]:
@@ -356,12 +361,37 @@ class AttackSystem:
                 self._write(user_id, state)
             return state
 
-    def attach_message(self, user_id, end, channel_id, message_id):
+    def attach_message(self, user_id, end, channel_id, message_id, user_install=False):
         with self.store.lock:
             state = self._read(user_id)
             if state is not None and state["end"] == end:
                 state.update(channel_id=int(channel_id), message_id=int(message_id), notified=state["status"] == "complete")
+                state.update(user_install=bool(user_install), redisplay=False)
                 self._write(user_id, state)
+
+    def queue_redisplay(self, failed):
+        user_id = failed["user_id"]
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is None and failed["status"] == "cancelled":
+                if not self.store.player_path(user_id).is_file():
+                    return False
+                village, _ = self.store.player_values(user_id)
+                if village[ATTACK_END_FIELD]:
+                    return False
+                state = dict(failed)
+            if state is None or any(state.get(key) != failed.get(key) for key in ("end", "channel_id", "message_id")):
+                return False
+            state.pop("channel_id", None)
+            state.pop("message_id", None)
+            state.update(notified=False, redisplay=True)
+            self._write(user_id, state)
+            return True
+
+    def redisplay_state(self, user_id):
+        with self.store.lock:
+            state = self._read(user_id)
+            return state if state is not None and state.get("redisplay") else None
 
     def detach_message(self, user_id, end, channel_id, message_id):
         with self.store.lock:
@@ -378,7 +408,11 @@ class AttackSystem:
         with self.store.lock:
             state = self._read(user_id)
             if state is not None and state["end"] == end:
+                if state["status"] == "cancelled":
+                    self._path(user_id).unlink(missing_ok=True)
+                    return
                 state["notified"] = True
+                state["redisplay"] = False
                 self._write(user_id, state)
 
     def claim(self, user_id, end, resource):
