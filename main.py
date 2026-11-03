@@ -178,6 +178,7 @@ DARK_ELIXIR_COST_SORT_WEIGHT = 50
 WALL_DARK_ELIXIR_RATIO = 50
 GEM_BOX_CHANCE = 0.01
 SET_COMMAND_OWNER_ID = 459126084428890113
+FOOTER_COMMAND_CACHE_LIMIT = 512
 NEW_PLAYER_MESSAGE = "New to Chester? Open a Chest using the /chest command to get started!"
 GEM_BOX_LOG_FILE = SCRIPT_DIR / "gembox_log.csv"
 
@@ -265,6 +266,7 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 MAX_AUTOCOMPLETE_REFRESHES = 8
 _autocomplete_refreshes = {}
+_footer_command_names = {}
 _footer_command = ContextVar("footer_command", default=None)
 _footer_user_id = ContextVar("footer_user_id", default=None)
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
@@ -312,6 +314,7 @@ upgrade_system = UpgradeSystem(
 magic_system = MagicSystem(PROGRESSION_DIR, save_store, upgrade_system, resource_system)
 obstacle_system = ObstacleSystem(DATA_DIR, save_store)
 save_migration_active = False
+startup_save_check_done = False
 attack_system = AttackSystem(PROGRESSION_DIR, save_store, resource_system)
 attack_controller = AttackController(bot, attack_system, lambda: save_migration_active)
 gembox_system = GemBoxSystem(save_store, GEM_BOX_LOG_FILE, GEM_BOX_CHANCE, lambda: save_migration_active)
@@ -937,7 +940,7 @@ async def enforce_chester_channel(
         except SaveSchemaMismatch:
             message = (
                 "⚠️ Player saves need to be updated for the new progression files. "
-                "A moderator must run `/update_saves`."
+                "The bot owner must run `/update_saves`."
             )
             if interaction.response.is_done():
                 await interaction.followup.send(message, ephemeral=ephemeral)
@@ -972,6 +975,27 @@ async def enforce_chester_channel(
 town_hall_loot_tables: Dict[int, Dict[str, Category]] = {}
 
 
+async def _check_startup_save_schema():
+    global startup_save_check_done, save_migration_active
+    if startup_save_check_done:
+        return
+    startup_save_check_done = True
+    path = save_store.player_path(SET_COMMAND_OWNER_ID)
+    if not path.is_file():
+        log.info("Startup save check skipped because the owner has no save")
+        return
+    try:
+        await asyncio.to_thread(lambda: save_store._decode_raw(path.read_bytes()))
+    except SaveSchemaMismatch:
+        save_migration_active = True
+        try:
+            log.info("Owner save schema differs from progression files; migrating player saves")
+            report = await asyncio.to_thread(_migrate_save_files)
+            log.info("Startup save migration completed: %d migrated, %d already current", report.migrated_saves, report.current_saves)
+        finally:
+            save_migration_active = False
+
+
 @bot.event
 async def on_ready():
     global town_hall_loot_tables, xp_levels
@@ -984,6 +1008,7 @@ async def on_ready():
 
     try:
         save_store.load_schema()
+        await _check_startup_save_schema()
         resource_system.load()
         upgrade_system.load()
         magic_system.load()
@@ -3138,6 +3163,19 @@ def _builder_reminder_kwargs(user_id, kwargs):
     return result
 
 
+def _interaction_footer_command(interaction):
+    name = getattr(getattr(interaction, "command", None), "name", None)
+    if name is None:
+        message = getattr(interaction, "message", None)
+        metadata = getattr(message, "interaction_metadata", None)
+        name = _footer_command_names.get(getattr(metadata, "id", None))
+    if name is not None:
+        _footer_command_names[interaction.id] = name
+        while len(_footer_command_names) > FOOTER_COMMAND_CACHE_LIMIT:
+            _footer_command_names.pop(next(iter(_footer_command_names)))
+    return name
+
+
 def _install_builder_reminder():
     def wrap(owner, name, source):
         original = getattr(owner, name)
@@ -3148,12 +3186,7 @@ def _install_builder_reminder():
             interaction = self._parent if source == "response" else self if source == "interaction" else None
             if interaction is not None:
                 _footer_user_id.set(interaction.user.id)
-                command = getattr(interaction, "command", None)
-                name = getattr(command, "name", None)
-                if name is None:
-                    message = getattr(interaction, "message", None)
-                    name = getattr(getattr(message, "interaction", None), "name", None)
-                _footer_command.set(name)
+                _footer_command.set(_interaction_footer_command(interaction))
             user_id = interaction.user.id if interaction is not None else _footer_user_id.get()
             kwargs = _tutorial_kwargs(user_id, _footer_command.get(), kwargs)
             return await original(self, *args, **_builder_reminder_kwargs(user_id, kwargs))
@@ -3539,17 +3572,23 @@ def _migrate_save_files() -> MigrationReport:
 
 @bot.tree.command(
     name="update_saves",
-    description="[Moderator] Migrate player saves after progression CSV changes.",
+    description="[Owner] Migrate player saves after progression CSV changes.",
 )
-@app_commands.checks.has_permissions(moderate_members=True)
 async def update_saves_slash(interaction: discord.Interaction):
     global save_migration_active
+
+    if interaction.user.id != SET_COMMAND_OWNER_ID:
+        await interaction.response.send_message("Only the bot owner can use /update_saves.", ephemeral=True)
+        return
 
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
 
-    save_migration_active = True
     await interaction.response.defer(ephemeral=True, thinking=True)
+    if save_migration_active:
+        await interaction.followup.send("Player saves are already being updated.", ephemeral=True)
+        return
+    save_migration_active = True
     try:
         report = await asyncio.to_thread(_migrate_save_files)
         save_store.load_schema()
@@ -3590,7 +3629,7 @@ async def update_saves_slash_error(
     error: app_commands.AppCommandError,
 ):
     if isinstance(error, app_commands.MissingPermissions):
-        message = "⚠️ You need Moderator permissions to use `/update_saves`."
+        message = "Only the bot owner can use /update_saves."
     else:
         log.exception("Unexpected error in /update_saves: %s", error)
         message = f"⚠️ {_error_text(error)}"
@@ -3711,10 +3750,11 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Chester version 0.9.6 updated 2026 October 26\n"
-            "https://github.com/Godly000/Chester\n"
+            "Version 1.0.2 updated 2026 November 2\n"
+            "Source: https://github.com/Godly000/Chester\n"
             "Terms of Service: https://pastebin.com/0T6GMB5t\n"
-            "Privacy Policy: https://pastebin.com/zhfg4af1"
+            "Privacy Policy: https://pastebin.com/zhfg4af1\n"
+            "Supercell Fan Content Policy: https://supercell.com/en/fan-content-policy/"
         ),
         color=discord.Color.blue(),
     )
@@ -3765,7 +3805,7 @@ async def help_slash(
             ("test_attack", "Moderator only. Instantly tests random offense and defense at a selected Town Hall without rewards or Chests."),
             ("fight", "Moderator only. Practices the Gem Box encounter with optional image 1–4, without rewards or failure logs."),
             ("reload_loot", "Moderator only. Reloads loot tables and XP thresholds from CSV."),
-            ("update_saves", "Moderator only. Migrates saves after progression CSV changes."),
+            ("update_saves", "Bot owner only. Migrates saves after progression CSV changes."),
         ])
     commands.extend([
         ("about", "Shows bot version and author information."),
