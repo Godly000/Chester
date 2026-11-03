@@ -1198,11 +1198,14 @@ def _tutorial_tip(command):
         return None
     try:
         with TUTORIAL_FILE.open(newline="", encoding="utf-8-sig") as source:
-            rows = list(csv.DictReader(source))
-        specific = [row["Tip"].strip() for row in rows if row["Command"].strip().lstrip("/").casefold() == command.casefold() and row["Tip"].strip()]
+            rows = [row for row in csv.reader(source) if any(cell.strip() for cell in row)]
+        if rows and rows[0][0].strip().casefold() in {"command", "commands"}:
+            rows = rows[1:]
+        tips = [(row[0].strip().lstrip("/").casefold(), row[1].strip()) for row in rows if len(row) >= 2 and row[1].strip()]
+        specific = [tip for category, tip in tips if category == command.strip().lstrip("/").casefold()]
         if not specific:
             return None
-        shared = [row["Tip"].strip() for row in rows if row["Command"].strip().casefold() == "all" and row["Tip"].strip()]
+        shared = [tip for category, tip in tips if category == "all"]
         return random.choice(specific + shared)
     except (OSError, UnicodeError, ValueError, KeyError, csv.Error) as error:
         log.warning("Could not load tutorial footer: %s", error)
