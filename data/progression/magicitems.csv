@@ -1,12 +1,12 @@
 Name,Target,Cost,Strength,Sell,Capacity
 Builder Bite,All Builders,,3600,2,25
-Clan Castle Cake,,,,2,25
+Clan Castle Cake,Clan Castle,,43200,2,25
 Study Soup,All Researchers,,10800,2,25
-Power Pancakes,,,,2,25
-Mighty Morsel,,,,2,25
-Hero Potion,,,,10,5
+Power Pancakes,"Troop, Siege",,3,2,25
+Mighty Morsel,"Hero, Pet, Equipment",,3,2,25
+Hero Potion,"Hero, Pet",,3600,10,5
 Research Potion,All Researchers,,82800,10,5
-Power Potion,,,,10,5
+Power Potion,"Troop, Siege",,3600,10,5
 Resource Potion,Resources,,86400,20,5
 Wall Rings,Wall,1000000,,5,25
 Builder Potion,All Builders,,32400,20,5
