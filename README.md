@@ -46,14 +46,19 @@ Moderator commands require Discord's **Moderate Members** permission.
 
 Square brackets below denote optional arguments.
 
+Paginated reports and magic item menus include single page controls and Back and
+Forward jumps of `ceil(sqrt(total pages))` pages. Jumps stop at the first or last
+page when fewer pages remain. Profiles with multiple pages use the same controls.
+
 | Command | Purpose |
 | --- | --- |
 | `/chest` | Open a chest from your Town Hall's loot table; create your village on first use. |
+| `/attack` | Start or resume a Ground or Air attack, open eighteen Chests in three minutes, then choose one reward. |
 | `/profile category [member]` | View saved values, grouped walls, and applicable resource capacities. |
 | `/upgrade category item [level] [quantity]` | Choose a target level and batch size, then confirm a payment method. |
 | `/upgradeinfo category item level` | Show the cost, duration, and image for the specified target level. |
 | `/view category` | Publicly display Collectors production and capacity or Upgrades completion and active slots. |
-| `/history category:upgrade` | Display the ten most recent completions using scheduled finish timestamps without images. |
+| `/history category` | Choose Attack or Upgrade to view the ten most recent results with their scheduled finish timestamps, without images. |
 | `/cancel_upgrade item` | Cancel an active upgrade and refund half its resource cost within storage limits. |
 | `/remaining [sorted]` | Page through upgrades required before the next Town Hall, with per-upgrade costs and times. |
 | `/collect_loot` | Collect resources and ores generated since the last resource check. |
@@ -75,6 +80,7 @@ Moderator commands:
 | Command | Purpose |
 | --- | --- |
 | `/test rarity town_hall` | Test a specified rarity and Town Hall loot table. |
+| `/test_attack town_hall` | Instantly simulate random offense and defense at Town Hall one through eighteen, without Chests, rewards, or attack history. |
 | `/fight [image]` | Practice the Gem Box encounter, optionally selecting image one through four, without rewards or failure logs. |
 | `/reload_loot` | Reload loot tables without restarting the bot. |
 | `/update_saves` | Migrate saves after village or collection schema changes. |
@@ -100,6 +106,60 @@ Profiles hide zero entries except those in the Important category, which appear
 at the top of every section. Walls of the same level are grouped. Currency views
 include defined storage capacities and treasury balances. Profile thumbnails use
 the player's Town Hall image.
+
+## Attacks
+
+`/attack` chooses Ground or Air and generates a defensive base for the player's
+Town Hall. Each defense instance receives an inclusive random level between its
+previous Town Hall maximum and current maximum. Newly available instances have
+a minimum level of zero. Building counts and prerequisite levels come from
+`counts.csv` and `levels.csv`.
+
+`data/progression/attacking.csv` defines each unit's side, attack type, and weight.
+Scores sum each matching unit's level multiplied by its weight. Both applies to
+both attack types. Each numbered building contributes separately, including each
+Army Camp and Wall. Counts come from `counts.csv`; generated defenses and
+benchmarks include all allowed instances even if a save field is missing.
+An instance missing from a player's save contributes zero to their offense.
+Crafted Defense A, B, and C include their three corresponding
+variants. `attacking_benchmarks.csv` contains the minimum and maximum scores for
+both sides and attack types at Town Halls one through eighteen. Benchmarks assume
+all eligible equipment is owned. Scores normalize to zero through one and clamp
+outside that range. A zero width range normalizes to zero. Army Camps and Barracks
+provide offensive scores at Town Halls one and two. Regenerate benchmarks
+when attack weights or progression limits change; startup validates them.
+
+The offense minus defense offset controls Town Hall destruction probability and
+the mean destruction percentage. At offset zero these are ninety five percent
+and one hundred ten percent; at offset minus one they are forty five percent and
+sixty percent. Probability is clamped to zero through one. Destruction uses a
+normal distribution with standard deviation twenty, floored and clamped from
+one to one hundred, or ninety nine if the Town Hall survives. Fifty percent earns
+the percentage star. Destroying the Town Hall earns another; complete destruction
+earns the third.
+
+Attacks last one hundred eighty seconds and require eighteen successful `/chest`
+rolls after starting and before the deadline. `/test`, failed rolls, and late
+Chests do not count. Results appear on the attack message after the deadline.
+Use `/attack` again to check progress or recover an unclaimed result. Missing the
+Chest requirement cancels the attack and allows another attempt. History records
+cancellations as zero percent and stores the scheduled end time.
+Completed attack screens show normalized offense and defense, Town Hall
+destruction probability, and expected destruction before the percentage cap.
+These metrics remain visible after reward collection.
+
+`attacking_rewards.csv` supplies base ranges for up to six individual resource
+choices. Star and percentage multipliers, defense difficulty, and a random
+variance determine rewards, with rounding only at the end. Choose one reward;
+the other options are discarded. Existing storage, treasury efficiency, and ore
+limits apply. Pending reward choices must be claimed before starting another
+attack. Attack constants are grouped at the top of `attack_system.py`.
+
+Temporary `saves/<user_id>.attack.json` files preserve attack snapshots and reward
+choices across restarts. Keep them alongside the player's save when moving the
+bot. They are removed after cancellation or reward collection. The player's
+binary save records the deadline, Chest counter, and ten most recent results.
+Reward claims and deadline checks use the save lock to prevent duplicate payouts.
 
 ## Upgrades
 
@@ -205,7 +265,7 @@ The three Option fields default to disabled:
 
 - Notification for finished upgrades sends a direct message when upgrades finish.
 - Notification for full collectors sends a direct message when producers fill.
-- Hide tutorial replaces chest tutorial tips with the standard author footer.
+- Hide tutorial suppresses command tutorial tips and keeps the normal footer.
 
 The notification task checks approximately once per minute. Notifications do not
 apply completed upgrades themselves; any player interaction refreshes upgrades. Delivered payloads
@@ -228,10 +288,13 @@ notifications for unchanged slots or full collectors.
 | `data/progression/equipmentcost.csv` | Equipment ore costs. |
 | `data/progression/resource.csv` | Production rates and capacities. |
 | `data/progression/magicitems.csv` | Magic item effects, limits, and sale values. |
+| `data/progression/attacking.csv` | Attack unit types, sides, and score weights. |
+| `data/progression/attacking_benchmarks.csv` | Minimum and maximum scores by Town Hall, side, and attack type. |
+| `data/progression/attacking_rewards.csv` | Base attack reward ranges by Town Hall. |
 | `data/obstacles.csv` | Obstacle weights, removal costs, and rewards. |
 | `data/upgrade_ids.csv` | Stable upgrade serial mapping. |
 | `data/equipment.csv` and `data/equipment_images.csv` | Equipment images. |
-| `data/tutorial.txt` | Chest footer tips. |
+| `data/tutorial.csv` | Command and Tip columns for footer tips. All tips join a command only when it has a specific tip. |
 | `data/xp.csv` | Experience thresholds. |
 
 Loot tables use headerless reward rows; progression and resource tables use their
@@ -352,6 +415,8 @@ Migration matches fields by source and exact name, preserves values when rows
 move or categories change, initializes new fields to zero, removes deleted
 fields, and clamps values when a numeric type becomes smaller. Renaming a field
 is normally treated as removal and addition, so preserve spelling and case.
+The aliases `Hide tutorial` to `Hide Tutorial` and `Obstacles cleared` to
+`Obstacles Cleared` preserve their values during migration.
 
 Migrations are staged and validated before activation. Previous saves are backed
 up in `save-backups/`, and gameplay commands pause during migration. Keep
@@ -363,3 +428,11 @@ Preserve `data/upgrade_ids.csv`. New fields may receive new IDs, but existing ID
 must not be reassigned or reused: active worker slots rely on them independently
 of CSV row order. Replacing costs, level requirements, resource rates, or loot
 ranges alone does not change the binary save schema.
+
+### Attack magic items
+
+Use Power Pancakes for three attacks of maximum Town Hall Troop and Siege levels, or Mighty Morsel for three attacks of maximum Hero, Pet and Equipment levels. Only unlocked units are boosted and permanent levels do not change. Power Potion boosts Troop and Siege levels for one hour; Hero Potion boosts Hero and Pet levels for one hour. Clan Castle Cake removes the ten percent offense score penalty for twelve hours. Values and targets come from magicitems.csv.
+
+Repeated uses add attacks or extend the current expiry. Counted boosts are consumed when a new attack starts, including attacks later cancelled for insufficient Chests. Effects are snapshotted at attack start. Test attacks consume nothing and receive the no Cake penalty.
+
+Replace village.csv and village-old.csv together and run /update_saves before using the new fields. The old schema is the version immediately before attack boost fields were added. Replace tutorial.txt with data/tutorial.csv. Hide Tutorial suppresses these tips; affordable Builder reminders still take priority.
