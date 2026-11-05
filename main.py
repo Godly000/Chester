@@ -1623,9 +1623,10 @@ def _building_payment_options(village, collection, category, group, level, quant
             quote, _, _ = _simulate_building_batch(village, collection, category, group, level, quantity, currency, hammer, ignore_workers=ignore_workers, levels=levels)
             options.append(quote)
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-            errors.append(str(error))
+            if hammer is None:
+                errors.append(error)
     if not options:
-        raise UpgradeRejected(_error_text("\n".join(errors)))
+        raise _preferred_upgrade_error(errors)
     return options
 
 
@@ -1795,26 +1796,37 @@ def _group_is_maxed(village, collection, fields):
     return bool(eligible)
 
 
-def _unavailable_upgrade_reason(village, collection, category, group, rings_only=False):
+def _preferred_upgrade_error(errors):
+    def priority(error):
+        message = str(error)
+        if isinstance(error, WorkerUnavailable) or message.startswith(("No unlocked Builder is free", "Unlock the first Researcher")):
+            return 1
+        if message.startswith("Inadequate resources:"):
+            return 2
+        return 0
+    return min(errors, key=priority) if errors else UpgradeRejected("There are no eligible items of this type.")
+
+
+def _unavailable_upgrade_reason(village, collection, category, group, rings_only=False, level=None, quantity=1, levels=1):
     fields = _upgrade_groups(category).get(group, [])
     if not rings_only and _group_is_maxed(village, collection, fields):
         return f"You have already maxed all available {group} upgrades for your current building levels."
     reasons = []
-    for level in sorted({village[field.name] for field in fields}):
+    for level in ([level] if level is not None else sorted({village[field.name] for field in fields})):
         try:
             if group == "Walls":
-                quote = _wall_quote(village, collection, level, 1)
+                quote = _wall_quote(village, collection, level, quantity, levels=levels)
                 costs = quote["costs"]
                 if rings_only:
                     costs = {"Wall Rings": costs["Wall Rings"]}
                 missing = [(f"missing {resource}" if resource in magic_system.items and cost - village.get(resource, 0) == 1 else f"need {cost:,} {resource}, have {village.get(resource, 0):,}") for resource, cost in costs.items() if village.get(resource, 0) < cost]
                 if missing:
-                    reasons.append(f"Level {level}: " + "; or ".join(missing) + ".")
+                    reasons.append(UpgradeRejected("Inadequate resources: " + "; or ".join(missing) + "."))
             else:
-                _building_payment_options(village, collection, category, group, level, 1)
+                _building_payment_options(village, collection, category, group, level, quantity, include_hammers=False, levels=levels)
         except (UpgradeRejected, MagicRejected, ResourceRejected) as error:
-            reasons.extend(str(error).splitlines())
-    reason = _error_text("\n".join(reasons)) or "There are no eligible items of this type."
+            reasons.append(error)
+    reason = _error_text(_preferred_upgrade_error(reasons))
     return reason[:1900]
 
 
@@ -2302,7 +2314,7 @@ def _prepare_upgrade(user_id, category, item, level, quantity, levels):
     village, collection = save_store.player_values(user_id)
     available_levels = _available_group_levels(village, collection, category, group)
     if not available_levels:
-        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group))
+        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group, level=level - 1 if level is not None else None))
     target = level if level is not None else min(available_levels) + 1
     amount = _parse_upgrade_quantity(quantity)
     current = target - 1
@@ -2313,15 +2325,15 @@ def _prepare_upgrade(user_id, category, item, level, quantity, levels):
     if amount == "max":
         amount = _maximum_upgrade_quantity(village, collection, category, group, current, levels=1 if levels == "max" else levels)
         if amount == 0:
-            raise UpgradeRejected(f"You cannot upgrade any {group} with your available resources and workers. Check the upgrade requirements and requested levels.")
+            raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group, level=current, levels=1 if levels == "max" else levels))
     if levels == "max":
         levels = _maximum_upgrade_levels(village, collection, category, group, current, amount)
         if levels == 0:
             raise UpgradeRejected("No instant upgrade levels are available with your resources and requirements. Use a numeric level count for timed upgrades.")
     if current not in available_levels:
-        raise UpgradeRejected(f"You cannot upgrade any {group} to level {target} with your current levels, requirements, workers, and payment options.")
+        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group, level=current, quantity=amount, levels=levels))
     if amount < 1 or amount > available_levels[current]:
-        raise UpgradeRejected(f"You can upgrade at most {available_levels[current]:,} {group} to level {target} with your current count, workers, and payment options.")
+        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group, level=current, quantity=amount, levels=levels))
     target = current + levels
     if group == "Walls":
         quotes = _wall_quote(village, collection, current, amount, levels=levels)
@@ -2961,6 +2973,8 @@ class MagicItemView(discord.ui.View):
         )
         self.selection.callback = self.choose
         self.add_item(self.selection)
+        self.remove_item(self.jump_back)
+        self.remove_item(self.jump_forward)
         self._update_page_buttons()
 
     def _update_page_buttons(self):
@@ -4149,6 +4163,8 @@ class ProfileView(RemainingUpgradesView):
 
     def _update_buttons(self):
         super()._update_buttons()
+        self.remove_item(self.jump_back)
+        self.remove_item(self.jump_forward)
         for item in list(self.children):
             if isinstance(item, discord.ui.Select):
                 self.remove_item(item)
