@@ -379,6 +379,7 @@ Hero Skin,Zeus King,boolean
 Hero Skin,King Barbarian,boolean
 Hero Skin,King Rhodes,boolean
 Hero Skin,Savage King,boolean
+Hero Skin,Titan King,boolean
 Hero Skin,Gladiator Queen,boolean
 Hero Skin,Valkyrie Queen,boolean
 Hero Skin,Autumn Queen,boolean
@@ -442,6 +443,7 @@ Hero Skin,Medusa Queen,boolean
 Hero Skin,Elven Archer,boolean
 Hero Skin,Alexa Queen,boolean
 Hero Skin,Shroud Queen,boolean
+Hero Skin,Titan Queen,boolean
 Hero Skin,Snake Prince,boolean
 Hero Skin,Minion General,boolean
 Hero Skin,Prince Mysterio,boolean
@@ -464,6 +466,7 @@ Hero Skin,Manga Fury Prince,boolean
 Hero Skin,Lich Prince,boolean
 Hero Skin,Uso Prince,boolean
 Hero Skin,Nasty Prince,boolean
+Hero Skin,Titan Prince,boolean
 Hero Skin,Party Warden,boolean
 Hero Skin,Primal Warden,boolean
 Hero Skin,Clockwork Warden,boolean
@@ -518,6 +521,7 @@ Hero Skin,Poseidon Warden,boolean
 Hero Skin,Grand Mage,boolean
 Hero Skin,Undertaker Warden,boolean
 Hero Skin,Spider Warden,boolean
+Hero Skin,Titan Warden,boolean
 Hero Skin,Winter Champion,boolean
 Hero Skin,Rogue Champion,boolean
 Hero Skin,Jungle Champion,boolean
@@ -569,6 +573,7 @@ Hero Skin,Tempest Champion,boolean
 Hero Skin,Royal Enchantress,boolean
 Hero Skin,Sky Champion,boolean
 Hero Skin,Terror Champion,boolean
+Hero Skin,Titan Champion,boolean
 Hero Skin,Imprisoned Duke,boolean
 Hero Skin,Showmaster Duke,boolean
 Hero Skin,Skeleton Duke,boolean
@@ -577,6 +582,7 @@ Hero Skin,Hydra Duke,boolean
 Hero Skin,Drakan Duke,boolean
 Hero Skin,Kane Duke,boolean
 Hero Skin,Behemoth Duke,boolean
+Hero Skin,Titan Duke,boolean
 Hero Skin,Armored Machine,boolean
 Hero Skin,Battle Machine of the North,boolean
 Hero Skin,Steampunk Machine,boolean
