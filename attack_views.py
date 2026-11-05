@@ -67,6 +67,8 @@ def attack_embed(state):
     else:
         embed.add_field(name="Town Hall", value=str(state["town_hall"]))
         embed.add_field(name="Difficulty", value=f"{state['difficulty']:.3f} / 1")
+        if status == "active":
+            embed.add_field(name="Attacking strength", value=f"{state['offense']:.3f} / 1")
     thumbnail = attack_thumbnail_url(state)
     if thumbnail:
         embed.set_thumbnail(url=thumbnail)
