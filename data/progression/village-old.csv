@@ -192,7 +192,6 @@ Upgrade #9 Time,History,integer
 Upgrade #10 Name,History,short
 Upgrade #10 Time,History,integer
 Town Hall,Important,byte
-Town Hall 17 Weapon,Defense Level,byte
 Smasher,Defense Level,byte
 Longshot,Defense Level,byte
 Logger,Defense Level,byte
