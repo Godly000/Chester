@@ -65,10 +65,11 @@ def attack_embed(state):
         embed.add_field(name="Expected percentage", value=f"{expected:.1f}%")
         embed.add_field(name="Reward choices", value="\n".join(f"**{name}:** {amount:,}" for name, amount in state["rewards"].items()), inline=False)
     else:
-        embed.add_field(name="Town Hall", value=str(state["town_hall"]))
-        embed.add_field(name="Difficulty", value=f"{state['difficulty']:.3f} / 1")
         if status == "active":
             embed.add_field(name="Attacking strength", value=f"{state['offense']:.3f} / 1")
+        else:
+            embed.add_field(name="Town Hall", value=str(state["town_hall"]))
+        embed.add_field(name="Difficulty", value=f"{state['difficulty']:.3f} / 1")
     thumbnail = attack_thumbnail_url(state)
     if thumbnail:
         embed.set_thumbnail(url=thumbnail)
