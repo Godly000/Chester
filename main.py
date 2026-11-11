@@ -3895,7 +3895,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Version 1.0.2 updated 2026 November 2\n"
+            "Version 1.0.4 updated 2026 November 10\n"
             "Source: https://github.com/Godly000/Chester\n"
             "Terms of Service: https://pastebin.com/0T6GMB5t\n"
             "Privacy Policy: https://pastebin.com/zhfg4af1\n"
