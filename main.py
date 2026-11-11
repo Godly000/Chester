@@ -15,6 +15,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from types import SimpleNamespace
 
 import discord
 
@@ -23,7 +24,7 @@ from attack_views import AttackController, attack_thumbnail_url
 from notification_system import NotificationSystem
 from image_proxy import proxy_image_url, proxy_upgrade_image_url
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from magic_system import MagicRejected, MagicSystem, format_duration
@@ -264,6 +265,8 @@ DISCORD_TOKEN = next((os.getenv(k) for k in _TOKEN_ENV_KEYS if os.getenv(k)), No
 # commands eventually appear everywhere else too.
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
+COMMAND_PREFIX = "c!"
+PRESENCE_UPDATE_SECONDS = 300
 MAX_AUTOCOMPLETE_REFRESHES = 8
 _autocomplete_refreshes = {}
 _footer_command_names = {}
@@ -272,6 +275,9 @@ _footer_user_id = ContextVar("footer_user_id", default=None)
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
 
 intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+intents.message_content = True
 class ChesterBot(commands.Bot):
     def dispatch(self, event, /, *args, **kwargs):
         if event == "interaction" and args and self.is_ready():
@@ -293,7 +299,7 @@ class ChesterBot(commands.Bot):
             log.exception("Could not refresh upgrades for %s", interaction.user.id)
 
 
-bot = ChesterBot(command_prefix="!", intents=intents, max_messages=None)
+bot = ChesterBot(command_prefix=COMMAND_PREFIX, intents=intents, max_messages=None)
 save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
 resource_system = ResourceSystem(PROGRESSION_DIR, save_store, CLAN_CASTLE_RESOURCE_RATIO)
 upgrade_system = UpgradeSystem(
@@ -988,9 +994,33 @@ async def _check_startup_save_schema():
             save_migration_active = False
 
 
+@tasks.loop(seconds=PRESENCE_UPDATE_SECONDS)
+async def update_server_activity():
+    guilds = list(bot.guilds)
+    members = sum(
+        member.status == discord.Status.online
+        for guild in guilds
+        for member in guild.members
+    )
+    try:
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=discord.CustomActivity(name=f"{len(guilds):,} servers, {members:,} members online"),
+        )
+    except (discord.HTTPException, discord.ConnectionClosed) as error:
+        log.warning("Could not update bot activity: %s", error)
+
+
+@update_server_activity.before_loop
+async def before_server_activity():
+    await bot.wait_until_ready()
+
+
 @bot.event
 async def on_ready():
     global town_hall_loot_tables, xp_levels
+    if not update_server_activity.is_running():
+        update_server_activity.start()
 
     try:
         town_hall_loot_tables = load_town_hall_loot_tables()
@@ -3930,6 +3960,11 @@ async def help_slash(
         description="\n".join(f"/{name}: {description}" for name, description in commands),
         color=discord.Color.blue(),
     )
+    embed.add_field(
+        name="Prefix commands",
+        value="Use `c!chest` or `c!upgrade Structure Level, Cannon, 2, 3`. Arguments follow the slash command order and are separated by commas. Leave optional fields empty to skip them. Prefix replies are public.",
+        inline=False,
+    )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -4372,6 +4407,175 @@ async def set_slash(interaction: discord.Interaction, user_id: str, category: st
         f"{_profile_value(field.name, previous)} → {_profile_value(field.name, number)}.",
         ephemeral=True,
     )
+
+
+class PrefixResponse:
+    def __init__(self, interaction):
+        self._parent = interaction
+        self.done = False
+
+    def is_done(self):
+        return self.done
+
+    async def defer(self, **kwargs):
+        self.done = True
+
+    async def send_message(self, content=None, **kwargs):
+        self.done = True
+        message = await self._parent.send(content, **kwargs)
+        if self._parent.reply is None:
+            self._parent.reply = message
+        return message
+
+    async def edit_message(self, **kwargs):
+        self.done = True
+        return await self._parent.edit_original_response(**kwargs)
+
+
+class PrefixFollowup:
+    def __init__(self, interaction):
+        self.interaction = interaction
+
+    async def send(self, content=None, **kwargs):
+        return await self.interaction.send(content, **kwargs)
+
+
+class PrefixInteraction:
+    def __init__(self, message, command):
+        self.source_message = message
+        self.message = None
+        self.reply = None
+        self.command = command
+        self.user = message.author
+        self.guild = message.guild
+        self.guild_id = message.guild.id if message.guild else None
+        self.channel = message.channel
+        self.channel_id = message.channel.id
+        self.client = bot
+        self.id = message.id
+        self.created_at = message.created_at
+        self.type = discord.InteractionType.application_command
+        self.permissions = message.channel.permissions_for(message.author) if message.guild else discord.Permissions.none()
+        self.extras = {}
+        self.namespace = SimpleNamespace()
+        self.response = PrefixResponse(self)
+        self.followup = PrefixFollowup(self)
+
+    def is_user_integration(self):
+        return False
+
+    def is_guild_integration(self):
+        return self.guild is not None
+
+    def decorate(self, kwargs):
+        kwargs = dict(kwargs)
+        for key in ("ephemeral", "thinking", "wait"):
+            kwargs.pop(key, None)
+        kwargs = _tutorial_kwargs(self.user.id, self.command.name, kwargs)
+        return _builder_reminder_kwargs(self.user.id, kwargs)
+
+    async def send(self, content=None, **kwargs):
+        kwargs = self.decorate(kwargs)
+        kwargs.setdefault("allowed_mentions", discord.AllowedMentions.none())
+        kwargs.pop("attachments", None)
+        if kwargs.get("view", discord.utils.MISSING) is None:
+            kwargs.pop("view")
+        return await self.source_message.reply(content=content, mention_author=False, **kwargs)
+
+    async def edit_original_response(self, **kwargs):
+        if self.reply is None:
+            self.reply = await self.send(**kwargs)
+        else:
+            self.reply = await self.reply.edit(**self.decorate(kwargs))
+        return self.reply
+
+    async def original_response(self):
+        return self.reply
+
+
+def _prefix_namespace(command, text):
+    values = next(csv.reader([text], skipinitialspace=True, strict=True)) if text else []
+    parameters = list(command._params.values())
+    if len(values) > len(parameters):
+        raise ValueError("Too many arguments.")
+    namespace = {}
+    for index, parameter in enumerate(parameters):
+        value = values[index].strip() if index < len(values) else ""
+        if not value:
+            if parameter.required:
+                raise ValueError(f"Missing {parameter.display_name}.")
+            continue
+        if parameter.choices:
+            choice = next((choice for choice in parameter.choices if value.casefold() in {choice.name.casefold(), str(choice.value).casefold()}), None)
+            if choice is None:
+                raise ValueError(f"Invalid {parameter.display_name}. Choose: " + ", ".join(choice.name for choice in parameter.choices))
+            value = choice.value
+        kind = parameter.type
+        try:
+            if kind == discord.AppCommandOptionType.integer:
+                value = int(value)
+            elif kind == discord.AppCommandOptionType.number:
+                value = float(value)
+                if not math.isfinite(value):
+                    raise ValueError()
+            elif kind == discord.AppCommandOptionType.boolean:
+                if str(value).casefold() not in {"true", "false", "yes", "no", "1", "0"}:
+                    raise ValueError()
+                value = str(value).casefold() in {"true", "yes", "1"}
+            elif kind != discord.AppCommandOptionType.string:
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid value for {parameter.display_name}.") from None
+        measured = len(value) if isinstance(value, str) else value
+        if parameter.min_value is not None and measured < parameter.min_value:
+            raise ValueError(f"{parameter.display_name} must be at least {parameter.min_value}.")
+        if parameter.max_value is not None and measured > parameter.max_value:
+            raise ValueError(f"{parameter.display_name} must be at most {parameter.max_value}.")
+        namespace[parameter.display_name] = value
+    return SimpleNamespace(**namespace)
+
+
+@bot.event
+async def on_message(message):
+    if message.author.bot or not message.content.startswith(COMMAND_PREFIX):
+        return
+    text = message.content[len(COMMAND_PREFIX):].strip()
+    name, separator, arguments = text.partition(" ")
+    if "," in name:
+        name, comma, remainder = text.partition(",")
+        arguments = remainder
+    command = bot.tree.get_command(name.strip().casefold())
+    if not isinstance(command, app_commands.Command):
+        await message.reply("Unknown command. Use c!help to see available commands.", mention_author=False)
+        return
+    interaction = PrefixInteraction(message, command)
+    gate = _channel_gate_message(message.guild, message.channel, command.name)
+    if gate is not None:
+        await interaction.response.send_message(gate)
+        return
+    try:
+        interaction.namespace = _prefix_namespace(command, arguments)
+        if not await bot.tree.interaction_check(interaction):
+            return
+        if not save_migration_active and save_store.player_path(message.author.id).is_file():
+            interaction.extras["upgrade_refresh"] = await asyncio.to_thread(upgrade_system.refresh, message.author.id)
+        await command._invoke_with_namespace(interaction, interaction.namespace)
+        bot.dispatch("app_command_completion", interaction, command)
+    except (ValueError, csv.Error) as error:
+        usage = ", ".join(f"<{p.display_name}>" if p.required else f"[{p.display_name}]" for p in command._params.values())
+        await interaction.followup.send(f"{error}\nUsage: `{COMMAND_PREFIX}{command.name}{' ' if usage else ''}{usage}`\nLeave an optional argument empty to skip it.")
+    except app_commands.CommandOnCooldown as error:
+        await interaction.followup.send(f"Slow down! Try again in {error.retry_after:.3f}s.")
+    except app_commands.MissingPermissions:
+        await interaction.followup.send("You do not have permission to use this command.")
+    except app_commands.CheckFailure:
+        await interaction.followup.send("You cannot use this command here.")
+    except Exception as error:
+        log.exception("Prefix command %s failed: %s", command.name, error)
+        try:
+            await interaction.followup.send("The command could not be completed. Please try again.")
+        except discord.HTTPException:
+            pass
 
 
 def main():
