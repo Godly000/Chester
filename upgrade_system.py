@@ -294,8 +294,13 @@ class UpgradeSystem:
             prices[key] = self._normal_price(row)
 
         for target_level, row_name in TOWN_HALL_COST_ROWS.items():
-            self.upgrade_images[("Town Hall", target_level)] = (rows_by_name[row_name].get("Image") or "").strip()
-            prices[("Town Hall", target_level)] = self._normal_price(rows_by_name[row_name])
+            if ("Town Hall", target_level) in prices:
+                continue
+            row = rows_by_name.get(row_name)
+            if row is None:
+                raise ValueError(f"Missing Town Hall {target_level} upgrade price in upgrades.csv")
+            self.upgrade_images[("Town Hall", target_level)] = (row.get("Image") or "").strip()
+            prices[("Town Hall", target_level)] = self._normal_price(row)
         for weapon_name in TOWN_HALL_WEAPONS.values():
             prices.pop((weapon_name, 1), None)
         return prices
