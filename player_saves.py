@@ -1,665 +1,465 @@
 import csv
-import hashlib
+import io
 import json
+import logging
+import math
 import os
+import random
 import re
-import shutil
-import struct
 import tempfile
 import time
-from contextlib import contextmanager
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
-from threading import RLock
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple
+
+from combat_boosts import BOOST_FIELDS, TIMED_BOOST_FIELDS, NO_CLAN_CASTLE_PENALTY, load_boost_targets, boosted_offense, consume_attack_boosts
+from resource_system import COLLECTIBLE_RESOURCES, ORE_TYPES
 
 
-FORMAT_DETAILS = {
-    "boolean": ("?", 0, 1),
-    "byte": ("b", 0, 127),
-    "short": ("h", 0, 32767),
-    "integer": ("i", 0, 2147483647),
-    "long": ("q", 0, 9223372036854775807),
+MAX_ATTACK_TOWN_HALL = 19
+ATTACK_DURATION = 180
+ATTACK_CHESTS_PER_SECOND = 0.1
+ATTACK_REQUIRED_CHESTS = math.floor(ATTACK_DURATION * ATTACK_CHESTS_PER_SECOND)
+ATTACK_TYPES = ("Ground", "Air")
+ATTACK_SIDES = ("Offense", "Defense")
+ATTACK_POLL_SECONDS = 2
+ATTACK_HISTORY_SIZE = 10
+TOWN_HALL_CHANCE_EQUAL = 0.90
+TOWN_HALL_CHANCE_MINIMUM = 0.40
+EXPECTED_PERCENTAGE_EQUAL = 110
+EXPECTED_PERCENTAGE_MINIMUM = 60
+PERCENTAGE_STANDARD_DEVIATION = 20
+MINIMUM_PERCENTAGE = 1
+SURVIVING_TOWN_HALL_MAXIMUM = 99
+DESTROYED_TOWN_HALL_MAXIMUM = 100
+PERCENTAGE_STAR_THRESHOLD = 50
+TOWN_HALL_SACRIFICE_THRESHOLD = 110
+TOWN_HALL_SACRIFICE_PERCENTAGE = 60
+DIFFICULTY_REWARD_MINIMUM = 0.8
+DIFFICULTY_REWARD_MAXIMUM = 1.0
+RANDOM_REWARD_MINIMUM = 0.9
+RANDOM_REWARD_MAXIMUM = 1.1
+REWARD_MULTIPLIERS = {
+    0: (1, 49, (0.0, 0.8), (0.0, 0.3)),
+    1: (1, 99, (1.0, 2.2), (0.4, 0.8)),
+    2: (50, 99, (2.5, 4.0), (1.0, 1.8)),
+    3: (100, 100, (5.0, 5.0), (2.0, 2.0)),
 }
-SAVE_MAGIC = b"CHSV"
-SAVE_VERSION = 2
-SAVE_HEADER = struct.Struct("<4sB32s")
-SERIAL_SAVE_HEADER = struct.Struct("<4sB32s32s")
-EMPTY_SERIAL_DIGEST = bytes(32)
-SAVE_FIELD_RENAMES = {
-    "Hide tutorial": "Hide Tutorial",
-    "Obstacles cleared": "Obstacles Cleared",
-    "Power Pancakes Attacks Remaining": "Power Pancakes Expiration",
-    "Mighty Morsel Attacks Remaining": "Mighty Morsel Expiration",
-    "Clan Castle Cake End Timestamp": "Clan Castle Cake Expiration",
-    "Power Potion End Timestamp": "Power Potion Expiration",
-    "Hero Potion End Timestamp": "Hero Potion Expiration",
-}
+TABLE_ALIASES = {"Electric Owl": "Electro Owl"}
+EXCLUDED_ATTACK_UNITS = {"Town Hall 17 Weapon"}
+ATTACK_END_FIELD = "Attack End Timestamp"
+ATTACK_CHESTS_FIELD = "Chests Opened While Attacking"
+BENCHMARK_COLUMNS = ["Town Hall"] + [
+    f"{bound} {side} {kind}"
+    for bound in ("Min", "Max")
+    for side in ATTACK_SIDES
+    for kind in ATTACK_TYPES
+]
 
 
-class SaveError(Exception):
+class AttackRejected(Exception):
     pass
 
 
-class SaveSchemaMismatch(SaveError):
-    pass
+class AttackSystem:
+    def __init__(self, progression_dir, store, resources):
+        self.progression_dir = Path(progression_dir)
+        self.store = store
+        self.resources = resources
+        self.units = []
+        self.bounds = {}
+        self.benchmarks = {}
+        self.rewards = {}
+        self.ready = False
+        self.boost_targets = {}
 
+    def _read_rows(self, filename):
+        with (self.progression_dir / filename).open(newline="", encoding="utf-8-sig") as source:
+            return [{key: value.strip() for key, value in row.items()} for row in csv.DictReader(source)]
 
-@dataclass(frozen=True)
-class SaveField:
-    source: str
-    name: str
-    category: str
-    data_type: str
-    index: int
-
-    @property
-    def identity(self) -> Tuple[str, str]:
-        return self.source, self.name
-
-
-@dataclass(frozen=True)
-class MigrationReport:
-    total_saves: int
-    migrated_saves: int
-    current_saves: int
-    added_fields: int
-    removed_fields: int
-    changed_types: int
-    moved_fields: int
-    changed_categories: int
-    backup_path: Optional[Path]
-    cancelled_upgrades: int = 0
-
-
-class SaveStore:
-    def __init__(self, progression_dir: Path, saves_dir: Path):
-        self.progression_dir = progression_dir
-        self.saves_dir = saves_dir
-        self.fields: List[SaveField] = []
-        self.village_by_name: Dict[str, SaveField] = {}
-        self.collection_by_name: Dict[str, SaveField] = {}
-        self.categories: List[str] = []
-        self.categories_by_key: Dict[str, str] = {}
-        self.fields_by_category: Dict[str, List[SaveField]] = {}
-        self.binary_format = "<"
-        self.record_size = 0
-        self.schema_digest = b""
-        self.serial_digest = EMPTY_SERIAL_DIGEST
-        self.serial_by_name = {}
-        self.lock = RLock()
-
-    def load_schema(
-        self,
-        village_path: Optional[Path] = None,
-        collection_path: Optional[Path] = None,
-    ) -> None:
-        village_path = village_path or self.progression_dir / "village.csv"
-        collection_path = collection_path or self.progression_dir / "collection.csv"
-        fields: List[SaveField] = []
-        self._load_fields(
-            village_path,
-            "village",
-            "Name",
-            "Category",
-            "Data Format",
-            fields,
-        )
-        self._load_fields(
-            collection_path,
-            "collection",
-            "Name",
-            "Level",
-            "Data Type",
-            fields,
-        )
-
-        village_by_name: Dict[str, SaveField] = {}
-        collection_by_name: Dict[str, SaveField] = {}
-        categories: List[str] = []
-        categories_by_key: Dict[str, str] = {}
-        fields_by_category: Dict[str, List[SaveField]] = {}
-        format_codes: List[str] = []
-
-        for field in fields:
-            lookup = village_by_name if field.source == "village" else collection_by_name
-            if field.name in lookup:
-                raise ValueError(f"Duplicate {field.source} save field: {field.name}")
-            lookup[field.name] = field
-            format_codes.append(FORMAT_DETAILS[field.data_type][0])
-
-            key = field.category.casefold()
-            if key not in categories_by_key:
-                categories_by_key[key] = field.category
-                categories.append(field.category)
-                fields_by_category[field.category] = []
-            fields_by_category[categories_by_key[key]].append(field)
-
-        schema_text = "\n".join(
-            "\0".join((field.source, field.name, field.category, field.data_type))
-            for field in fields
-        )
-        self.fields = fields
-        self.village_by_name = village_by_name
-        self.collection_by_name = collection_by_name
-        self.categories = categories
-        self.categories_by_key = categories_by_key
-        self.fields_by_category = fields_by_category
-        self.binary_format = "<" + "".join(format_codes)
-        self.record_size = struct.calcsize(self.binary_format)
-        self.schema_digest = hashlib.sha256(schema_text.encode("utf-8")).digest()
-        self.load_serial_mapping()
-        self.saves_dir.mkdir(parents=True, exist_ok=True)
-
-    @staticmethod
-    def read_serial_mapping(path: Path):
-        mapping = {}
-        serials = set()
-        with path.open(newline="", encoding="utf-8-sig") as file:
-            reader = csv.DictReader(file)
-            if not reader.fieldnames or not {"Serial", "Name", "Category"}.issubset(reader.fieldnames):
-                raise SaveError(f"Invalid upgrade serial columns in {path.name}")
-            for row in reader:
-                name = row["Name"].strip()
-                serial = int(row["Serial"])
-                if not name or name in mapping or serial in serials or not 0 <= serial <= 32767:
-                    raise SaveError(f"Invalid or duplicate upgrade serial in {path.name}: {name}")
-                mapping[name] = serial
-                serials.add(serial)
-        if not mapping:
-            raise SaveError(f"Empty upgrade serial mapping in {path.name}")
-        canonical = json.dumps(sorted(mapping.items()), ensure_ascii=False, separators=(",", ":"))
-        return mapping, hashlib.sha256(canonical.encode("utf-8")).digest()
-
-    def load_serial_mapping(self):
-        path = self.progression_dir.parent / "upgrade_ids.csv"
-        if path.is_file():
-            self.serial_by_name, self.serial_digest = self.read_serial_mapping(path)
-        else:
-            self.serial_by_name, self.serial_digest = {}, EMPTY_SERIAL_DIGEST
-
-    @staticmethod
-    def _save_header(raw: bytes):
-        if not raw.startswith(SAVE_MAGIC):
-            return None, None, 0
-        if len(raw) < SAVE_HEADER.size:
-            raise SaveError("Save header is incomplete")
-        magic, version, schema = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])
-        if version == 1:
-            return schema, None, SAVE_HEADER.size
-        if version != SAVE_VERSION:
-            raise SaveError(f"Unsupported save format version: {version}")
-        if len(raw) < SERIAL_SAVE_HEADER.size:
-            raise SaveError("Save serial header is incomplete")
-        return schema, SERIAL_SAVE_HEADER.unpack(raw[:SERIAL_SAVE_HEADER.size])[3], SERIAL_SAVE_HEADER.size
-
-    def _load_fields(
-        self,
-        path: Path,
-        source: str,
-        name_column: str,
-        category_column: str,
-        type_column: str,
-        fields: List[SaveField],
-    ) -> None:
-        with path.open(newline="", encoding="utf-8-sig") as file:
-            reader = csv.DictReader(file)
-            required = {name_column, category_column, type_column}
-            if not reader.fieldnames or not required.issubset(reader.fieldnames):
-                raise ValueError(f"Missing required columns in {path.name}")
-            for row_number, row in enumerate(reader, start=2):
-                name = row[name_column].strip()
-                category = row[category_column].strip()
-                data_type = row[type_column].strip().lower()
-                if not name or not category:
-                    raise ValueError(f"Blank save field at {path.name}:{row_number}")
-                if data_type not in FORMAT_DETAILS:
-                    raise ValueError(
-                        f"Unsupported data format '{data_type}' at {path.name}:{row_number}"
-                    )
-                fields.append(
-                    SaveField(
-                        source=source,
-                        name=name,
-                        category=category,
-                        data_type=data_type,
-                        index=len(fields),
-                    )
-                )
-
-    def _require_schema(self) -> None:
-        if not self.fields:
-            self.load_schema()
-
-    def _old_schema_files_exist(self) -> bool:
-        return (
-            (self.progression_dir / "village-old.csv").is_file()
-            or (self.progression_dir / "collection-old.csv").is_file()
-        )
-
-    def player_path(self, user_id: int) -> Path:
-        user_id = int(user_id)
-        if user_id < 0:
-            raise ValueError("Discord user ID cannot be negative")
-        return self.saves_dir / f"{user_id}.sav"
-
-    def ensure_player(self, user_id: int) -> Path:
-        self._require_schema()
-        path = self.player_path(user_id)
-        try:
-            with path.open("xb") as file:
-                file.write(self._encode_values(self._default_values()))
-                file.flush()
-                os.fsync(file.fileno())
-        except FileExistsError:
-            self._read_values(path)
-        return path
-
-    def _default_values(self) -> List[int]:
-        values = [0] * len(self.fields)
-        field = self.village_by_name.get("Last Resource Check")
-        if field is not None:
-            values[field.index] = self._bounded_value(int(time.time()), field.data_type)
-        return values
-
-    @contextmanager
-    def transaction(self, user_id: int):
-        with self.lock:
-            path = self.ensure_player(user_id)
-            values = self._read_values(path)
-            village = {name: values[field.index] for name, field in self.village_by_name.items()}
-            collection = {name: values[field.index] for name, field in self.collection_by_name.items()}
-            yield village, collection
-            updated = []
-            for field in self.fields:
-                source = village if field.source == "village" else collection
-                updated.append(self._bounded_value(source[field.name], field.data_type))
-            if updated != values:
-                self._write_values(path, updated)
-
-    def _encode_values(self, values: List[int]) -> bytes:
-        if len(values) != len(self.fields):
-            raise ValueError(
-                f"Expected {len(self.fields)} save values but received {len(values)}"
-            )
-        payload = struct.pack(self.binary_format, *values)
-        return SERIAL_SAVE_HEADER.pack(SAVE_MAGIC, SAVE_VERSION, self.schema_digest, self.serial_digest) + payload
-
-    def _decode_raw(self, raw: bytes, allow_legacy: bool = False, allow_serial_mismatch: bool = False) -> Tuple[List[int], bool]:
-        schema_digest, serial_digest, header_size = self._save_header(raw)
-        if not allow_serial_mismatch and (serial_digest or EMPTY_SERIAL_DIGEST) != self.serial_digest:
-            raise SaveSchemaMismatch("Upgrade serial mapping requires /update_saves before this save can be used")
-        if raw.startswith(SAVE_MAGIC):
-            if schema_digest != self.schema_digest:
-                raise SaveSchemaMismatch(
-                    "Save schema does not match the loaded progression files"
-                )
-            payload = raw[header_size:]
-            legacy = False
-        else:
-            if not allow_legacy:
-                raise SaveSchemaMismatch(
-                    "Legacy save requires migration before it can be loaded"
-                )
-            payload = raw
-            legacy = True
-
-        if len(payload) != self.record_size:
-            raise SaveError(
-                f"Save payload is {len(payload)} bytes but this schema requires "
-                f"{self.record_size} bytes"
-            )
-        values = [int(value) for value in struct.unpack(self.binary_format, payload)]
-        return values, legacy
-
-    def _read_values(self, path: Path) -> List[int]:
-        allow_legacy = not self._old_schema_files_exist()
-        values, legacy = self._decode_raw(path.read_bytes(), allow_legacy=allow_legacy)
-        if legacy:
-            self._write_values(path, values)
-        return values
-
-    def _write_values(self, path: Path, values: List[int]) -> None:
-        raw = self._encode_values(values)
-        temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-        try:
-            with temporary.open("wb") as file:
-                file.write(raw)
-                file.flush()
-                os.fsync(file.fileno())
-            os.replace(temporary, path)
-        finally:
-            if temporary.exists():
-                temporary.unlink()
-
-    def _bounded_value(self, value: int, data_type: str) -> int:
-        minimum, maximum = FORMAT_DETAILS[data_type][1:]
-        return min(maximum, max(minimum, int(value)))
-
-    def _bounded_add(self, current: int, amount: int, data_type: str) -> int:
-        return self._bounded_value(current + int(amount), data_type)
-
-    def has_village_field(self, name: str) -> bool:
-        self._require_schema()
-        return name in self.village_by_name
-
-    def has_collection_field(self, name: str) -> bool:
-        self._require_schema()
-        return name in self.collection_by_name
-
-    def get_village_value(self, user_id: int, name: str) -> int:
-        self._require_schema()
-        field = self.village_by_name[name]
-        path = self.ensure_player(user_id)
-        return self._read_values(path)[field.index]
-
-    def player_values(self, user_id: int) -> Tuple[Dict[str, int], Dict[str, int]]:
-        self._require_schema()
-        path = self.ensure_player(user_id)
-        values = self._read_values(path)
-        village = {
-            name: values[field.index]
-            for name, field in self.village_by_name.items()
-        }
-        collection = {
-            name: values[field.index]
-            for name, field in self.collection_by_name.items()
-        }
-        return village, collection
-
-    def update_village_values(
-        self,
-        user_id: int,
-        set_values: Optional[Mapping[str, int]] = None,
-        additions: Optional[Mapping[str, int]] = None,
-    ) -> Dict[str, int]:
-        self._require_schema()
-        path = self.ensure_player(user_id)
-        values = self._read_values(path)
-        changed: Dict[str, int] = {}
-
-        for name, value in (set_values or {}).items():
-            field = self.village_by_name.get(name)
-            if field is None:
-                raise KeyError(f"Unknown village save field: {name}")
-            values[field.index] = self._bounded_value(value, field.data_type)
-            changed[name] = values[field.index]
-
-        for name, amount in (additions or {}).items():
-            field = self.village_by_name.get(name)
-            if field is None:
-                raise KeyError(f"Unknown village save field: {name}")
-            values[field.index] = self._bounded_add(
-                values[field.index], amount, field.data_type
-            )
-            changed[name] = values[field.index]
-
-        self._write_values(path, values)
-        return changed
-
-    def update_rewards(
-        self,
-        user_id: int,
-        village_additions: Mapping[str, int],
-        collection_unlocks: Iterable[str] = (),
-    ) -> Dict[str, int]:
-        self._require_schema()
-        path = self.ensure_player(user_id)
-        values = self._read_values(path)
-        changed: Dict[str, int] = {}
-
-        for name, amount in village_additions.items():
-            field = self.village_by_name.get(name)
-            if field is None:
-                raise KeyError(f"Unknown village save field: {name}")
-            values[field.index] = self._bounded_add(
-                values[field.index], amount, field.data_type
-            )
-            changed[name] = values[field.index]
-
-        for name in collection_unlocks:
-            field = self.collection_by_name.get(name)
-            if field is None:
-                raise KeyError(f"Unknown collection save field: {name}")
-            values[field.index] = 1
-            changed[name] = 1
-
-        self._write_values(path, values)
-        return changed
-
-    def resolve_category(self, category: str) -> str:
-        self._require_schema()
-        resolved = self.categories_by_key.get(category.strip().casefold())
-        if resolved is None:
-            raise KeyError(category)
-        return resolved
-
-    def category_values(self, user_id: int, category: str) -> List[Tuple[str, int]]:
-        resolved = self.resolve_category(category)
-        path = self.ensure_player(user_id)
-        values = self._read_values(path)
-        return [
-            (field.name, values[field.index])
-            for field in self.fields_by_category[resolved]
+    def load(self, *, generate_benchmarks=False):
+        self.ready = False
+        self.store._require_schema()
+        required = [ATTACK_END_FIELD, ATTACK_CHESTS_FIELD] + [
+            f"Attack #{index} {part}"
+            for index in range(1, ATTACK_HISTORY_SIZE + 1)
+            for part in ("Type", "Stars", "Percentage", "Timestamp")
         ]
+        if any(name not in self.store.village_by_name for name in required):
+            raise ValueError("Attack fields are missing from village.csv")
+        self.boost_targets = load_boost_targets(self.progression_dir / "magicitems.csv")
+        if any(field not in self.store.village_by_name for field in BOOST_FIELDS.values()):
+            raise ValueError("Attack boost fields are missing from village.csv")
+        counts = {row["Name"]: row for row in self._read_rows("counts.csv")}
+        levels = {row["Name"]: row for row in self._read_rows("levels.csv")}
+        self.units = []
+        seen = set()
+        for row in self._read_rows("attacking.csv"):
+            name, side, kind = row["Name"], row["Side"], row["Category"]
+            if name in EXCLUDED_ATTACK_UNITS:
+                continue
+            weight = float(row["Weight"])
+            if side not in ATTACK_SIDES or kind not in (*ATTACK_TYPES, "Both") or not math.isfinite(weight) or weight < 0:
+                raise ValueError(f"Invalid attack rule for {name}")
+            names = [field.name for field in self.store.village_by_name.values() if (
+                re.sub(r" #\d+$", "", field.name) == name
+                or re.fullmatch(re.escape(name) + "[ABC]", field.name)
+            ) and ("Level" in field.category or field.category == "Pet")]
+            if not names:
+                raise ValueError(f"No village units match attacking.csv row {name}")
+            if any(re.fullmatch(re.escape(name) + r" #\d+", field_name) for field_name in names):
+                count_row = counts.get(name) or counts.get(TABLE_ALIASES.get(name, name))
+                if count_row is None:
+                    raise ValueError(f"Missing attack count data for {name}")
+                maximum_count = max(int(value or 0) for key, value in count_row.items() if key.isdigit())
+                names = sorted(set(names) | {f"{name} #{index}" for index in range(1, maximum_count + 1)})
+            for field_name in names:
+                if (side, field_name) in seen:
+                    raise ValueError(f"Duplicate attack rule for {side} {field_name}")
+                seen.add((side, field_name))
+                self.units.append((field_name, side, kind, weight))
 
-    def _decode_migration_layout(self, raw: bytes) -> Optional[Tuple[List[int], int]]:
-        if raw.startswith(SAVE_MAGIC) and "Squad Barracks" in self.village_by_name:
-            digest, _, size = self._save_header(raw)
-            prior = [f for f in self.fields if f.identity != ("village", "Squad Barracks")]
-            schema = "\n".join("\0".join((f.source, f.name, f.category, f.data_type)) for f in prior)
-            if hashlib.sha256(schema.encode()).digest() == digest:
-                fmt = "<" + "".join(FORMAT_DETAILS[f.data_type][0] for f in prior)
-                if len(raw) - size != struct.calcsize(fmt):
-                    raise SaveError("Save payload does not match the pre Squad Barracks schema")
-                values = self._default_values()
-                for field, value in zip(prior, struct.unpack_from(fmt, raw, size)):
-                    values[field.index] = value
-                return values, 0
-        path = self.progression_dir / "save_migrations.json"
-        if not path.is_file() or not raw.startswith(SAVE_MAGIC) or len(raw) < SAVE_HEADER.size:
-            return None
-        digest, _, header_size = self._save_header(raw)
-        with path.open(encoding="utf-8") as file:
-            layouts = json.load(file)
-        layout = layouts.get(digest.hex())
-        if layout is None:
-            return None
-        payload = raw[header_size:]
-        if len(payload) != struct.calcsize(layout["format"]):
-            raise SaveError("Save payload does not match its migration layout")
-        old_values = struct.unpack(layout["format"], payload)
-        values = self._default_values()
-        fields = {field.identity: field for field in self.fields}
-        for source, name, index in layout["fields"]:
-            if source == "village":
-                name = SAVE_FIELD_RENAMES.get(name, name)
-            field = fields.get((source, name))
-            if field is not None:
-                values[field.index] = self._bounded_value(old_values[index], field.data_type)
-        retired = set(layout.get("retired_serials", []))
-        for field in self.fields:
-            if field.source != "village" or not field.name.endswith(" Upgrade"):
-                continue
-            if values[field.index] not in retired:
-                continue
-            prefix = field.name.removesuffix(" Upgrade")
-            for suffix in (" Upgrade", " Time", " Currency", " Cost"):
-                slot_field = self.village_by_name.get(prefix + suffix)
-                if slot_field is not None:
-                    values[slot_field.index] = 0
-        return values, len(old_values) - len(layout["fields"])
+        maximums = {0: {name: 0 for name, _, _, _ in self.units}}
+        for town_hall in range(1, MAX_ATTACK_TOWN_HALL + 1):
+            cache = {"Town Hall": town_hall}
 
-    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = True) -> int:
-        _, source_digest, _ = self._save_header(raw)
-        if source_digest == self.serial_digest:
-            return 0
-        references = []
-        for field in self.fields:
-            if field.source != "village":
-                continue
-            if re.fullmatch(r"(?:Builder|Researcher) #\d+ Upgrade", field.name):
-                time_name = field.name.removesuffix(" Upgrade") + " Time"
-            elif re.fullmatch(r"Upgrade #\d+ Name", field.name):
-                time_name = field.name.removesuffix(" Name") + " Time"
-            else:
-                continue
-            time_field = self.village_by_name.get(time_name)
-            if time_field is None:
-                raise SaveError(f"Missing timestamp for {field.name}")
-            if values[field.index] or values[time_field.index]:
-                references.append((field, time_field))
-        if not references:
-            return 0
-        if self.serial_digest == EMPTY_SERIAL_DIGEST:
-            if source_digest not in (None, EMPTY_SERIAL_DIGEST):
-                raise SaveError("Cannot migrate serials without upgrade_ids.csv")
-            return 0
-        previous_path = self.progression_dir.parent / "upgrade_ids-old.csv"
-        if not previous_path.is_file():
-            raise SaveError("Provide the matching upgrade_ids-old.csv before migrating serials")
-        previous, previous_digest = self.read_serial_mapping(previous_path)
-        if source_digest is not None and source_digest != previous_digest:
-            names = (
-                field.name for field in self.fields
-                if "level" in field.category.casefold() or field.category == "Pet" or field.name == "Town Hall"
-            )
-            generated = {name: serial for serial, name in enumerate(names, 1)}
-            canonical = json.dumps(sorted(generated.items()), ensure_ascii=False, separators=(",", ":"))
-            if hashlib.sha256(canonical.encode("utf-8")).digest() != source_digest:
-                archive = previous_path.with_name(f"upgrade_ids-{source_digest.hex()}.csv")
-                if not archive.is_file():
-                    raise SaveSchemaMismatch(f"Missing matching historical serial mapping: {archive.name}")
-                generated, digest = self.read_serial_mapping(archive)
-                if digest != source_digest:
-                    raise SaveSchemaMismatch(f"Historical serial mapping fingerprint mismatch: {archive.name}")
-            previous = generated
-        old_names = {serial: name for name, serial in previous.items()}
-        cancelled = 0
-        for field, time_field in references:
-            worker = field.name.endswith(" Upgrade")
-            serial = values[field.index]
-            name = old_names.get(serial)
-            if name is None or name not in self.serial_by_name:
-                if worker and recover_unmappable and values[time_field.index] > 0:
-                    from resource_system import RESOURCE_CODES
-                    prefix = field.name.removesuffix(" Upgrade")
-                    cost_field = self.village_by_name[prefix + " Cost"]
-                    currency_field = self.village_by_name[prefix + " Currency"]
-                    amount = values[cost_field.index]
-                    code = values[currency_field.index]
-                    resource = next((key for key, value in RESOURCE_CODES.items() if value == code), None)
-                    if amount < 0 or (amount and resource is None):
-                        raise SaveError(f"Cannot determine the recorded refund for {prefix}")
-                    if amount:
-                        balance = self.village_by_name[resource]
-                        total = values[balance.index] + amount
-                        if total > FORMAT_DETAILS[balance.data_type][2]:
-                            raise SaveError(f"Cannot store the full {resource} refund for {prefix}")
-                        values[balance.index] = total
-                    for slot_field in (field, time_field, cost_field, currency_field):
-                        values[slot_field.index] = 0
-                    cancelled += 1
+            def maximum(name, visiting=()):
+                if name in cache:
+                    return cache[name]
+                if name in visiting:
+                    raise ValueError(f"Circular progression requirement for {name}")
+                base = re.sub(r" #\d+$", "", name)
+                count_row = counts.get(base) or counts.get(TABLE_ALIASES.get(base, base))
+                level_row = levels.get(base) or levels.get(TABLE_ALIASES.get(base, base))
+                if count_row is None or level_row is None:
+                    raise ValueError(f"Missing attack progression data for {name}")
+                count_requirement = maximum(count_row["Requirement"], (*visiting, name))
+                level_requirement = maximum(level_row["Requirement"], (*visiting, name))
+                count = int(count_row.get(str(count_requirement), "0") or 0)
+                instance = re.search(r" #(\d+)$", name)
+                value = int(level_row.get(str(level_requirement), "0") or 0)
+                cache[name] = value if count >= (int(instance[1]) if instance else 1) else 0
+                return cache[name]
+
+            maximums[town_hall] = {name: maximum(name) for name, _, _, _ in self.units}
+        self.bounds = {
+            th: {name: (maximums[th - 1][name], maximums[th][name]) for name, _, _, _ in self.units}
+            for th in range(1, MAX_ATTACK_TOWN_HALL + 1)
+        }
+        for th, units in self.bounds.items():
+            if any(low > high for low, high in units.values()):
+                raise ValueError(f"Attack levels decrease at Town Hall {th}")
+        generated = self.benchmark_rows()
+        self.benchmarks = {}
+        for row in (generated if generate_benchmarks else self._read_rows("attacking_benchmarks.csv")):
+            th = int(row["Town Hall"])
+            if th in self.benchmarks:
+                raise ValueError(f"Duplicate Town Hall {th} attack benchmark")
+            self.benchmarks[th] = {key: float(row[key]) for key in BENCHMARK_COLUMNS[1:]}
+        recalculated = []
+        for row in generated:
+            th = row["Town Hall"]
+            if th not in self.benchmarks or any(not math.isclose(self.benchmarks[th][key], row[key], abs_tol=1e-8) for key in BENCHMARK_COLUMNS[1:]):
+                self.benchmarks[th] = {key: float(row[key]) for key in BENCHMARK_COLUMNS[1:]}
+                recalculated.append(str(th))
+        self.rewards = {}
+        for row in self._read_rows("attacking_rewards.csv"):
+            th = int(row["Town Hall"])
+            ranges = {}
+            for resource in COLLECTIBLE_RESOURCES:
+                value = row.get(resource, "")
+                if not value:
                     continue
-                raise SaveError(f"Cannot migrate {field.name}: old serial {serial} ({name or 'unknown'}) has no new mapping")
-            target = self.serial_by_name[name]
-            if target > FORMAT_DETAILS[field.data_type][2]:
-                raise SaveError(f"New serial {target} exceeds the storage limit for {field.name}")
-            values[field.index] = target
+                parts = value.split("-")
+                low, high = float(parts[0]), float(parts[-1])
+                if len(parts) > 2 or not all(math.isfinite(n) for n in (low, high)) or not 0 <= low <= high:
+                    raise ValueError(f"Invalid attack reward for {resource} at Town Hall {th}")
+                ranges[resource] = (low, high)
+            if not ranges or th in self.rewards:
+                raise ValueError(f"Invalid attack reward row for Town Hall {th}")
+            self.rewards[th] = ranges
+        if 19 not in self.rewards and 18 in self.rewards:
+            self.rewards[19] = self.rewards[18].copy()
+        if set(self.rewards) != set(self.bounds):
+            raise ValueError("Attack rewards do not match supported Town Hall levels")
+        if recalculated:
+            output = io.StringIO()
+            writer = csv.DictWriter(output, BENCHMARK_COLUMNS, lineterminator="\n")
+            writer.writeheader()
+            for th, values in sorted(self.benchmarks.items()):
+                writer.writerow({"Town Hall": th, **{k: format(v, ".15g") for k, v in values.items()}})
+            path = self.progression_dir / "attacking_benchmarks.csv"
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", dir=path.parent, delete=False) as stream:
+                    temporary = Path(stream.name)
+                    stream.write(output.getvalue().rstrip("\n"))
+                os.replace(temporary, path)
+                logging.getLogger(__name__).info("Updated attack benchmarks for Town Halls %s", ", ".join(recalculated))
+            except OSError as error:
+                logging.getLogger(__name__).warning("Could not save updated attack benchmarks: %s", error)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
+        self.ready = True
 
-        return cancelled
+    def score(self, values, side, kind):
+        return math.fsum(values.get(name, 0) * weight for name, unit_side, unit_kind, weight in self.units if unit_side == side and unit_kind in (kind, "Both"))
 
-    def migrate_from(self, old_store: "SaveStore", backups_dir: Path, *, recover_unmappable: bool = True) -> MigrationReport:
-        self._require_schema()
-        old_store._require_schema()
-        if self.saves_dir.resolve() != old_store.saves_dir.resolve():
-            raise ValueError("Old and new schemas must target the same saves folder")
+    def benchmark_rows(self):
+        rows = []
+        for th, bounds in self.bounds.items():
+            row = {"Town Hall": th}
+            for index, bound in enumerate(("Min", "Max")):
+                values = {name: pair[index] for name, pair in bounds.items()}
+                for side in ATTACK_SIDES:
+                    for kind in ATTACK_TYPES:
+                        row[f"{bound} {side} {kind}"] = self.score(values, side, kind)
+            rows.append(row)
+        return rows
 
-        old_fields = {field.identity: field for field in old_store.fields}
-        new_fields = {field.identity: field for field in self.fields}
-        for previous, current in SAVE_FIELD_RENAMES.items():
-            old_key, new_key = ("village", previous), ("village", current)
-            if old_key in old_fields and new_key in new_fields and new_key not in old_fields:
-                old_fields[new_key] = old_fields.pop(old_key)
-        common = old_fields.keys() & new_fields.keys()
-        added_fields = len(new_fields.keys() - old_fields.keys())
-        removed_fields = len(old_fields.keys() - new_fields.keys())
-        changed_types = sum(
-            old_fields[key].data_type != new_fields[key].data_type for key in common
-        )
-        moved_fields = sum(
-            old_fields[key].index != new_fields[key].index for key in common
-        )
-        changed_categories = sum(
-            old_fields[key].category != new_fields[key].category for key in common
-        )
+    def scaled_score(self, th, score, side, kind):
+        row = self.benchmarks[th]
+        low, high = row[f"Min {side} {kind}"], row[f"Max {side} {kind}"]
+        return min(1.0, max(0.0, (score - low) / (high - low))) if high > low else 0.0
 
-        self.saves_dir.mkdir(parents=True, exist_ok=True)
-        staging = Path(
-            tempfile.mkdtemp(prefix=".saves-migration-", dir=self.saves_dir.parent)
-        )
-        migrated_saves = 0
-        cancelled_upgrades = 0
-        current_saves = 0
-        save_paths = sorted(self.saves_dir.glob("*.sav"))
+    def _path(self, user_id):
+        return self.store.player_path(user_id).with_suffix(".attack.json")
 
+    def _write(self, user_id, state):
+        path = self._path(user_id)
+        descriptor, name = tempfile.mkstemp(prefix=".attack-", dir=path.parent)
         try:
-            for source_path in save_paths:
-                raw = source_path.read_bytes()
-                try:
-                    self._decode_raw(raw)
-                    current_saves += 1
-                    continue
-                except SaveSchemaMismatch:
-                    pass
-                try:
-                    try:
-                        migrated_values, _ = self._decode_raw(raw, allow_serial_mismatch=True)
-                    except SaveSchemaMismatch:
-                        layout_values = self._decode_migration_layout(raw)
-                        if layout_values is not None:
-                            migrated_values, retired_count = layout_values
-                            removed_fields = max(removed_fields, retired_count)
-                        else:
-                            old_values, _ = old_store._decode_raw(raw, allow_legacy=True, allow_serial_mismatch=True)
-                            migrated_values = self._default_values()
-                            for identity in common:
-                                old_field = old_fields[identity]
-                                new_field = new_fields[identity]
-                                migrated_values[new_field.index] = self._bounded_value(
-                                    old_values[old_field.index], new_field.data_type
-                                )
-                    cancelled_upgrades += self._remap_serials(raw, migrated_values, recover_unmappable)
-                except (SaveError, ValueError) as error:
-                    raise SaveError(f"Cannot migrate {source_path.name}: {error}. No player saves were changed.") from error
-                self._write_values(staging / source_path.name, migrated_values)
-                migrated_saves += 1
-
-            for staged_path in staging.glob("*.sav"):
-                self._decode_raw(staged_path.read_bytes())
-
-            backup_path = None
-            if migrated_saves:
-                backups_dir.mkdir(parents=True, exist_ok=True)
-                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
-                backup_path = backups_dir / f"saves-{timestamp}"
-                shutil.copytree(self.saves_dir, backup_path)
-                for staged_path in sorted(staging.glob("*.sav")):
-                    os.replace(staged_path, self.saves_dir / staged_path.name)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as destination:
+                json.dump(state, destination, separators=(",", ":"), allow_nan=False)
+                destination.flush()
+                os.fsync(destination.fileno())
+            os.replace(name, path)
         finally:
-            if staging.exists():
-                shutil.rmtree(staging)
+            Path(name).unlink(missing_ok=True)
 
-        return MigrationReport(
-            total_saves=len(save_paths),
-            migrated_saves=migrated_saves,
-            current_saves=current_saves,
-            added_fields=added_fields,
-            removed_fields=removed_fields,
-            changed_types=changed_types,
-            moved_fields=moved_fields,
-            changed_categories=changed_categories,
-            backup_path=backup_path,
-            cancelled_upgrades=cancelled_upgrades,
-        )
+    def _read(self, user_id):
+        try:
+            return json.loads(self._path(user_id).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+
+    def pending_users(self):
+        return [int(path.name.split(".")[0]) for path in self.store.saves_dir.glob("*.attack.json") if path.name.split(".")[0].isdigit()]
+
+    def _require_player(self, user_id):
+        if not self.ready:
+            raise AttackRejected("Attack data is unavailable. Please ask a moderator to check the bot setup.")
+        if not self.store.player_path(user_id).is_file():
+            raise AttackRejected("New to Chester? Open a Chest using the /chest command to get started!")
+
+    def start(self, user_id, now=None):
+        now = int(time.time()) if now is None else int(now)
+        with self.store.lock:
+            self._require_player(user_id)
+            existing = self.status(user_id, now)
+            if existing is not None and existing["status"] == "cancelled" and existing.get("redisplay"):
+                self._path(user_id).unlink(missing_ok=True)
+                existing = None
+            if existing is not None:
+                return existing
+            with self.store.transaction(user_id) as (village, _):
+                if village[ATTACK_END_FIELD]:
+                    raise AttackRejected("Your previous attack data is unavailable. Please contact the bot owner.")
+                th = village["Town Hall"]
+                if th not in self.bounds:
+                    raise AttackRejected("Open a Chest to create your village before attacking.")
+                kind = random.choice(ATTACK_TYPES)
+                defense = {name: random.randint(*self.bounds[th][name]) for name, side, _, _ in self.units if side == "Defense"}
+                difficulty = self.scaled_score(th, self.score(defense, "Defense", kind), "Defense", kind)
+                offensive_units = boosted_offense(village, self.store.village_by_name, self.bounds[th], self.boost_targets, now)
+                offense = self.scaled_score(th, self.score(offensive_units, "Offense", kind), "Offense", kind)
+                if village[TIMED_BOOST_FIELDS["Clan Castle Cake"]] <= now:
+                    offense *= 1 - NO_CLAN_CASTLE_PENALTY
+                state = {"user_id": int(user_id), "end": now + ATTACK_DURATION, "town_hall": th,
+                         "type": kind, "difficulty": difficulty, "offense": offense,
+                         "seed": random.getrandbits(128), "status": "active", "notified": False,
+                         "reward_ranges": self.rewards[th], "chests": 0}
+                self._write(user_id, state)
+                consume_attack_boosts(village)
+                village[ATTACK_CHESTS_FIELD] = 0
+                village[ATTACK_END_FIELD] = state["end"]
+            return state
+
+    def count_chest(self, village, now=None):
+        now = int(time.time()) if now is None else int(now)
+        end = village.get(ATTACK_END_FIELD, 0)
+        if end - ATTACK_DURATION <= now < end:
+            field = self.store.village_by_name[ATTACK_CHESTS_FIELD]
+            village[field.name] = self.store._bounded_add(village[field.name], 1, field.data_type)
+
+    def simulate(self, town_hall, offense=None, defense=None):
+        if not self.ready:
+            raise AttackRejected("Attack data is unavailable. Please ask a moderator to check the bot setup.")
+        if isinstance(town_hall, bool) or not isinstance(town_hall, int) or town_hall not in self.bounds:
+            raise AttackRejected(f"Choose a Town Hall level from 1 through {MAX_ATTACK_TOWN_HALL}.")
+        overrides = {"Offense": offense, "Defense": defense}
+        for side, value in overrides.items():
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1):
+                raise AttackRejected(f"{side} score must be between 0 and 1.")
+        kind = random.choice(ATTACK_TYPES)
+        scores = {}
+        for side in ATTACK_SIDES:
+            if overrides[side] is not None:
+                scores[side] = float(overrides[side])
+                continue
+            values = {name: random.randint(*self.bounds[town_hall][name]) for name, unit_side, _, _ in self.units if unit_side == side}
+            scores[side] = self.scaled_score(town_hall, self.score(values, side, kind), side, kind)
+        state = {"town_hall": town_hall, "type": kind, "offense": scores["Offense"] * (1 - NO_CLAN_CASTLE_PENALTY),
+                 "difficulty": scores["Defense"], "seed": random.getrandbits(128), "reward_ranges": self.rewards[town_hall]}
+        return self._result(state)
+
+    @staticmethod
+    def expectations(offset):
+        chance = TOWN_HALL_CHANCE_EQUAL + offset * (TOWN_HALL_CHANCE_EQUAL - TOWN_HALL_CHANCE_MINIMUM)
+        percentage = EXPECTED_PERCENTAGE_EQUAL + offset * (EXPECTED_PERCENTAGE_EQUAL - EXPECTED_PERCENTAGE_MINIMUM)
+        return min(1.0, max(0.0, chance)), percentage
+
+    @staticmethod
+    def reward_multiplier(stars, percentage, ore):
+        low, high, loot, ores = REWARD_MULTIPLIERS[stars]
+        start, end = ores if ore else loot
+        fraction = min(1.0, max(0.0, (percentage - low) / (high - low))) if high > low else 0.0
+        return start + (end - start) * fraction
+
+    def _result(self, state):
+        rng = random.Random(state["seed"])
+        chance, expected = self.expectations(state["offense"] - state["difficulty"])
+        destroyed = rng.random() < chance
+        percentage = math.floor(rng.gauss(expected, PERCENTAGE_STANDARD_DEVIATION))
+        if not destroyed and percentage >= TOWN_HALL_SACRIFICE_THRESHOLD:
+            percentage -= TOWN_HALL_SACRIFICE_PERCENTAGE
+            destroyed = True
+        ceiling = DESTROYED_TOWN_HALL_MAXIMUM if destroyed else SURVIVING_TOWN_HALL_MAXIMUM
+        percentage = max(MINIMUM_PERCENTAGE, min(ceiling, percentage))
+        stars = int(destroyed) + int(percentage >= PERCENTAGE_STAR_THRESHOLD) + int(destroyed and percentage >= DESTROYED_TOWN_HALL_MAXIMUM)
+        difficulty_factor = DIFFICULTY_REWARD_MINIMUM + (DIFFICULTY_REWARD_MAXIMUM - DIFFICULTY_REWARD_MINIMUM) * state["difficulty"]
+        rewards = {}
+        for resource, (low, high) in state["reward_ranges"].items():
+            amount = rng.uniform(low, high) * self.reward_multiplier(stars, percentage, resource in ORE_TYPES)
+            resource_multiplier = rng.uniform(RANDOM_REWARD_MINIMUM, RANDOM_REWARD_MAXIMUM)
+            amount *= difficulty_factor * resource_multiplier
+            rewards[resource] = math.floor(amount + 0.5)
+        return {**state, "status": "complete", "destroyed": destroyed, "percentage": percentage, "stars": stars,
+                "rewards": rewards, "chance": chance, "expected_percentage": expected}
+
+    def _history(self, village, state):
+        if village["Attack #1 Timestamp"] == state["end"]:
+            return
+        for index in range(ATTACK_HISTORY_SIZE, 1, -1):
+            for part in ("Type", "Stars", "Percentage", "Timestamp"):
+                village[f"Attack #{index} {part}"] = village[f"Attack #{index - 1} {part}"]
+        village["Attack #1 Type"] = int(state["type"] == "Air")
+        village["Attack #1 Stars"] = state.get("stars", 0)
+        village["Attack #1 Percentage"] = state.get("percentage", 0)
+        village["Attack #1 Timestamp"] = state["end"]
+
+    def status(self, user_id, now=None):
+        now = int(time.time()) if now is None else int(now)
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is None:
+                return None
+            if not self.store.player_path(user_id).is_file():
+                self._path(user_id).unlink(missing_ok=True)
+                return None
+            self._require_player(user_id)
+            if state["status"] == "cancelled" and state.get("redisplay"):
+                return state
+            completed_now = False
+            with self.store.transaction(user_id) as (village, _):
+                if village[ATTACK_END_FIELD] != state["end"]:
+                    self._path(user_id).unlink(missing_ok=True)
+                    return None
+                state["chests"] = village[ATTACK_CHESTS_FIELD]
+                if state["status"] == "active" and now >= state["end"]:
+                    if state["chests"] < ATTACK_REQUIRED_CHESTS:
+                        state["status"] = "cancelled"
+                        village[ATTACK_END_FIELD] = 0
+                        village[ATTACK_CHESTS_FIELD] = 0
+                    else:
+                        state = self._result(state)
+                        completed_now = True
+                    self._history(village, state)
+            if state["status"] == "cancelled":
+                self._path(user_id).unlink(missing_ok=True)
+            elif completed_now:
+                self._write(user_id, state)
+            return state
+
+    def attach_message(self, user_id, end, channel_id, message_id, user_install=False):
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is not None and state["end"] == end:
+                state.update(channel_id=int(channel_id), message_id=int(message_id), notified=state["status"] == "complete")
+                state.update(user_install=bool(user_install), redisplay=False)
+                self._write(user_id, state)
+
+    def queue_redisplay(self, failed):
+        user_id = failed["user_id"]
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is None and failed["status"] == "cancelled":
+                if not self.store.player_path(user_id).is_file():
+                    return False
+                village, _ = self.store.player_values(user_id)
+                if village[ATTACK_END_FIELD]:
+                    return False
+                state = dict(failed)
+            if state is None or any(state.get(key) != failed.get(key) for key in ("end", "channel_id", "message_id")):
+                return False
+            state.pop("channel_id", None)
+            state.pop("message_id", None)
+            state.update(notified=False, redisplay=True)
+            self._write(user_id, state)
+            return True
+
+    def redisplay_state(self, user_id):
+        with self.store.lock:
+            state = self._read(user_id)
+            return state if state is not None and state.get("redisplay") else None
+
+    def detach_message(self, user_id, end, channel_id, message_id):
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is None or (state["end"], state.get("channel_id"), state.get("message_id")) != (end, channel_id, message_id):
+                return False
+            state.pop("channel_id", None)
+            state.pop("message_id", None)
+            state["notified"] = False
+            self._write(user_id, state)
+            return True
+
+    def mark_notified(self, user_id, end):
+        with self.store.lock:
+            state = self._read(user_id)
+            if state is not None and state["end"] == end:
+                if state["status"] == "cancelled":
+                    self._path(user_id).unlink(missing_ok=True)
+                    return
+                state["notified"] = True
+                state["redisplay"] = False
+                self._write(user_id, state)
+
+    def claim(self, user_id, end, resource):
+        with self.store.lock:
+            self._require_player(user_id)
+            state = self.status(user_id)
+            if state is None or state["end"] != end:
+                raise AttackRejected("This attack reward has already been claimed or is no longer available.")
+            if state["status"] != "complete" or resource not in state["rewards"]:
+                raise AttackRejected("Choose one of the rewards from your completed attack.")
+            with self.store.transaction(user_id) as (village, _):
+                receipt = self.resources.deposit(village, {resource: state["rewards"][resource]})
+                total = f"Total {resource}"
+                if total in village:
+                    field = self.store.village_by_name[total]
+                    village[total] = self.store._bounded_add(village[total], receipt.main[resource] + receipt.treasury[resource], field.data_type)
+                village[ATTACK_END_FIELD] = 0
+                village[ATTACK_CHESTS_FIELD] = 0
+                caps, treasury_caps = self.resources.capacities(village)
+            self._path(user_id).unlink(missing_ok=True)
+            return state, receipt, village, caps, treasury_caps
