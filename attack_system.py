@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import math
 import os
 import random
@@ -41,6 +42,7 @@ REWARD_MULTIPLIERS = {
     3: (100, 100, (5.0, 5.0), (2.0, 2.0)),
 }
 TABLE_ALIASES = {"Electric Owl": "Electro Owl"}
+EXCLUDED_ATTACK_UNITS = {"Town Hall 17 Weapon"}
 ATTACK_END_FIELD = "Attack End Timestamp"
 ATTACK_CHESTS_FIELD = "Chests Opened While Attacking"
 BENCHMARK_COLUMNS = ["Town Hall"] + [
@@ -90,6 +92,8 @@ class AttackSystem:
         seen = set()
         for row in self._read_rows("attacking.csv"):
             name, side, kind = row["Name"], row["Side"], row["Category"]
+            if name in EXCLUDED_ATTACK_UNITS:
+                continue
             weight = float(row["Weight"])
             if side not in ATTACK_SIDES or kind not in (*ATTACK_TYPES, "Both") or not math.isfinite(weight) or weight < 0:
                 raise ValueError(f"Invalid attack rule for {name}")
@@ -148,10 +152,17 @@ class AttackSystem:
             if th in self.benchmarks:
                 raise ValueError(f"Duplicate Town Hall {th} attack benchmark")
             self.benchmarks[th] = {key: float(row[key]) for key in BENCHMARK_COLUMNS[1:]}
+        recalculated = []
         for row in generated:
             th = row["Town Hall"]
             if th not in self.benchmarks or any(not math.isclose(self.benchmarks[th][key], row[key], abs_tol=1e-8) for key in BENCHMARK_COLUMNS[1:]):
-                raise ValueError(f"Regenerate attacking_benchmarks.csv for Town Hall {th}")
+                self.benchmarks[th] = {key: float(row[key]) for key in BENCHMARK_COLUMNS[1:]}
+                recalculated.append(str(th))
+        if recalculated:
+            logging.getLogger(__name__).warning(
+                "Recalculated stale attack benchmarks in memory for Town Halls %s from loaded progression data",
+                ", ".join(recalculated),
+            )
         self.rewards = {}
         for row in self._read_rows("attacking_rewards.csv"):
             th = int(row["Town Hall"])
