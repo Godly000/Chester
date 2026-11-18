@@ -1,4 +1,5 @@
 import csv
+import io
 import json
 import logging
 import math
@@ -13,6 +14,7 @@ from combat_boosts import BOOST_FIELDS, TIMED_BOOST_FIELDS, NO_CLAN_CASTLE_PENAL
 from resource_system import COLLECTIBLE_RESOURCES, ORE_TYPES
 
 
+MAX_ATTACK_TOWN_HALL = 19
 ATTACK_DURATION = 180
 ATTACK_CHESTS_PER_SECOND = 0.1
 ATTACK_REQUIRED_CHESTS = math.floor(ATTACK_DURATION * ATTACK_CHESTS_PER_SECOND)
@@ -116,7 +118,7 @@ class AttackSystem:
                 self.units.append((field_name, side, kind, weight))
 
         maximums = {0: {name: 0 for name, _, _, _ in self.units}}
-        for town_hall in range(1, 19):
+        for town_hall in range(1, MAX_ATTACK_TOWN_HALL + 1):
             cache = {"Town Hall": town_hall}
 
             def maximum(name, visiting=()):
@@ -140,7 +142,7 @@ class AttackSystem:
             maximums[town_hall] = {name: maximum(name) for name, _, _, _ in self.units}
         self.bounds = {
             th: {name: (maximums[th - 1][name], maximums[th][name]) for name, _, _, _ in self.units}
-            for th in range(1, 19)
+            for th in range(1, MAX_ATTACK_TOWN_HALL + 1)
         }
         for th, units in self.bounds.items():
             if any(low > high for low, high in units.values()):
@@ -158,11 +160,6 @@ class AttackSystem:
             if th not in self.benchmarks or any(not math.isclose(self.benchmarks[th][key], row[key], abs_tol=1e-8) for key in BENCHMARK_COLUMNS[1:]):
                 self.benchmarks[th] = {key: float(row[key]) for key in BENCHMARK_COLUMNS[1:]}
                 recalculated.append(str(th))
-        if recalculated:
-            logging.getLogger(__name__).warning(
-                "Recalculated stale attack benchmarks in memory for Town Halls %s from loaded progression data",
-                ", ".join(recalculated),
-            )
         self.rewards = {}
         for row in self._read_rows("attacking_rewards.csv"):
             th = int(row["Town Hall"])
@@ -179,8 +176,29 @@ class AttackSystem:
             if not ranges or th in self.rewards:
                 raise ValueError(f"Invalid attack reward row for Town Hall {th}")
             self.rewards[th] = ranges
+        if 19 not in self.rewards and 18 in self.rewards:
+            self.rewards[19] = self.rewards[18].copy()
         if set(self.rewards) != set(self.bounds):
-            raise ValueError("Attack rewards must cover Town Halls one through eighteen")
+            raise ValueError("Attack rewards do not match supported Town Hall levels")
+        if recalculated:
+            output = io.StringIO()
+            writer = csv.DictWriter(output, BENCHMARK_COLUMNS, lineterminator="\n")
+            writer.writeheader()
+            for th, values in sorted(self.benchmarks.items()):
+                writer.writerow({"Town Hall": th, **{k: format(v, ".15g") for k, v in values.items()}})
+            path = self.progression_dir / "attacking_benchmarks.csv"
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", dir=path.parent, delete=False) as stream:
+                    temporary = Path(stream.name)
+                    stream.write(output.getvalue().rstrip("\n"))
+                os.replace(temporary, path)
+                logging.getLogger(__name__).info("Updated attack benchmarks for Town Halls %s", ", ".join(recalculated))
+            except OSError as error:
+                logging.getLogger(__name__).warning("Could not save updated attack benchmarks: %s", error)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
         self.ready = True
 
     def score(self, values, side, kind):
@@ -277,7 +295,7 @@ class AttackSystem:
         if not self.ready:
             raise AttackRejected("Attack data is unavailable. Please ask a moderator to check the bot setup.")
         if isinstance(town_hall, bool) or not isinstance(town_hall, int) or town_hall not in self.bounds:
-            raise AttackRejected("Choose a Town Hall level from 1 through 18.")
+            raise AttackRejected(f"Choose a Town Hall level from 1 through {MAX_ATTACK_TOWN_HALL}.")
         overrides = {"Offense": offense, "Defense": defense}
         for side, value in overrides.items():
             if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1):
