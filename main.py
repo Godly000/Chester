@@ -131,6 +131,7 @@ CHEST_VISIBILITY_FILE = SCRIPT_DIR / "chest_visibility.txt"
 CHEST_VISIBILITY_ORDER = ("legendary", "epic", "rare", "common")
 BULK_MAGIC_SELL_VALUE = 2
 DATA_DIR = SCRIPT_DIR / "data"
+ABOUT_FILE = SCRIPT_DIR / "about.txt"
 TOWN_HALL_LOOT_DIR = DATA_DIR / "Town Hall Loot Tables"
 LOOT_TABLE_DIR = TOWN_HALL_LOOT_DIR
 TUTORIAL_FILE = DATA_DIR / "tutorial.csv"
@@ -3978,14 +3979,14 @@ async def test_attack_slash_error(interaction: discord.Interaction, error: app_c
 async def about_slash(interaction: discord.Interaction):
     if not await enforce_chester_channel(interaction):
         return
+    try:
+        description = ABOUT_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        log.warning("Could not read about.txt")
+        await interaction.response.send_message("Chester’s about information is unavailable.", ephemeral=True)
+        return
     embed = discord.Embed(
-        description=(
-            "Version 1.0.4 updated 2026 November 10\n"
-            "Source: https://github.com/Godly000/Chester\n"
-            "Terms of Service: https://pastebin.com/0T6GMB5t\n"
-            "Privacy Policy: https://pastebin.com/zhfg4af1\n"
-            "Supercell Fan Content Policy: https://supercell.com/en/fan-content-policy/"
-        ),
+        description=description,
         color=discord.Color.blue(),
     )
     embed.set_image(url=proxy_image_url("https://i.imgur.com/0ZahMiF.png"))
