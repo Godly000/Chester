@@ -219,6 +219,7 @@ Air Defense #1,Defense Level,byte
 Air Defense #2,Defense Level,byte
 Air Defense #3,Defense Level,byte
 Air Defense #4,Defense Level,byte
+Air Defense #5,Defense Level,byte
 Wizard Tower #1,Defense Level,byte
 Wizard Tower #2,Defense Level,byte
 Wizard Tower #3,Defense Level,byte
@@ -258,13 +259,16 @@ Ricochet Cannon #3,Defense Level,byte
 Multi-Archer Tower #1,Defense Level,byte
 Multi-Archer Tower #2,Defense Level,byte
 Multi-Archer Tower #3,Defense Level,byte
-Multi-Archer Tower #4,Defense Level,byte
 Firespitter #1,Defense Level,byte
 Firespitter #2,Defense Level,byte
 Multi-Gear Tower,Defense Level,byte
 Revenge Tower,Defense Level,byte
 Super Wizard Tower #1,Defense Level,byte
 Super Wizard Tower #2,Defense Level,byte
+Firecracker Tower #1,Defense Level,byte
+Firecracker Tower #2,Defense Level,byte
+Spiky Tower #1,Defense Level,byte
+Spiky Tower #2,Defense Level,byte
 Crafted Defense AA,Defense Level,byte
 Crafted Defense AB,Defense Level,byte
 Crafted Defense AC,Defense Level,byte
@@ -599,6 +603,31 @@ Wall #322,Wall Level,byte
 Wall #323,Wall Level,byte
 Wall #324,Wall Level,byte
 Wall #325,Wall Level,byte
+Wall #326,Wall Level,byte
+Wall #327,Wall Level,byte
+Wall #328,Wall Level,byte
+Wall #329,Wall Level,byte
+Wall #330,Wall Level,byte
+Wall #331,Wall Level,byte
+Wall #332,Wall Level,byte
+Wall #333,Wall Level,byte
+Wall #334,Wall Level,byte
+Wall #335,Wall Level,byte
+Wall #336,Wall Level,byte
+Wall #337,Wall Level,byte
+Wall #338,Wall Level,byte
+Wall #339,Wall Level,byte
+Wall #340,Wall Level,byte
+Wall #341,Wall Level,byte
+Wall #342,Wall Level,byte
+Wall #343,Wall Level,byte
+Wall #344,Wall Level,byte
+Wall #345,Wall Level,byte
+Wall #346,Wall Level,byte
+Wall #347,Wall Level,byte
+Wall #348,Wall Level,byte
+Wall #349,Wall Level,byte
+Wall #350,Wall Level,byte
 Bomb #1,Trap Level,byte
 Bomb #2,Trap Level,byte
 Bomb #3,Trap Level,byte
@@ -616,6 +645,7 @@ Spring Trap #6,Trap Level,byte
 Spring Trap #7,Trap Level,byte
 Spring Trap #8,Trap Level,byte
 Spring Trap #9,Trap Level,byte
+Spring Trap #10,Trap Level,byte
 Air Bomb #1,Trap Level,byte
 Air Bomb #2,Trap Level,byte
 Air Bomb #3,Trap Level,byte
@@ -753,6 +783,18 @@ Flame Flinger,Siege Level,byte
 Battle Drill,Siege Level,byte
 Troop Launcher,Siege Level,byte
 Sky Wagon,Siege Level,byte
+Barch Squad,Squad Level,byte
+Giant Wizard Squad,Squad Level,byte
+Wall Breaker Squad,Squad Level,byte
+Minion Squad,Squad Level,byte
+Balloon Squad,Squad Level,byte
+Golem Witch Squad,Squad Level,byte
+Hog Rider Squad,Squad Level,byte
+Miner Squad,Squad Level,byte
+Healer Squad,Squad Level,byte
+P.E.K.K.A. Titan Squad,Squad Level,byte
+Dragons Squad,Squad Level,byte
+Baby Dragon Squad,Squad Level,byte
 L.A.S.S.I.,Pet Level,byte
 Electric Owl,Pet Level,byte
 Yak,Pet Level,byte
