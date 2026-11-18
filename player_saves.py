@@ -445,6 +445,18 @@ class SaveStore:
         ]
 
     def _decode_migration_layout(self, raw: bytes) -> Optional[Tuple[List[int], int]]:
+        if raw.startswith(SAVE_MAGIC) and "Squad Barracks" in self.village_by_name:
+            digest, _, size = self._save_header(raw)
+            prior = [f for f in self.fields if f.identity != ("village", "Squad Barracks")]
+            schema = "\n".join("\0".join((f.source, f.name, f.category, f.data_type)) for f in prior)
+            if hashlib.sha256(schema.encode()).digest() == digest:
+                fmt = "<" + "".join(FORMAT_DETAILS[f.data_type][0] for f in prior)
+                if len(raw) - size != struct.calcsize(fmt):
+                    raise SaveError("Save payload does not match the pre Squad Barracks schema")
+                values = self._default_values()
+                for field, value in zip(prior, struct.unpack_from(fmt, raw, size)):
+                    values[field.index] = value
+                return values, 0
         path = self.progression_dir / "save_migrations.json"
         if not path.is_file() or not raw.startswith(SAVE_MAGIC) or len(raw) < SAVE_HEADER.size:
             return None
@@ -479,7 +491,7 @@ class SaveStore:
                     values[slot_field.index] = 0
         return values, len(old_values) - len(layout["fields"])
 
-    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = False) -> int:
+    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = True) -> int:
         _, source_digest, _ = self._save_header(raw)
         if source_digest == self.serial_digest:
             return 0
@@ -516,7 +528,12 @@ class SaveStore:
             generated = {name: serial for serial, name in enumerate(names, 1)}
             canonical = json.dumps(sorted(generated.items()), ensure_ascii=False, separators=(",", ":"))
             if hashlib.sha256(canonical.encode("utf-8")).digest() != source_digest:
-                raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv or the generated mapping")
+                archive = previous_path.with_name(f"upgrade_ids-{source_digest.hex()}.csv")
+                if not archive.is_file():
+                    raise SaveSchemaMismatch(f"Missing matching historical serial mapping: {archive.name}")
+                generated, digest = self.read_serial_mapping(archive)
+                if digest != source_digest:
+                    raise SaveSchemaMismatch(f"Historical serial mapping fingerprint mismatch: {archive.name}")
             previous = generated
         old_names = {serial: name for name, serial in previous.items()}
         cancelled = 0
@@ -553,7 +570,7 @@ class SaveStore:
 
         return cancelled
 
-    def migrate_from(self, old_store: "SaveStore", backups_dir: Path, *, recover_unmappable: bool = False) -> MigrationReport:
+    def migrate_from(self, old_store: "SaveStore", backups_dir: Path, *, recover_unmappable: bool = True) -> MigrationReport:
         self._require_schema()
         old_store._require_schema()
         if self.saves_dir.resolve() != old_store.saves_dir.resolve():
