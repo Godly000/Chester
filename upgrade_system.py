@@ -560,8 +560,7 @@ class UpgradeSystem:
                 number = int(builder.group(1))
                 if number >= 6:
                     raise WorkerUnavailable(BUILDER_BASE_MESSAGE)
-                cost = BUILDER_UNLOCK_COSTS.get(number, 0)
-                return UpgradePrice(0, {"Gems": cost} if cost else {})
+                raise UpgradeRejected("Buy level 1 Builder Huts with /buy.")
         if field.category == EQUIPMENT_CATEGORY:
             costs = self.equipment_prices.get(target_level)
             if costs is None:
@@ -673,8 +672,8 @@ class UpgradeSystem:
         for upgrade_name, time_name in slots:
             number = int(re.search(r"#(\d+)", upgrade_name).group(1))
             if slot_type == "Builder":
-                unlocked = number == 1 or (
-                    number in BUILDER_UNLOCK_COSTS and village.get(f"Builder's Hut #{number}", 0) >= 1
+                unlocked = (
+                    (number == 1 or number in BUILDER_UNLOCK_COSTS) and village.get(f"Builder's Hut #{number}", 0) >= 1
                 )
             else:
                 unlocked = (
@@ -694,7 +693,7 @@ class UpgradeSystem:
             if village.get("Laboratory", 0) < 1:
                 raise UpgradeRejected("Unlock the first Researcher by completing Laboratory level 1")
             raise WorkerUnavailable("Your eligible Researcher is busy. Wait for the current research to finish.")
-        raise UpgradeRejected("No unlocked Builder is free. Wait for an upgrade or unlock another Builder with /upgrade")
+        raise UpgradeRejected("No unlocked Builder is free. Wait for an upgrade or buy another Builder with /buy")
 
     def _pending_serials(self, village: Mapping[str, int]) -> Dict[int, str]:
         pending: Dict[int, str] = {}
@@ -807,8 +806,6 @@ class UpgradeSystem:
             village[f"Upgrade #{number} Time"] = timestamp
 
     def _refresh_values(self, village: Dict[str, int], now: int) -> RefreshReport:
-        if village.get("Town Hall", 0) >= 1 and village.get("Builder's Hut #1", 0) == 0:
-            village["Builder's Hut #1"] = 1
         completed = []
         active = []
         warnings = []
