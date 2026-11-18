@@ -1,13 +1,8 @@
 Serial,Name,Category
 0,Town Hall,Structure Level
-1,Town Hall 12 Weapon,Structure Level
-2,Town Hall 13 Weapon,Structure Level
-3,Town Hall 14 Weapon,Structure Level
-4,Town Hall 15 Weapon,Structure Level
-5,Town Hall 17 Weapon,Structure Level
-6,Smasher,Structure Level
-7,Longshot,Structure Level
-8,Logger,Structure Level
+1,Smasher,Structure Level
+2,Longshot,Structure Level
+3,Logger,Structure Level
 10,Cannon #1,Structure Level
 11,Cannon #2,Structure Level
 12,Cannon #3,Structure Level
@@ -32,11 +27,13 @@ Serial,Name,Category
 41,Air Defense #2,Structure Level
 42,Air Defense #3,Structure Level
 43,Air Defense #4,Structure Level
+44,Air Defense #5,Structure Level
 50,Wizard Tower #1,Structure Level
 51,Wizard Tower #2,Structure Level
 52,Wizard Tower #3,Structure Level
 53,Wizard Tower #4,Structure Level
 54,Wizard Tower #5,Structure Level
+55,Wizard Tower #6,Structure Level
 60,Air Sweeper #1,Structure Level
 61,Air Sweeper #2,Structure Level
 70,Hidden Tesla #1,Structure Level
@@ -77,15 +74,19 @@ Serial,Name,Category
 200,Revenge Tower,Structure Level
 210,Super Wizard Tower #1,Structure Level
 211,Super Wizard Tower #2,Structure Level
-220,Crafted Defense AA,Structure Level
-230,Crafted Defense AB,Structure Level
-240,Crafted Defense AC,Structure Level
-221,Crafted Defense BA,Structure Level
-231,Crafted Defense BB,Structure Level
-241,Crafted Defense BC,Structure Level
-222,Crafted Defense CA,Structure Level
-232,Crafted Defense CB,Structure Level
-242,Crafted Defense CC,Structure Level
+220,Firecracker Tower #1,Structure Level
+221,Firecracker Tower #2,Structure Level
+230,Spiky Tower #1,Structure Level
+231,Spiky Tower #2,Structure Level
+240,Crafted Defense AA,Structure Level
+241,Crafted Defense BA,Structure Level
+242,Crafted Defense CA,Structure Level
+250,Crafted Defense AB,Structure Level
+251,Crafted Defense BB,Structure Level
+252,Crafted Defense CB,Structure Level
+260,Crafted Defense AC,Structure Level
+261,Crafted Defense BC,Structure Level
+262,Crafted Defense CC,Structure Level
 300,Wall #1,Structure Level
 301,Wall #2,Structure Level
 302,Wall #3,Structure Level
@@ -411,6 +412,31 @@ Serial,Name,Category
 622,Wall #323,Structure Level
 623,Wall #324,Structure Level
 624,Wall #325,Structure Level
+625,Wall #326,Structure Level
+626,Wall #327,Structure Level
+627,Wall #328,Structure Level
+628,Wall #329,Structure Level
+629,Wall #330,Structure Level
+630,Wall #331,Structure Level
+631,Wall #332,Structure Level
+632,Wall #333,Structure Level
+633,Wall #334,Structure Level
+634,Wall #335,Structure Level
+635,Wall #336,Structure Level
+636,Wall #337,Structure Level
+637,Wall #338,Structure Level
+638,Wall #339,Structure Level
+639,Wall #340,Structure Level
+640,Wall #341,Structure Level
+641,Wall #342,Structure Level
+642,Wall #343,Structure Level
+643,Wall #344,Structure Level
+644,Wall #345,Structure Level
+645,Wall #346,Structure Level
+646,Wall #347,Structure Level
+647,Wall #348,Structure Level
+648,Wall #349,Structure Level
+649,Wall #350,Structure Level
 700,Bomb #1,Structure Level
 701,Bomb #2,Structure Level
 702,Bomb #3,Structure Level
@@ -428,6 +454,7 @@ Serial,Name,Category
 716,Spring Trap #7,Structure Level
 717,Spring Trap #8,Structure Level
 718,Spring Trap #9,Structure Level
+719,Spring Trap #10,Structure Level
 720,Air Bomb #1,Structure Level
 721,Air Bomb #2,Structure Level
 722,Air Bomb #3,Structure Level
@@ -498,8 +525,9 @@ Serial,Name,Category
 865,Spell Factory,Structure Level
 866,Dark Spell Factory,Structure Level
 867,Blacksmith,Structure Level
-868,Workshop,Structure Level
-869,Pet House,Structure Level
+868,Squad Barracks,Structure Level
+869,Workshop,Structure Level
+870,Pet House,Structure Level
 900,Barbarian King,Hero Level
 901,Archer Queen,Hero Level
 902,Minion Prince,Hero Level
@@ -565,58 +593,70 @@ Serial,Name,Category
 1206,Battle Drill,Siege Level
 1207,Troop Launcher,Siege Level
 1208,Sky Wagon,Siege Level
-1300,L.A.S.S.I.,Pet Level
-1301,Electric Owl,Pet Level
-1302,Yak,Pet Level
-1303,Unicorn,Pet Level
-1304,Frosty,Pet Level
-1305,Diggy,Pet Level
-1306,Poison Lizard,Pet Level
-1307,Phoenix,Pet Level
-1308,Spirit Fox,Pet Level
-1309,Angry Jelly,Pet Level
-1310,Sneezy,Pet Level
-1311,Greedy Raven,Pet Level
-1400,Barbarian Puppet,Equipment Level
-1401,Rage Vial,Equipment Level
-1402,Earthquake Boots,Equipment Level
-1403,Vampstache,Equipment Level
-1404,Giant Gauntlet,Equipment Level
-1405,Spiky Ball,Equipment Level
-1406,Snake Bracelet,Equipment Level
-1407,Stick Horse,Equipment Level
-1408,Archer Puppet,Equipment Level
-1409,Invisibility Vial,Equipment Level
-1410,Giant Arrow,Equipment Level
-1411,Healer Puppet,Equipment Level
-1412,Frozen Arrow,Equipment Level
-1413,Magic Mirror,Equipment Level
-1414,Action Figure,Equipment Level
-1415,Monolith Arrow,Equipment Level
-1416,Henchmen Puppet,Equipment Level
-1417,Dark Orb,Equipment Level
-1418,Metal Pants,Equipment Level
-1419,Noble Iron,Equipment Level
-1420,Dark Crown,Equipment Level
-1421,Meteor Staff,Equipment Level
-1422,Portal Pendant,Equipment Level
-1423,Eternal Tome,Equipment Level
-1424,Life Gem,Equipment Level
-1425,Rage Gem,Equipment Level
-1426,Healing Tome,Equipment Level
-1427,Fireball,Equipment Level
-1428,Lavaloon Puppet,Equipment Level
-1429,Heroic Torch,Equipment Level
-1430,Royal Gem,Equipment Level
-1431,Seeking Shield,Equipment Level
-1432,Hog Puppet,Equipment Level
-1433,Haste Vial,Equipment Level
-1434,Rocket Spear,Equipment Level
-1435,Electro Boots,Equipment Level
-1436,Frost Flake,Equipment Level
-1437,Fire Heart,Equipment Level
-1438,Flame Blower,Equipment Level
-1439,Stun Blaster,Equipment Level
-1440,Electro Fangs,Equipment Level
-1441,Rocket Backpack,Equipment Level
-1442,Revenge Deck,Equipment Level
+1300,Barch Squad,Squad Level
+1301,Giant Wizard Squad,Squad Level
+1302,Wall Breaker Squad,Squad Level
+1303,Minion Squad,Squad Level
+1304,Balloon Squad,Squad Level
+1305,Golem Witch Squad,Squad Level
+1306,Hog Rider Squad,Squad Level
+1307,Miner Squad,Squad Level
+1308,Healer Squad,Squad Level
+1309,P.E.K.K.A. Titan Squad,Squad Level
+1310,Dragons Squad,Squad Level
+1311,Baby Dragon Squad,Squad Level
+1400,L.A.S.S.I.,Pet Level
+1401,Electric Owl,Pet Level
+1402,Yak,Pet Level
+1403,Unicorn,Pet Level
+1404,Frosty,Pet Level
+1405,Diggy,Pet Level
+1406,Poison Lizard,Pet Level
+1407,Phoenix,Pet Level
+1408,Spirit Fox,Pet Level
+1409,Angry Jelly,Pet Level
+1410,Sneezy,Pet Level
+1411,Greedy Raven,Pet Level
+1500,Barbarian Puppet,Equipment Level
+1501,Rage Vial,Equipment Level
+1502,Earthquake Boots,Equipment Level
+1503,Vampstache,Equipment Level
+1504,Giant Gauntlet,Equipment Level
+1505,Spiky Ball,Equipment Level
+1506,Snake Bracelet,Equipment Level
+1507,Stick Horse,Equipment Level
+1508,Archer Puppet,Equipment Level
+1509,Invisibility Vial,Equipment Level
+1510,Giant Arrow,Equipment Level
+1511,Healer Puppet,Equipment Level
+1512,Frozen Arrow,Equipment Level
+1513,Magic Mirror,Equipment Level
+1514,Action Figure,Equipment Level
+1515,Monolith Arrow,Equipment Level
+1516,Henchmen Puppet,Equipment Level
+1517,Dark Orb,Equipment Level
+1518,Metal Pants,Equipment Level
+1519,Noble Iron,Equipment Level
+1520,Dark Crown,Equipment Level
+1521,Meteor Staff,Equipment Level
+1522,Portal Pendant,Equipment Level
+1523,Eternal Tome,Equipment Level
+1524,Life Gem,Equipment Level
+1525,Rage Gem,Equipment Level
+1526,Healing Tome,Equipment Level
+1527,Fireball,Equipment Level
+1528,Lavaloon Puppet,Equipment Level
+1529,Heroic Torch,Equipment Level
+1530,Royal Gem,Equipment Level
+1531,Seeking Shield,Equipment Level
+1532,Hog Puppet,Equipment Level
+1533,Haste Vial,Equipment Level
+1534,Rocket Spear,Equipment Level
+1535,Electro Boots,Equipment Level
+1536,Frost Flake,Equipment Level
+1537,Fire Heart,Equipment Level
+1538,Flame Blower,Equipment Level
+1539,Stun Blaster,Equipment Level
+1540,Electro Fangs,Equipment Level
+1541,Rocket Backpack,Equipment Level
+1542,Revenge Deck,Equipment Level
