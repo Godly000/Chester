@@ -70,6 +70,7 @@ class MigrationReport:
     moved_fields: int
     changed_categories: int
     backup_path: Optional[Path]
+    cancelled_upgrades: int = 0
 
 
 class SaveStore:
@@ -478,14 +479,14 @@ class SaveStore:
                     values[slot_field.index] = 0
         return values, len(old_values) - len(layout["fields"])
 
-    def _remap_serials(self, raw: bytes, values: List[int]) -> None:
+    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = False) -> int:
         _, source_digest, _ = self._save_header(raw)
         if source_digest == self.serial_digest:
-            return
+            return 0
         if self.serial_digest == EMPTY_SERIAL_DIGEST:
             if source_digest not in (None, EMPTY_SERIAL_DIGEST):
                 raise SaveError("Cannot migrate serials without upgrade_ids.csv")
-            return
+            return 0
         previous_path = self.progression_dir.parent / "upgrade_ids-old.csv"
         if not previous_path.is_file():
             raise SaveError("Provide the matching upgrade_ids-old.csv before migrating serials")
@@ -493,6 +494,7 @@ class SaveStore:
         if source_digest is not None and source_digest != previous_digest:
             raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv")
         old_names = {serial: name for name, serial in previous.items()}
+        cancelled = 0
         for field in self.fields:
             if field.source != "village":
                 continue
@@ -509,13 +511,35 @@ class SaveStore:
                 continue
             name = old_names.get(serial)
             if name is None or name not in self.serial_by_name:
+                if worker and recover_unmappable and values[time_field.index] > 0:
+                    from resource_system import RESOURCE_CODES
+                    prefix = field.name.removesuffix(" Upgrade")
+                    cost_field = self.village_by_name[prefix + " Cost"]
+                    currency_field = self.village_by_name[prefix + " Currency"]
+                    amount = values[cost_field.index]
+                    code = values[currency_field.index]
+                    resource = next((key for key, value in RESOURCE_CODES.items() if value == code), None)
+                    if amount < 0 or (amount and resource is None):
+                        raise SaveError(f"Cannot determine the recorded refund for {prefix}")
+                    if amount:
+                        balance = self.village_by_name[resource]
+                        total = values[balance.index] + amount
+                        if total > FORMAT_DETAILS[balance.data_type][2]:
+                            raise SaveError(f"Cannot store the full {resource} refund for {prefix}")
+                        values[balance.index] = total
+                    for slot_field in (field, time_field, cost_field, currency_field):
+                        values[slot_field.index] = 0
+                    cancelled += 1
+                    continue
                 raise SaveError(f"Cannot migrate {field.name}: old serial {serial} ({name or 'unknown'}) has no new mapping")
             target = self.serial_by_name[name]
             if target > FORMAT_DETAILS[field.data_type][2]:
                 raise SaveError(f"New serial {target} exceeds the storage limit for {field.name}")
             values[field.index] = target
 
-    def migrate_from(self, old_store: "SaveStore", backups_dir: Path) -> MigrationReport:
+        return cancelled
+
+    def migrate_from(self, old_store: "SaveStore", backups_dir: Path, *, recover_unmappable: bool = False) -> MigrationReport:
         self._require_schema()
         old_store._require_schema()
         if self.saves_dir.resolve() != old_store.saves_dir.resolve():
@@ -545,6 +569,7 @@ class SaveStore:
             tempfile.mkdtemp(prefix=".saves-migration-", dir=self.saves_dir.parent)
         )
         migrated_saves = 0
+        cancelled_upgrades = 0
         current_saves = 0
         save_paths = sorted(self.saves_dir.glob("*.sav"))
 
@@ -574,7 +599,7 @@ class SaveStore:
                                 migrated_values[new_field.index] = self._bounded_value(
                                     old_values[old_field.index], new_field.data_type
                                 )
-                    self._remap_serials(raw, migrated_values)
+                    cancelled_upgrades += self._remap_serials(raw, migrated_values, recover_unmappable)
                 except (SaveError, ValueError) as error:
                     raise SaveError(f"Cannot migrate {source_path.name}: {error}. No player saves were changed.") from error
                 self._write_values(staging / source_path.name, migrated_values)
@@ -605,4 +630,5 @@ class SaveStore:
             moved_fields=moved_fields,
             changed_categories=changed_categories,
             backup_path=backup_path,
+            cancelled_upgrades=cancelled_upgrades,
         )
