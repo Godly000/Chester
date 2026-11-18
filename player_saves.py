@@ -2,6 +2,7 @@ import csv
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import tempfile
@@ -22,8 +23,10 @@ FORMAT_DETAILS = {
     "long": ("q", 0, 9223372036854775807),
 }
 SAVE_MAGIC = b"CHSV"
-SAVE_VERSION = 1
+SAVE_VERSION = 2
 SAVE_HEADER = struct.Struct("<4sB32s")
+SERIAL_SAVE_HEADER = struct.Struct("<4sB32s32s")
+EMPTY_SERIAL_DIGEST = bytes(32)
 SAVE_FIELD_RENAMES = {
     "Hide tutorial": "Hide Tutorial",
     "Obstacles cleared": "Obstacles Cleared",
@@ -66,7 +69,7 @@ class MigrationReport:
     changed_types: int
     moved_fields: int
     changed_categories: int
-    backup_path: Path
+    backup_path: Optional[Path]
 
 
 class SaveStore:
@@ -82,6 +85,8 @@ class SaveStore:
         self.binary_format = "<"
         self.record_size = 0
         self.schema_digest = b""
+        self.serial_digest = EMPTY_SERIAL_DIGEST
+        self.serial_by_name = {}
         self.lock = RLock()
 
     def load_schema(
@@ -143,7 +148,50 @@ class SaveStore:
         self.binary_format = "<" + "".join(format_codes)
         self.record_size = struct.calcsize(self.binary_format)
         self.schema_digest = hashlib.sha256(schema_text.encode("utf-8")).digest()
+        self.load_serial_mapping()
         self.saves_dir.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
+    def read_serial_mapping(path: Path):
+        mapping = {}
+        serials = set()
+        with path.open(newline="", encoding="utf-8-sig") as file:
+            reader = csv.DictReader(file)
+            if not reader.fieldnames or not {"Serial", "Name", "Category"}.issubset(reader.fieldnames):
+                raise SaveError(f"Invalid upgrade serial columns in {path.name}")
+            for row in reader:
+                name = row["Name"].strip()
+                serial = int(row["Serial"])
+                if not name or name in mapping or serial in serials or not 0 <= serial <= 32767:
+                    raise SaveError(f"Invalid or duplicate upgrade serial in {path.name}: {name}")
+                mapping[name] = serial
+                serials.add(serial)
+        if not mapping:
+            raise SaveError(f"Empty upgrade serial mapping in {path.name}")
+        canonical = json.dumps(sorted(mapping.items()), ensure_ascii=False, separators=(",", ":"))
+        return mapping, hashlib.sha256(canonical.encode("utf-8")).digest()
+
+    def load_serial_mapping(self):
+        path = self.progression_dir.parent / "upgrade_ids.csv"
+        if path.is_file():
+            self.serial_by_name, self.serial_digest = self.read_serial_mapping(path)
+        else:
+            self.serial_by_name, self.serial_digest = {}, EMPTY_SERIAL_DIGEST
+
+    @staticmethod
+    def _save_header(raw: bytes):
+        if not raw.startswith(SAVE_MAGIC):
+            return None, None, 0
+        if len(raw) < SAVE_HEADER.size:
+            raise SaveError("Save header is incomplete")
+        magic, version, schema = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])
+        if version == 1:
+            return schema, None, SAVE_HEADER.size
+        if version != SAVE_VERSION:
+            raise SaveError(f"Unsupported save format version: {version}")
+        if len(raw) < SERIAL_SAVE_HEADER.size:
+            raise SaveError("Save serial header is incomplete")
+        return schema, SERIAL_SAVE_HEADER.unpack(raw[:SERIAL_SAVE_HEADER.size])[3], SERIAL_SAVE_HEADER.size
 
     def _load_fields(
         self,
@@ -235,20 +283,18 @@ class SaveStore:
                 f"Expected {len(self.fields)} save values but received {len(values)}"
             )
         payload = struct.pack(self.binary_format, *values)
-        return SAVE_HEADER.pack(SAVE_MAGIC, SAVE_VERSION, self.schema_digest) + payload
+        return SERIAL_SAVE_HEADER.pack(SAVE_MAGIC, SAVE_VERSION, self.schema_digest, self.serial_digest) + payload
 
-    def _decode_raw(self, raw: bytes, allow_legacy: bool = False) -> Tuple[List[int], bool]:
+    def _decode_raw(self, raw: bytes, allow_legacy: bool = False, allow_serial_mismatch: bool = False) -> Tuple[List[int], bool]:
+        schema_digest, serial_digest, header_size = self._save_header(raw)
+        if not allow_serial_mismatch and (serial_digest or EMPTY_SERIAL_DIGEST) != self.serial_digest:
+            raise SaveSchemaMismatch("Upgrade serial mapping requires /update_saves before this save can be used")
         if raw.startswith(SAVE_MAGIC):
-            if len(raw) < SAVE_HEADER.size:
-                raise SaveError("Save header is incomplete")
-            magic, version, schema_digest = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])
-            if magic != SAVE_MAGIC or version != SAVE_VERSION:
-                raise SaveError(f"Unsupported save format version: {version}")
             if schema_digest != self.schema_digest:
                 raise SaveSchemaMismatch(
                     "Save schema does not match the loaded progression files"
                 )
-            payload = raw[SAVE_HEADER.size:]
+            payload = raw[header_size:]
             legacy = False
         else:
             if not allow_legacy:
@@ -401,15 +447,13 @@ class SaveStore:
         path = self.progression_dir / "save_migrations.json"
         if not path.is_file() or not raw.startswith(SAVE_MAGIC) or len(raw) < SAVE_HEADER.size:
             return None
-        magic, version, digest = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])
-        if magic != SAVE_MAGIC or version != SAVE_VERSION:
-            return None
+        digest, _, header_size = self._save_header(raw)
         with path.open(encoding="utf-8") as file:
             layouts = json.load(file)
         layout = layouts.get(digest.hex())
         if layout is None:
             return None
-        payload = raw[SAVE_HEADER.size:]
+        payload = raw[header_size:]
         if len(payload) != struct.calcsize(layout["format"]):
             raise SaveError("Save payload does not match its migration layout")
         old_values = struct.unpack(layout["format"], payload)
@@ -433,6 +477,43 @@ class SaveStore:
                 if slot_field is not None:
                     values[slot_field.index] = 0
         return values, len(old_values) - len(layout["fields"])
+
+    def _remap_serials(self, raw: bytes, values: List[int]) -> None:
+        _, source_digest, _ = self._save_header(raw)
+        if source_digest == self.serial_digest:
+            return
+        if self.serial_digest == EMPTY_SERIAL_DIGEST:
+            if source_digest not in (None, EMPTY_SERIAL_DIGEST):
+                raise SaveError("Cannot migrate serials without upgrade_ids.csv")
+            return
+        previous_path = self.progression_dir.parent / "upgrade_ids-old.csv"
+        if not previous_path.is_file():
+            raise SaveError("Provide the matching upgrade_ids-old.csv before migrating serials")
+        previous, previous_digest = self.read_serial_mapping(previous_path)
+        if source_digest is not None and source_digest != previous_digest:
+            raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv")
+        old_names = {serial: name for name, serial in previous.items()}
+        for field in self.fields:
+            if field.source != "village":
+                continue
+            worker = re.fullmatch(r"(?:Builder|Researcher) #\d+ Upgrade", field.name)
+            history = re.fullmatch(r"Upgrade #\d+ Name", field.name)
+            if not worker and not history:
+                continue
+            time_name = field.name.removesuffix(" Upgrade") + " Time" if worker else field.name.removesuffix(" Name") + " Time"
+            time_field = self.village_by_name.get(time_name)
+            if time_field is None:
+                raise SaveError(f"Missing timestamp for {field.name}")
+            serial = values[field.index]
+            if serial == 0 and values[time_field.index] == 0:
+                continue
+            name = old_names.get(serial)
+            if name is None or name not in self.serial_by_name:
+                raise SaveError(f"Cannot migrate {field.name}: old serial {serial} ({name or 'unknown'}) has no new mapping")
+            target = self.serial_by_name[name]
+            if target > FORMAT_DETAILS[field.data_type][2]:
+                raise SaveError(f"New serial {target} exceeds the storage limit for {field.name}")
+            values[field.index] = target
 
     def migrate_from(self, old_store: "SaveStore", backups_dir: Path) -> MigrationReport:
         self._require_schema()
@@ -472,47 +553,44 @@ class SaveStore:
                 raw = source_path.read_bytes()
                 try:
                     self._decode_raw(raw)
-                    shutil.copy2(source_path, staging / source_path.name)
                     current_saves += 1
                     continue
                 except SaveSchemaMismatch:
-                    layout_values = self._decode_migration_layout(raw)
-                    if layout_values is not None:
-                        migrated_values, retired_count = layout_values
-                        removed_fields = max(removed_fields, retired_count)
-                        self._write_values(staging / source_path.name, migrated_values)
-                        migrated_saves += 1
-                        continue
+                    pass
+                try:
                     try:
-                        old_values, _ = old_store._decode_raw(raw, allow_legacy=True)
-                    except SaveSchemaMismatch as error:
-                        digest = SAVE_HEADER.unpack(raw[:SAVE_HEADER.size])[2].hex() if raw.startswith(SAVE_MAGIC) and len(raw) >= SAVE_HEADER.size else "legacy"
-                        raise SaveSchemaMismatch(
-                            f"Cannot migrate {source_path.name}: unrecognized schema {digest}. "
-                            "Provide its matching village-old.csv and collection-old.csv, "
-                            "or a verified layout in data/progression/save_migrations.json. "
-                            "No player saves were changed."
-                        ) from error
-
-                migrated_values = self._default_values()
-                for identity in common:
-                    old_field = old_fields[identity]
-                    new_field = new_fields[identity]
-                    migrated_values[new_field.index] = self._bounded_value(
-                        old_values[old_field.index], new_field.data_type
-                    )
+                        migrated_values, _ = self._decode_raw(raw, allow_serial_mismatch=True)
+                    except SaveSchemaMismatch:
+                        layout_values = self._decode_migration_layout(raw)
+                        if layout_values is not None:
+                            migrated_values, retired_count = layout_values
+                            removed_fields = max(removed_fields, retired_count)
+                        else:
+                            old_values, _ = old_store._decode_raw(raw, allow_legacy=True, allow_serial_mismatch=True)
+                            migrated_values = self._default_values()
+                            for identity in common:
+                                old_field = old_fields[identity]
+                                new_field = new_fields[identity]
+                                migrated_values[new_field.index] = self._bounded_value(
+                                    old_values[old_field.index], new_field.data_type
+                                )
+                    self._remap_serials(raw, migrated_values)
+                except (SaveError, ValueError) as error:
+                    raise SaveError(f"Cannot migrate {source_path.name}: {error}. No player saves were changed.") from error
                 self._write_values(staging / source_path.name, migrated_values)
                 migrated_saves += 1
 
             for staged_path in staging.glob("*.sav"):
                 self._decode_raw(staged_path.read_bytes())
 
-            backups_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
-            backup_path = backups_dir / f"saves-{timestamp}"
-            shutil.copytree(self.saves_dir, backup_path)
-            for staged_path in sorted(staging.glob("*.sav")):
-                os.replace(staged_path, self.saves_dir / staged_path.name)
+            backup_path = None
+            if migrated_saves:
+                backups_dir.mkdir(parents=True, exist_ok=True)
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+                backup_path = backups_dir / f"saves-{timestamp}"
+                shutil.copytree(self.saves_dir, backup_path)
+                for staged_path in sorted(staging.glob("*.sav")):
+                    os.replace(staged_path, self.saves_dir / staged_path.name)
         finally:
             if staging.exists():
                 shutil.rmtree(staging)
