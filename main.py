@@ -1031,20 +1031,22 @@ async def _check_startup_save_schema():
     if startup_save_check_done:
         return
     startup_save_check_done = True
-    path = save_store.player_path(SET_COMMAND_OWNER_ID)
-    if not path.is_file():
-        log.info("Startup save check skipped because the owner has no save")
-        return
+    def migration_needed():
+        for path in SAVES_DIR.glob("*.sav"):
+            try:
+                save_store._decode_raw(path.read_bytes())
+            except SaveSchemaMismatch:
+                return True
+        return False
+
+    save_migration_active = True
     try:
-        await asyncio.to_thread(lambda: save_store._decode_raw(path.read_bytes()))
-    except SaveSchemaMismatch:
-        save_migration_active = True
-        try:
-            log.info("Owner save schema differs from progression files; migrating player saves")
+        if await asyncio.to_thread(migration_needed):
             report = await asyncio.to_thread(_migrate_save_files)
-            log.info("Startup save migration completed: %d migrated, %d already current", report.migrated_saves, report.current_saves)
-        finally:
-            save_migration_active = False
+            log.info("Startup migration: %d migrated, %d already current, %d upgrades cancelled",
+                     report.migrated_saves, report.current_saves, report.cancelled_upgrades)
+    finally:
+        save_migration_active = False
 
 
 @tasks.loop(seconds=PRESENCE_UPDATE_SECONDS)
@@ -3755,14 +3757,14 @@ async def _view_collectors(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-def _migrate_save_files(recover_unmappable: bool = False) -> MigrationReport:
+def _migrate_save_files(recover_unmappable: bool = True) -> MigrationReport:
     with save_store.lock:
         report = _migrate_save_files_locked(recover_unmappable)
         save_store.load_schema()
         return report
 
 
-def _migrate_save_files_locked(recover_unmappable: bool = False) -> MigrationReport:
+def _migrate_save_files_locked(recover_unmappable: bool = True) -> MigrationReport:
     old_village = PROGRESSION_DIR / "village-old.csv"
     old_collection = PROGRESSION_DIR / "collection-old.csv"
     old_serials = PROGRESSION_DIR.parent / "upgrade_ids-old.csv"
@@ -3801,7 +3803,7 @@ def _migrate_save_files_locked(recover_unmappable: bool = False) -> MigrationRep
     description="[Owner] Migrate player saves after progression CSV changes.",
 )
 @app_commands.describe(recover_unmappable="Cancel active upgrades with unmappable IDs and refund their recorded payments.")
-async def update_saves_slash(interaction: discord.Interaction, recover_unmappable: bool = False):
+async def update_saves_slash(interaction: discord.Interaction, recover_unmappable: bool = True):
     global save_migration_active
 
     if interaction.user.id != SET_COMMAND_OWNER_ID:
