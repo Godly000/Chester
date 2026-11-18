@@ -483,6 +483,23 @@ class SaveStore:
         _, source_digest, _ = self._save_header(raw)
         if source_digest == self.serial_digest:
             return 0
+        references = []
+        for field in self.fields:
+            if field.source != "village":
+                continue
+            if re.fullmatch(r"(?:Builder|Researcher) #\d+ Upgrade", field.name):
+                time_name = field.name.removesuffix(" Upgrade") + " Time"
+            elif re.fullmatch(r"Upgrade #\d+ Name", field.name):
+                time_name = field.name.removesuffix(" Name") + " Time"
+            else:
+                continue
+            time_field = self.village_by_name.get(time_name)
+            if time_field is None:
+                raise SaveError(f"Missing timestamp for {field.name}")
+            if values[field.index] or values[time_field.index]:
+                references.append((field, time_field))
+        if not references:
+            return 0
         if self.serial_digest == EMPTY_SERIAL_DIGEST:
             if source_digest not in (None, EMPTY_SERIAL_DIGEST):
                 raise SaveError("Cannot migrate serials without upgrade_ids.csv")
@@ -495,20 +512,9 @@ class SaveStore:
             raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv")
         old_names = {serial: name for name, serial in previous.items()}
         cancelled = 0
-        for field in self.fields:
-            if field.source != "village":
-                continue
-            worker = re.fullmatch(r"(?:Builder|Researcher) #\d+ Upgrade", field.name)
-            history = re.fullmatch(r"Upgrade #\d+ Name", field.name)
-            if not worker and not history:
-                continue
-            time_name = field.name.removesuffix(" Upgrade") + " Time" if worker else field.name.removesuffix(" Name") + " Time"
-            time_field = self.village_by_name.get(time_name)
-            if time_field is None:
-                raise SaveError(f"Missing timestamp for {field.name}")
+        for field, time_field in references:
+            worker = field.name.endswith(" Upgrade")
             serial = values[field.index]
-            if serial == 0 and values[time_field.index] == 0:
-                continue
             name = old_names.get(serial)
             if name is None or name not in self.serial_by_name:
                 if worker and recover_unmappable and values[time_field.index] > 0:
