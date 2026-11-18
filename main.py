@@ -1,6 +1,9 @@
 """Chester loads CSV data from fixed repository paths."""
 
 import asyncio
+from array import array
+from bisect import bisect_left
+from concurrent.futures import ThreadPoolExecutor
 import csv
 from copy import copy
 from contextvars import ContextVar
@@ -267,24 +270,71 @@ DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 COMMAND_PREFIX = "c!"
 PRESENCE_UPDATE_SECONDS = 300
-MAX_AUTOCOMPLETE_REFRESHES = 8
+MAX_AUTOCOMPLETE_REFRESHES = 4
+BACKGROUND_WORKERS = 2
+UPGRADE_CACHE_LIMIT = 8
 _autocomplete_refreshes = {}
 _footer_command_names = {}
+_online_member_ids = {}
+_autocomplete_future = None
+_autocomplete_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="chester_autocomplete")
 _footer_command = ContextVar("footer_command", default=None)
 _footer_user_id = ContextVar("footer_user_id", default=None)
 _upgrade_calculation_cache = ContextVar("upgrade_calculation_cache", default=None)
+
+def _track_online_members(event, data):
+    if event == "READY":
+        _online_member_ids.clear()
+    elif event == "GUILD_CREATE":
+        if not data.get("unavailable"):
+            _online_member_ids[int(data["id"])] = array("Q", sorted(
+                int(presence["user"]["id"])
+                for presence in data.get("presences", [])
+                if presence.get("status") == "online"
+            ))
+    elif event == "GUILD_DELETE":
+        if not data.get("unavailable"):
+            _online_member_ids.pop(int(data["id"]), None)
+    elif event in {"PRESENCE_UPDATE", "GUILD_MEMBER_REMOVE"}:
+        guild_id = int(data["guild_id"])
+        user_id = int(data["user"]["id"])
+        members = _online_member_ids.get(guild_id)
+        online = event == "PRESENCE_UPDATE" and data.get("status") == "online"
+        if members is None:
+            if not online:
+                return
+            members = _online_member_ids[guild_id] = array("Q")
+        index = bisect_left(members, user_id)
+        exists = index < len(members) and members[index] == user_id
+        if online and not exists:
+            members.insert(index, user_id)
+        elif not online and exists:
+            del members[index]
+
 
 intents = discord.Intents.default()
 intents.members = True
 intents.presences = True
 intents.message_content = True
 class ChesterBot(commands.Bot):
+    async def setup_hook(self):
+        await super().setup_hook()
+        asyncio.get_running_loop().set_default_executor(
+            ThreadPoolExecutor(max_workers=BACKGROUND_WORKERS, thread_name_prefix="chester_background")
+        )
+        for event in ("READY", "GUILD_CREATE", "GUILD_DELETE", "PRESENCE_UPDATE", "GUILD_MEMBER_REMOVE"):
+            original = self._connection.parsers[event]
+            def track(data, event=event, original=original):
+                _track_online_members(event, data)
+                original(data)
+            self._connection.parsers[event] = track
+
     def dispatch(self, event, /, *args, **kwargs):
         if event == "interaction" and args and self.is_ready():
             interaction = args[0]
             if not save_migration_active and save_store.player_path(interaction.user.id).is_file():
                 user_id = interaction.user.id
-                if user_id not in _autocomplete_refreshes:
+                if user_id not in _autocomplete_refreshes and len(_autocomplete_refreshes) < MAX_AUTOCOMPLETE_REFRESHES:
                     task = asyncio.create_task(self._refresh_autocomplete_upgrades(interaction))
                     _autocomplete_refreshes[user_id] = task
                     task.add_done_callback(lambda finished, uid=user_id: _autocomplete_refreshes.pop(uid, None))
@@ -299,7 +349,10 @@ class ChesterBot(commands.Bot):
             log.exception("Could not refresh upgrades for %s", interaction.user.id)
 
 
-bot = ChesterBot(command_prefix=COMMAND_PREFIX, intents=intents, max_messages=None)
+bot = ChesterBot(
+    command_prefix=COMMAND_PREFIX, intents=intents, max_messages=None,
+    member_cache_flags=discord.MemberCacheFlags.none(), chunk_guilds_at_startup=False,
+)
 save_store = SaveStore(PROGRESSION_DIR, SAVES_DIR)
 resource_system = ResourceSystem(PROGRESSION_DIR, save_store, CLAN_CASTLE_RESOURCE_RATIO)
 upgrade_system = UpgradeSystem(
@@ -997,15 +1050,11 @@ async def _check_startup_save_schema():
 @tasks.loop(seconds=PRESENCE_UPDATE_SECONDS)
 async def update_server_activity():
     guilds = list(bot.guilds)
-    members = sum(
-        member.status == discord.Status.online
-        for guild in guilds
-        for member in guild.members
-    )
+    members = sum(len(_online_member_ids.get(guild.id, ())) for guild in guilds)
     try:
         await bot.change_presence(
             status=discord.Status.online,
-            activity=discord.CustomActivity(name=f"{len(guilds):,} servers, {members:,} members online"),
+            activity=discord.Activity(type=discord.ActivityType.watching, name=f"{len(guilds):,} servers, {members:,} members online"),
         )
     except (discord.HTTPException, discord.ConnectionClosed) as error:
         log.warning("Could not update bot activity: %s", error)
@@ -1017,10 +1066,19 @@ async def before_server_activity():
 
 
 @bot.event
+async def on_resumed():
+    await update_server_activity()
+    if not update_server_activity.is_running():
+        update_server_activity.start()
+
+
+@bot.event
 async def on_ready():
     global town_hall_loot_tables, xp_levels
     if not update_server_activity.is_running():
         update_server_activity.start()
+    else:
+        await update_server_activity()
 
     try:
         town_hall_loot_tables = load_town_hall_loot_tables()
@@ -2007,10 +2065,23 @@ def _run_upgrade_calculation(function, *args):
 
 
 async def _upgrade_suggestions(function, interaction, current):
+    global _autocomplete_future
+    if _autocomplete_future is not None and not _autocomplete_future.done():
+        return []
+    loop = asyncio.get_running_loop()
+    future = loop.run_in_executor(
+        _autocomplete_executor, _run_upgrade_calculation, function, interaction, current,
+    )
+    _autocomplete_future = future
+    def release(finished):
+        global _autocomplete_future
+        if _autocomplete_future is finished:
+            _autocomplete_future = None
+        if not finished.cancelled():
+            finished.exception()
+    future.add_done_callback(release)
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(_run_upgrade_calculation, function, interaction, current), timeout=1.5,
-        )
+        return await asyncio.wait_for(asyncio.shield(future), timeout=1.5)
     except asyncio.TimeoutError:
         return []
 
@@ -2021,6 +2092,8 @@ def _dark_elixir_upgrades_finished(village, collection):
         return _calculate_dark_elixir_finished(village, collection)
     key = (tuple(sorted(village.items())), tuple(sorted(collection.items())))
     if key not in cache:
+        if len(cache) >= UPGRADE_CACHE_LIMIT:
+            cache.pop(next(iter(cache)))
         cache[key] = _calculate_dark_elixir_finished(village, collection)
     return cache[key]
 
