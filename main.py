@@ -3755,11 +3755,19 @@ async def _view_collectors(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-def _migrate_save_files() -> MigrationReport:
+def _migrate_save_files(recover_unmappable: bool = False) -> MigrationReport:
+    with save_store.lock:
+        report = _migrate_save_files_locked(recover_unmappable)
+        save_store.load_schema()
+        return report
+
+
+def _migrate_save_files_locked(recover_unmappable: bool = False) -> MigrationReport:
     old_village = PROGRESSION_DIR / "village-old.csv"
     old_collection = PROGRESSION_DIR / "collection-old.csv"
-    if not old_village.is_file() and not old_collection.is_file():
-        raise FileNotFoundError("Provide village-old.csv or collection-old.csv for each changed schema")
+    old_serials = PROGRESSION_DIR.parent / "upgrade_ids-old.csv"
+    if not any(path.is_file() for path in (old_village, old_collection, old_serials)):
+        raise FileNotFoundError("Provide village-old.csv, collection-old.csv, or upgrade_ids-old.csv for the changed data")
     if not old_village.is_file():
         old_village = PROGRESSION_DIR / "village.csv"
     if not old_collection.is_file():
@@ -3785,14 +3793,15 @@ def _migrate_save_files() -> MigrationReport:
     MagicSystem(PROGRESSION_DIR, new_store, new_upgrade_system, new_resource_system).load()
     ObstacleSystem(DATA_DIR, new_store).load()
     AttackSystem(PROGRESSION_DIR, new_store, new_resource_system).load()
-    return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR)
+    return new_store.migrate_from(old_store, SAVE_BACKUPS_DIR, recover_unmappable=recover_unmappable)
 
 
 @bot.tree.command(
     name="update_saves",
     description="[Owner] Migrate player saves after progression CSV changes.",
 )
-async def update_saves_slash(interaction: discord.Interaction):
+@app_commands.describe(recover_unmappable="Cancel active upgrades with unmappable IDs and refund their recorded payments.")
+async def update_saves_slash(interaction: discord.Interaction, recover_unmappable: bool = False):
     global save_migration_active
 
     if interaction.user.id != SET_COMMAND_OWNER_ID:
@@ -3808,7 +3817,7 @@ async def update_saves_slash(interaction: discord.Interaction):
         return
     save_migration_active = True
     try:
-        report = await asyncio.to_thread(_migrate_save_files)
+        report = await asyncio.to_thread(_migrate_save_files, recover_unmappable)
         save_store.load_schema()
         resource_system.load()
         upgrade_system.load()
@@ -3820,6 +3829,7 @@ async def update_saves_slash(interaction: discord.Interaction):
         obstacle_system.initialize(interaction.user.id)
         await interaction.followup.send(
             "✅ Save migration completed.\n"
+            f"Unmappable upgrades cancelled: **{report.cancelled_upgrades:,}**\n"
             f"Players checked: **{report.total_saves:,}**\n"
             f"Saves migrated: **{report.migrated_saves:,}**\n"
             f"Already current: **{report.current_saves:,}**\n"
@@ -3828,7 +3838,7 @@ async def update_saves_slash(interaction: discord.Interaction):
             f"Fields moved: **{report.moved_fields:,}**\n"
             f"Types changed: **{report.changed_types:,}**\n"
             f"Categories changed: **{report.changed_categories:,}**\n"
-            f"Backup: `{report.backup_path.name}`",
+            f"Backup: `{report.backup_path.name if report.backup_path else 'Not needed'}`",
             ephemeral=True,
         )
     except Exception as e:
@@ -3968,7 +3978,7 @@ async def about_slash(interaction: discord.Interaction):
         return
     embed = discord.Embed(
         description=(
-            "Version 1.1.0 updated 2026 November 18\n"
+            "Version 1.0.4 updated 2026 November 10\n"
             "Source: https://github.com/Godly000/Chester\n"
             "Terms of Service: https://pastebin.com/0T6GMB5t\n"
             "Privacy Policy: https://pastebin.com/zhfg4af1\n"
