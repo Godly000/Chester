@@ -716,6 +716,7 @@ Dark Barracks,Army Level,byte
 Spell Factory,Army Level,byte
 Dark Spell Factory,Army Level,byte
 Blacksmith,Army Level,byte
+Squad Barracks,Army Level,byte
 Workshop,Army Level,byte
 Pet House,Army Level,byte
 Barbarian King,Hero Level,byte
