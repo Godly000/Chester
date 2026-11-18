@@ -383,6 +383,7 @@ class UpgradeSystem:
 
         self.serial_by_name = serial_by_name
         self.name_by_serial = name_by_serial
+        self.save_store.load_serial_mapping()
 
     def _validate_slots(self) -> None:
         if not self.builder_slots or not self.researcher_slots:
