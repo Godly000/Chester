@@ -22,7 +22,7 @@ from types import SimpleNamespace
 
 import discord
 
-from attack_system import ATTACK_DURATION, ATTACK_REQUIRED_CHESTS, AttackRejected, AttackSystem
+from attack_system import MAX_ATTACK_TOWN_HALL, ATTACK_DURATION, ATTACK_REQUIRED_CHESTS, AttackRejected, AttackSystem
 from attack_views import AttackController, attack_thumbnail_url
 from notification_system import NotificationSystem
 from image_proxy import proxy_image_url, proxy_upgrade_image_url
@@ -3929,10 +3929,10 @@ async def attack_slash(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="test_attack", description="[Moderator] Instantly simulate an attack with random armies and defenses, without rewards.")
-@app_commands.describe(town_hall="Town Hall level to simulate from 1 through 18", offense="Offense score from 0 to 1; leave blank to randomize", defense="Defense score from 0 to 1; leave blank to randomize")
+@app_commands.describe(town_hall="Town Hall level to simulate from 1 through 19", offense="Offense score from 0 to 1; leave blank to randomize", defense="Defense score from 0 to 1; leave blank to randomize")
 @app_commands.default_permissions(moderate_members=True)
 @app_commands.checks.has_permissions(moderate_members=True)
-async def test_attack_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18], offense: app_commands.Range[float, 0, 1] = None, defense: app_commands.Range[float, 0, 1] = None):
+async def test_attack_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, MAX_ATTACK_TOWN_HALL], offense: app_commands.Range[float, 0, 1] = None, defense: app_commands.Range[float, 0, 1] = None):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     await interaction.response.defer(thinking=True)
