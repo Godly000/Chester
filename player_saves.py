@@ -509,7 +509,15 @@ class SaveStore:
             raise SaveError("Provide the matching upgrade_ids-old.csv before migrating serials")
         previous, previous_digest = self.read_serial_mapping(previous_path)
         if source_digest is not None and source_digest != previous_digest:
-            raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv")
+            names = (
+                field.name for field in self.fields
+                if "level" in field.category.casefold() or field.category == "Pet" or field.name == "Town Hall"
+            )
+            generated = {name: serial for serial, name in enumerate(names, 1)}
+            canonical = json.dumps(sorted(generated.items()), ensure_ascii=False, separators=(",", ":"))
+            if hashlib.sha256(canonical.encode("utf-8")).digest() != source_digest:
+                raise SaveSchemaMismatch("Save serial mapping does not match upgrade_ids-old.csv or the generated mapping")
+            previous = generated
         old_names = {serial: name for name, serial in previous.items()}
         cancelled = 0
         for field, time_field in references:
