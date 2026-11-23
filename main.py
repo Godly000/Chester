@@ -36,6 +36,7 @@ from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
 from resource_system import COLLECTIBLE_RESOURCES, LAST_RESOURCE_CHECK, RESOURCE_PRODUCTION_SECONDS, RESOURCE_TYPES, TREASURY_FIELDS, ResourceReceipt, ResourceRejected, ResourceSystem
 from upgrade_system import (
+    MAX_TOWN_HALL_LEVEL,
     STRUCTURE_CATEGORIES,
     BUILDER_UNLOCK_COSTS,
     BUILDER_BASE_MESSAGE,
@@ -177,6 +178,7 @@ TOWN_HALL_PROFILE_IMAGES = {
     16: 'https://static.wikia.nocookie.net/clashofclans/images/5/53/Town_Hall16.png',
     17: 'https://static.wikia.nocookie.net/clashofclans/images/2/24/Town_Hall17-1.png',
     18: 'https://static.wikia.nocookie.net/clashofclans/images/7/76/Town_Hall18.png',
+    19: 'https://static.wikia.nocookie.net/clashofclans/images/7/77/Town_Hall19.png',
 }
 CLAN_CASTLE_RESOURCE_RATIO = 0.05
 DARK_ELIXIR_COST_SORT_WEIGHT = 50
@@ -489,7 +491,7 @@ def _chest_resource_range(filename: str, item_name: str, loot_dir: Path, rarity:
     if filename not in {"common_resources.csv", "rare_resources.csv", "ore_rewards.csv"}:
         raise ValueError(f"Invalid chest resource file: {filename}")
     match = re.fullmatch(r"Town Hall\s+(\d+)", loot_dir.name, re.IGNORECASE)
-    if match is None or not 1 <= int(match.group(1)) <= 18:
+    if match is None or not 1 <= int(match.group(1)) <= MAX_TOWN_HALL_LEVEL:
         raise ValueError(f"Cannot determine Town Hall level from {loot_dir}")
     town_hall = int(match.group(1))
     column = item_name
@@ -627,7 +629,7 @@ def _resolve_town_hall_loot_root(
     root = Path(configured).expanduser() if configured else TOWN_HALL_LOOT_DIR
     if not root.is_absolute():
         root = SCRIPT_DIR / root
-    folders = {level: root / f"Town Hall {level}" for level in range(1, 19)}
+    folders = {level: root / f"Town Hall {level}" for level in range(1, MAX_TOWN_HALL_LEVEL + 1)}
     missing = [
         folder / f"{name.strip().casefold()}.csv"
         for folder in folders.values()
@@ -1459,14 +1461,14 @@ async def rarity_autocomplete(interaction: discord.Interaction, current: str):
 async def test_slash(
     interaction: discord.Interaction,
     rarity: str,
-    town_hall: app_commands.Range[int, 1, 18],
+    town_hall: app_commands.Range[int, 1, MAX_TOWN_HALL_LEVEL],
 ):
     if not await enforce_chester_channel(interaction):
         return
     categories = town_hall_loot_tables.get(town_hall)
     if categories is None:
         await interaction.response.send_message(
-            "⚠️ Town Hall must be from 1 through 18 and its loot table must be loaded.",
+            f"⚠️ Town Hall must be from 1 through {MAX_TOWN_HALL_LEVEL} and its loot table must be loaded.",
             ephemeral=True,
         )
         return
@@ -1631,6 +1633,48 @@ def _upgrade_snapshot(user_id):
     return village, collection
 
 
+def _batch_shortage(error, village, collection, fields, level, levels, currency, hammer, ignore_workers):
+    worker_messages = ("No unlocked Builder is free", "Unlock the first Researcher")
+    if not (isinstance(error, WorkerUnavailable) or str(error).startswith(("Inadequate resources:", *worker_messages))):
+        return error
+    projected = dict(village)
+    totals = {}
+    needed = available = 0
+    worker_error = None
+    for field in fields:
+        for target in range(level + 1, level + levels + 1):
+            upgrade_system._availability(field, projected, collection)
+            price = upgrade_system._price_for(field, target)
+            if levels > 1 and price.duration:
+                return UpgradeRejected("Every requested level must have zero upgrade time to use levels.")
+            reduction = hammer.cost if hammer else 0
+            for resource, amount in price.fixed_costs.items():
+                totals[resource] = totals.get(resource, 0) + max(0, amount - reduction)
+            if price.choice_resources:
+                selected = price.choice_resources[0] if hammer else currency
+                totals[selected] = totals.get(selected, 0) + max(0, price.choice_cost - reduction)
+            if not ignore_workers and price.duration > (hammer.strength if hammer else 0):
+                needed += 1
+                try:
+                    slot, timer = upgrade_system._find_free_slot(field, projected)
+                except UpgradeRejected as exc:
+                    if not isinstance(exc, WorkerUnavailable) and not str(exc).startswith(worker_messages):
+                        raise
+                    worker_error = exc
+                else:
+                    available += 1
+                    projected[slot] = upgrade_system.serial_for(field)
+                    projected[timer] = 1
+            projected[field.name] = target
+    if worker_error is not None:
+        worker = "Researchers" if "Researcher" in str(worker_error) else "Builders"
+        detail = f" {worker_error}" if not available else ""
+        return WorkerUnavailable(f"{worker}: need {needed:,}, have {available:,} available.{detail}")
+    missing = [f"{resource}: need {cost:,}, have {village.get(resource, 0):,}"
+               for resource, cost in totals.items() if cost > village.get(resource, 0)]
+    return UpgradeRejected("Inadequate resources: " + "; ".join(missing)) if missing else error
+
+
 def _simulate_building_batch(village, collection, category, group, level, quantity, currency=None, hammer=None, ignore_workers=False, levels=1):
     if type(levels) is not int or levels < 1:
         raise UpgradeRejected("Choose at least one level.")
@@ -1661,14 +1705,17 @@ def _simulate_building_batch(village, collection, category, group, level, quanti
             price = upgrade_system._price_for(field, step + 1)
             if levels > 1 and price.duration != 0:
                 raise UpgradeRejected("Every requested level must have zero upgrade time to use levels.")
-            outcome, _ = upgrade_system._start_values(
-                working, owned, field.name, now,
-                (price.choice_resources[0] if hammer and price.choice_resources else currency),
-                step, price, report, batch_started=started,
-                cost_reduction=hammer.cost if hammer else 0,
-                time_reduction=hammer.strength if hammer else 0,
-                ignore_workers=ignore_workers,
-            )
+            try:
+                outcome, _ = upgrade_system._start_values(
+                    working, owned, field.name, now,
+                    (price.choice_resources[0] if hammer and price.choice_resources else currency),
+                    step, price, report, batch_started=started,
+                    cost_reduction=hammer.cost if hammer else 0,
+                    time_reduction=hammer.strength if hammer else 0,
+                    ignore_workers=ignore_workers,
+                )
+            except UpgradeRejected as error:
+                raise _batch_shortage(error, village, collection, fields[:quantity], level, levels, currency, hammer, ignore_workers) from None
             if hammer:
                 working[hammer.name] -= 1
                 outcome.costs[hammer.name] = 1
@@ -1755,6 +1802,51 @@ def _group_can_upgrade(village, collection, category, group):
     return False
 
 
+def _free_steps(village, collection):
+    pending = upgrade_system._pending_serials(village)
+    for field in upgrade_system.level_fields:
+        target = village[field.name] + 1
+        if upgrade_system.serial_for(field) in pending:
+            continue
+        try:
+            price = upgrade_system._price_for(field, target)
+            if price.duration or price.choice_cost or any(price.fixed_costs.values()):
+                continue
+            if target > upgrade_system._availability(field, village, collection):
+                continue
+            if field.name == "Town Hall" and target > 1 and upgrade_system.remaining_upgrades(village, collection):
+                continue
+            upgrade_system.resolve_item(field.name)
+        except UpgradeRejected:
+            continue
+        yield field, target
+
+
+def _free_plan(user_id, item, level, quantity, levels):
+    upgrade_system.refresh(user_id)
+    village, collection = save_store.player_values(user_id)
+    steps = list(_free_steps(village, collection))
+    all_items = item.strip().casefold() == "all"
+    if all_items:
+        if len(steps) < 2:
+            raise UpgradeRejected("All requires at least two available free upgrades.")
+        if level is not None or quantity is not None or str(levels) != "1":
+            raise UpgradeRejected("Choose All without level or quantity options.")
+    else:
+        steps = [(f, t) for f, t in steps if _upgrade_group_name(f).casefold() == item.strip().casefold()]
+        if steps:
+            level = min(t for _, t in steps) if level is None else level
+            steps = [(f, t) for f, t in steps if t == level]
+        count = _parse_upgrade_quantity(quantity)
+        if not steps or count != "max" and count > len(steps):
+            raise UpgradeRejected("That many free upgrades are not available at this level.")
+        if str(levels) != "1":
+            raise UpgradeRejected("Free upgrades apply one available level per item.")
+        if count != "max":
+            steps = steps[:count]
+    return {"free_steps": [(f.name, t) for f, t in steps], "hammer": None, "currency": None}
+
+
 async def upgrade_category_autocomplete(interaction: discord.Interaction, current: str):
     return await _upgrade_suggestions(_upgrade_category_autocomplete, interaction, current)
 
@@ -1767,7 +1859,8 @@ def _upgrade_category_autocomplete(interaction: discord.Interaction, current: st
     try:
         village, collection = _upgrade_snapshot(interaction.user.id)
         categories = list(dict.fromkeys(field.category for field in upgrade_system.level_fields))
-        return [
+        free = [app_commands.Choice(name="Free", value="Free")] if current.casefold() in "free" and next(_free_steps(village, collection), None) else []
+        return (free + [
             app_commands.Choice(name=category, value=category)
             for category in categories
             if current.casefold() in category.casefold()
@@ -1775,7 +1868,7 @@ def _upgrade_category_autocomplete(interaction: discord.Interaction, current: st
                 _group_can_upgrade(village, collection, category, group)
                 for group in _upgrade_groups(category)
             ))
-        ][:25]
+        ])[:25]
     except Exception:
         log.exception("Could not load upgrade category suggestions")
         return []
@@ -1793,6 +1886,12 @@ def _upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
     category = getattr(interaction.namespace, "category", None)
     try:
         village, collection = _upgrade_snapshot(interaction.user.id)
+        if (category or "").casefold() == "free":
+            steps = list(_free_steps(village, collection))
+            names = list(dict.fromkeys(_upgrade_group_name(f) for f, _ in steps))
+            if len(steps) >= 2:
+                names.insert(0, "All")
+            return [app_commands.Choice(name=n, value=n) for n in names if current.casefold() in n.casefold()][:25]
         return [
             app_commands.Choice(name=group, value=group)
             for group in _upgrade_groups(category)
@@ -1806,6 +1905,17 @@ def _upgrade_item_autocomplete(interaction: discord.Interaction, current: str):
 
 def _commit_building_batch(user_id, quote):
     with save_store.transaction(user_id) as (village, collection):
+        if "free_steps" in quote:
+            outcomes = []
+            now = int(time.time())
+            for name, target in quote["free_steps"]:
+                field = upgrade_system.resolve_item(name)
+                price = upgrade_system._price_for(field, target)
+                if price.duration or price.choice_cost or any(price.fixed_costs.values()):
+                    raise UpgradeRejected("This upgrade is no longer free. Open /upgrade again.")
+                outcome, _ = upgrade_system._start_values(village, collection, name, now, None, target - 1, price, RefreshReport([], [], []))
+                outcomes.append(outcome)
+            return outcomes
         current, working, outcomes = _simulate_building_batch(
             village, collection, quote["category"], quote["group"], quote["level"],
             quote["quantity"], quote["currency"], quote.get("hammer"), levels=quote.get("levels", 1),
@@ -1823,7 +1933,7 @@ class BuildingPaymentView(discord.ui.View):
         self.used = False
         for quote in options:
             label = f"Use {quote['hammer'].name}" if quote.get("hammer") else (f"Use {quote['currency']}" if quote["currency"] else "Use resources")
-            button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
+            button = discord.ui.Button(label="Confirm free upgrades" if "free_steps" in quote else label, style=discord.ButtonStyle.primary)
             async def pay(interaction, selected=quote):
                 if not await self.interaction_check(interaction):
                     return
@@ -1842,6 +1952,10 @@ class BuildingPaymentView(discord.ui.View):
                     return
                 self.used = True
                 self.stop()
+                if "free_steps" in selected and len(outcomes) > 1:
+                    embed = discord.Embed(title="Free upgrades complete", description=f"Completed {len(outcomes):,} upgrades instantly.", color=discord.Color.green())
+                    await interaction.edit_original_response(embed=embed, view=None)
+                    return
                 entries = _build_batch_upgrade_entries(outcomes)
                 await _publish_upgrade_embeds(interaction, entries, component=True)
             button.callback = pay
@@ -2253,6 +2367,12 @@ def _upgrade_argument_options(interaction):
         return {}, None
     category = getattr(interaction.namespace, "category", "") or ""
     item = getattr(interaction.namespace, "item", "") or ""
+    if category.casefold() == "free":
+        counts = {}
+        for field, target in _free_steps(*_upgrade_snapshot(interaction.user.id)):
+            if _upgrade_group_name(field).casefold() == item.casefold():
+                counts[target] = counts.get(target, 0) + 1
+        return counts, item if counts else None
     groups = _upgrade_groups(category)
     group = next((name for name in groups if name.casefold() == item.strip().casefold()), None)
     if group is None:
@@ -2356,6 +2476,8 @@ async def upgrade_levels_autocomplete(interaction: discord.Interaction, current:
 
 def _upgrade_levels_autocomplete(interaction: discord.Interaction, current: str):
     try:
+        if (getattr(interaction.namespace, "category", "") or "").casefold() == "free":
+            return []
         targets, group = _upgrade_argument_options(interaction)
         if not targets or group is None:
             return []
@@ -2426,15 +2548,18 @@ def _prepare_upgrade(user_id, category, item, level, quantity, levels):
     upgrade_system.refresh(user_id)
     village, collection = save_store.player_values(user_id)
     available_levels = _available_group_levels(village, collection, category, group, ignore_workers=True, include_hammers=False)
-    if not available_levels:
-        raise UpgradeRejected(_unavailable_upgrade_reason(village, collection, category, group, level=level - 1 if level is not None else None))
-    target = level if level is not None else min(available_levels) + 1
     amount = _parse_upgrade_quantity(quantity)
-    current = target - 1
     try:
         levels = _parse_upgrade_quantity(levels)
     except UpgradeRejected:
         raise UpgradeRejected("Levels must be a positive whole number or max.") from None
+    if not available_levels:
+        raise UpgradeRejected(_unavailable_upgrade_reason(
+            village, collection, category, group, level=level - 1 if level is not None else None,
+            quantity=1 if amount == "max" else amount, levels=1 if levels == "max" else levels,
+        ))
+    target = level if level is not None else min(available_levels) + 1
+    current = target - 1
     if amount == "max":
         amount = _maximum_upgrade_quantity(village, collection, category, group, current, levels=1 if levels == "max" else levels)
         if amount == 0:
@@ -2483,6 +2608,20 @@ async def upgrade_slash(interaction: discord.Interaction, category: str, item: s
     if not await enforce_chester_channel(interaction):
         return
     try:
+        if category.strip().casefold() == "free":
+            quote = await asyncio.to_thread(_free_plan, interaction.user.id, item, level, quantity, levels)
+            steps = quote["free_steps"]
+            embed = discord.Embed(title="Confirm free upgrades", description=f"{len(steps):,} upgrades · No cost · Instant", color=discord.Color.blue())
+            preview = "\n".join(f"{name} → Level {target}" for name, target in steps[:20])
+            if len(steps) > 20:
+                preview += f"\n…and {len(steps) - 20:,} more."
+            embed.description += "\n\n" + preview
+            if len(steps) == 1:
+                image = _upgrade_image_url(*steps[0])
+                if image:
+                    embed.set_image(url=proxy_upgrade_image_url(image))
+            await interaction.edit_original_response(embed=embed, view=BuildingPaymentView(interaction.user.id, [quote]))
+            return
         village, group, current, target, amount, quotes = await asyncio.to_thread(
             _run_upgrade_calculation, _prepare_upgrade, interaction.user.id, category, item, level, quantity, levels,
         )
@@ -2686,6 +2825,8 @@ def _remaining_level_rows(entries, now):
                 if previous_choices is not None and choices != previous_choices:
                     boundaries.add(level - 1)
                 previous_choices = choices
+        if any(entry.prerequisite for entry in members):
+            boundaries.add(1)
         for start, end in zip(sorted(boundaries), sorted(boundaries)[1:]):
             for entry in members:
                 if entry.current_level > start or entry.target_level < end:
@@ -2705,24 +2846,28 @@ def _remaining_level_rows(entries, now):
                         choices = tuple(price.choice_resources)
                         choice_cost += price.choice_cost
                 fixed = tuple(sorted(fixed_costs.items()))
-                key = (label, start, end, fixed, choices, choice_cost, duration, active)
+                prerequisite = entry.prerequisite if start == 0 else ""
+                key = (label, start, end, fixed, choices, choice_cost, duration, active, prerequisite)
                 row = grouped.setdefault(key, {"category": upgrade_system.fields_by_name[entry.item].category, "label": label, "start": start, "level": end, "count": 0,
                     "cost": sum(amount * (DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1) for resource, amount in fixed) + choice_cost * min((DARK_ELIXIR_COST_SORT_WEIGHT if resource in {"Dark Elixir", "DE"} else 1 for resource in choices), default=1),
                     "duration": duration, "fixed": fixed, "choices": choices,
-                    "choice_cost": choice_cost, "active": active, "workers": []})
+                    "choice_cost": choice_cost, "active": active, "workers": [], "prerequisite": prerequisite})
                 row["count"] += 1
                 if active:
                     row["workers"].append(entry.slot.removesuffix(" Upgrade"))
     return list(grouped.values())
 
 
-def _remaining_pages(entries, town_hall, sort_order=None, category=None):
+def _remaining_pages(entries, town_hall, sort_order=None, category=None, unowned_levels=0):
     total = sum(entry.count for entry in entries)
     rows = _remaining_level_rows(entries, int(time.time()))
     if sort_order:
         metric = "start" if sort_order.startswith("Starting Level") else "cost" if sort_order.startswith("Cost") else "duration"
         rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
     heading = f"**{total:,} upgrades remaining** before Town Hall {town_hall + 1}.\nCosts and times are per unit for the entire displayed level range. In progress rows show paid costs and time left.\n"
+    if unowned_levels:
+        heading = heading.replace(f"**{total:,} upgrades remaining**", f"**{total - unowned_levels:,} required upgrades remaining**")
+        heading += f"Also listed: {unowned_levels:,} levels of unowned Epic Equipment. These become required when you unlock the equipment.\n"
     if sort_order and sort_order.startswith("Cost"):
         heading += "Cost sorting weights Dark Elixir at 50 times other resources and counts the cheapest alternative currency once.\n"
     if category:
@@ -2738,6 +2883,8 @@ def _remaining_pages(entries, town_hall, sort_order=None, category=None):
         cost = "Already paid" if row["active"] else " + ".join(costs) or "Free"
         duration = format_duration(row["duration"]) if row["duration"] else "Instant"
         line = f"**{row['label']} — Level {row['start']} → {row['level']}{multiplier}**\nCost each: **{cost}** · Time each: **{duration}**"
+        if row["prerequisite"]:
+            line += f"\nRequires: {row['prerequisite']}"
         if row["active"]:
             line += ("\nReady to refresh: " if row["duration"] == 0 else "\nIn progress: ") + ", ".join(row["workers"])
         if lines and (len(lines) >= 10 or length + len(line) + 2 > 3900):
@@ -2912,14 +3059,14 @@ def _loot_table_pages(town_hall, rarity=None):
 
 
 @bot.tree.command(name="loot_table", description="Show a Town Hall loot table with rarity and reward percentages.")
-@app_commands.describe(town_hall="Town Hall level from 1 to 18", rarity="Show only this rarity or leave blank for all rarities")
+@app_commands.describe(town_hall=f"Town Hall level from 1 to {MAX_TOWN_HALL_LEVEL}", rarity="Show only this rarity or leave blank for all rarities")
 @app_commands.choices(rarity=[
     app_commands.Choice(name="Common", value="common"),
     app_commands.Choice(name="Rare", value="rare"),
     app_commands.Choice(name="Epic", value="epic"),
     app_commands.Choice(name="Legendary", value="legendary"),
 ])
-async def loot_table_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, 18], rarity: Optional[str] = None):
+async def loot_table_slash(interaction: discord.Interaction, town_hall: app_commands.Range[int, 1, MAX_TOWN_HALL_LEVEL], rarity: Optional[str] = None):
     if not await enforce_chester_channel(interaction, initialize_save=False):
         return
     await interaction.response.defer(thinking=True)
@@ -2974,7 +3121,7 @@ async def remaining_slash(interaction: discord.Interaction, category: Optional[s
         if town_hall == 0:
             await interaction.response.send_message("That player needs to open a Chest using /chest to get started." if target_id != interaction.user.id else "Use /chest to create your village first.", ephemeral=True)
             return
-        if town_hall >= 18:
+        if town_hall >= MAX_TOWN_HALL_LEVEL:
             await interaction.response.send_message("That player’s Town Hall is already at its maximum level." if target_id != interaction.user.id else "Your Town Hall is already at its maximum level.", ephemeral=True)
             return
         if category is not None:
@@ -2983,10 +3130,12 @@ async def remaining_slash(interaction: discord.Interaction, category: Optional[s
             if category is None:
                 await interaction.response.send_message("Choose a valid upgrade category from the suggestions.", ephemeral=True)
                 return
-        entries = upgrade_system.remaining_upgrades(village, collection)
+        entries = upgrade_system.remaining_upgrades(village, collection, show_unlocks=True)
         if category is not None:
             entries = [entry for entry in entries if upgrade_system.fields_by_name[entry.item].category == category]
-        pages = _remaining_pages(entries, town_hall, sorted, category)
+        unowned_levels = sum(entry.count for entry in entries if entry.item in collection and not collection[entry.item]
+                             and save_store.collection_by_name[entry.item].category == "Hero Equipment")
+        pages = _remaining_pages(entries, town_hall, sorted, category, unowned_levels)
         if target_id != interaction.user.id:
             target = bot.get_user(target_id)
             for page in pages:
@@ -4493,6 +4642,68 @@ async def set_slash(interaction: discord.Interaction, user_id: str, category: st
         f"{_profile_value(field.name, previous)} → {_profile_value(field.name, number)}.",
         ephemeral=True,
     )
+
+
+def _cap_player_saves(category, name, maximum):
+    with save_store.lock:
+        save_store._require_schema()
+        fields = save_store.fields_by_category[_set_category(category)]
+        matches = [field for field in fields if field.name.casefold() == name.strip().casefold()]
+        if len(matches) != 1:
+            raise ValueError("Choose a unique saved item in that category.")
+        field = matches[0]
+        limit = FORMAT_DETAILS[field.data_type][2]
+        if not 0 <= maximum <= limit:
+            raise ValueError(f"Choose a maximum between 0 and {limit:,} for {field.name}.")
+        backup = SAVE_BACKUPS_DIR / f"reset-all-{time.time_ns()}"
+        paths = [path for path in save_store.saves_dir.glob("*.sav") if path.stem.isascii() and path.stem.isdigit() and path.is_file()]
+        changed = []
+        for path in paths:
+            raw = path.read_bytes()
+            values, _ = save_store._decode_raw(raw)
+            if values[field.index] > maximum:
+                if not changed:
+                    backup.mkdir(parents=True)
+                (backup / path.name).write_bytes(raw)
+                changed.append(path)
+        written = []
+        try:
+            for path in changed:
+                values, _ = save_store._decode_raw((backup / path.name).read_bytes())
+                values[field.index] = maximum
+                save_store._write_values(path, values)
+                written.append(path)
+        except Exception:
+            for path in written:
+                os.replace(backup / path.name, path)
+            raise
+        return f"**{field.category} / {field.name}** capped at **{maximum:,}**. Changed {len(changed):,} of {len(paths):,} player saves."
+
+
+@bot.tree.command(name="reset_all", description="Cap one saved value for every player. Bot owner only.")
+@app_commands.describe(category="Saved category", name="Saved item to reset", maximum="Upper limit for this item, defaults to zero")
+@app_commands.autocomplete(category=set_category_autocomplete, name=set_name_autocomplete)
+async def reset_all_slash(interaction: discord.Interaction, category: str, name: str, maximum: int = 0):
+    global save_migration_active
+    if interaction.user.id != SET_COMMAND_OWNER_ID:
+        await interaction.response.send_message("Only the bot owner can use /reset_all.", ephemeral=True)
+        return
+    if not await enforce_chester_channel(interaction, initialize_save=False):
+        return
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    if save_migration_active:
+        await interaction.followup.send("Player saves are already being updated.", ephemeral=True)
+        return
+    save_migration_active = True
+    try:
+        message = await asyncio.to_thread(_cap_player_saves, category, name, maximum)
+    except SaveSchemaMismatch:
+        message = "A save needs migration. No values were changed. Run /update_saves first."
+    except (KeyError, ValueError, SaveError, OSError) as error:
+        message = f"Reset failed: {_error_text(error)}"
+    finally:
+        save_migration_active = False
+    await interaction.followup.send(message, ephemeral=True)
 
 
 class PrefixResponse:
