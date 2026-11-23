@@ -23,6 +23,8 @@ Firespitter,Defense,Both,1
 Multi-Gear Tower,Defense,Both,1
 Revenge Tower,Defense,Both,1
 Super Wizard Tower,Defense,Both,1
+Firecracker Tower,Defense,Both,1
+Spiky Tower,Defense,Both,1
 Crafted Defense A,Defense,Both,1
 Crafted Defense B,Defense,Both,1
 Crafted Defense C,Defense,Both,1
@@ -113,6 +115,18 @@ Flame Flinger,Offense,Both,1
 Battle Drill,Offense,Ground,1
 Troop Launcher,Offense,Both,1
 Sky Wagon,Offense,Air,1
+Barch Squad,Offense,Ground,1
+Giant Wizard Squad,Offense,Ground,1
+Wall Breaker Squad,Offense,Both,1
+Minion Squad,Offense,Air,1
+Balloon Squad,Offense,Air,1
+Golem Witch Squad,Offense,Ground,1
+Hog Rider Squad,Offense,Ground,1
+Miner Squad,Offense,Ground,1
+Healer Squad,Offense,Both,1
+P.E.K.K.A. Titan Squad,Offense,Ground,1
+Dragons Squad,Offense,Air,1
+Baby Dragon Squad,Offense,Air,1
 L.A.S.S.I.,Offense,Ground,1
 Electric Owl,Offense,Air,1
 Yak,Offense,Ground,1
