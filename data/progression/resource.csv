@@ -17,6 +17,7 @@ Town Hall,15,Elixir,0,3000000
 Town Hall,16,Elixir,0,4000000
 Town Hall,17,Elixir,0,4000000
 Town Hall,18,Elixir,0,5000000
+Town Hall,19,Elixir,0,5000000
 Town Hall,1,Gold,0,1000
 Town Hall,2,Gold,0,2500
 Town Hall,3,Gold,0,10000
@@ -35,6 +36,7 @@ Town Hall,15,Gold,0,3000000
 Town Hall,16,Gold,0,4000000
 Town Hall,17,Gold,0,4000000
 Town Hall,18,Gold,0,5000000
+Town Hall,19,Gold,0,5000000
 Town Hall,1,Dark Elixir,0,0
 Town Hall,2,Dark Elixir,0,0
 Town Hall,3,Dark Elixir,0,0
@@ -45,14 +47,15 @@ Town Hall,7,Dark Elixir,0,2500
 Town Hall,8,Dark Elixir,0,5000
 Town Hall,9,Dark Elixir,0,10000
 Town Hall,10,Dark Elixir,0,20000
-Town Hall,11,Dark Elixir,0,20000
-Town Hall,12,Dark Elixir,0,20000
-Town Hall,13,Dark Elixir,0,20000
+Town Hall,11,Dark Elixir,0,30000
+Town Hall,12,Dark Elixir,0,30000
+Town Hall,13,Dark Elixir,0,30000
 Town Hall,14,Dark Elixir,0,30000
 Town Hall,15,Dark Elixir,0,30000
 Town Hall,16,Dark Elixir,0,40000
 Town Hall,17,Dark Elixir,0,40000
 Town Hall,18,Dark Elixir,0,50000
+Town Hall,19,Dark Elixir,0,50000
 Elixir Storage,1,Elixir,0,1500
 Elixir Storage,2,Elixir,0,3000
 Elixir Storage,3,Elixir,0,6000
@@ -72,6 +75,7 @@ Elixir Storage,16,Elixir,0,5000000
 Elixir Storage,17,Elixir,0,5500000
 Elixir Storage,18,Elixir,0,6000000
 Elixir Storage,19,Elixir,0,6500000
+Elixir Storage,20,Elixir,0,7000000
 Gold Storage,1,Gold,0,1500
 Gold Storage,2,Gold,0,3000
 Gold Storage,3,Gold,0,6000
@@ -91,19 +95,21 @@ Gold Storage,16,Gold,0,5000000
 Gold Storage,17,Gold,0,5500000
 Gold Storage,18,Gold,0,6000000
 Gold Storage,19,Gold,0,6500000
+Gold Storage,20,Gold,0,7000000
 Dark Elixir Storage,1,Dark Elixir,0,10000
 Dark Elixir Storage,2,Dark Elixir,0,17500
 Dark Elixir Storage,3,Dark Elixir,0,40000
 Dark Elixir Storage,4,Dark Elixir,0,75000
 Dark Elixir Storage,5,Dark Elixir,0,140000
 Dark Elixir Storage,6,Dark Elixir,0,180000
-Dark Elixir Storage,7,Dark Elixir,0,220000
-Dark Elixir Storage,8,Dark Elixir,0,280000
+Dark Elixir Storage,7,Dark Elixir,0,210000
+Dark Elixir Storage,8,Dark Elixir,0,270000
 Dark Elixir Storage,9,Dark Elixir,0,330000
 Dark Elixir Storage,10,Dark Elixir,0,360000
 Dark Elixir Storage,11,Dark Elixir,0,390000
 Dark Elixir Storage,12,Dark Elixir,0,420000
 Dark Elixir Storage,13,Dark Elixir,0,450000
+Dark Elixir Storage,14,Dark Elixir,0,480000
 Elixir Collector,1,Elixir,200,1000
 Elixir Collector,2,Elixir,400,2000
 Elixir Collector,3,Elixir,600,3000
@@ -121,9 +127,10 @@ Elixir Collector,14,Elixir,5600,300000
 Elixir Collector,15,Elixir,6300,350000
 Elixir Collector,16,Elixir,7000,385000
 Elixir Collector,17,Elixir,7560,420000
-Elixir Collector,18,Elixir,7857,436500
-Elixir Collector,19,Elixir,8154,453000
-Elixir Collector,20,Elixir,8154,453000
+Elixir Collector,18,Elixir,8190,455000
+Elixir Collector,19,Elixir,8505,455000
+Elixir Collector,20,Elixir,8820,455000
+Elixir Collector,21,Elixir,8820,472500
 Gold Mine,1,Gold,200,1000
 Gold Mine,2,Gold,400,2000
 Gold Mine,3,Gold,600,3000
@@ -141,9 +148,10 @@ Gold Mine,14,Gold,5600,300000
 Gold Mine,15,Gold,6300,350000
 Gold Mine,16,Gold,7000,385000
 Gold Mine,17,Gold,7560,420000
-Gold Mine,18,Gold,7857,436500
-Gold Mine,19,Gold,8154,453000
-Gold Mine,20,Gold,8154,453000
+Gold Mine,18,Gold,8290,455000
+Gold Mine,19,Gold,8505,455000
+Gold Mine,20,Gold,8820,455000
+Gold Mine,21,Gold,8820,472500
 Dark Elixir Drill,1,Dark Elixir,20,160
 Dark Elixir Drill,2,Dark Elixir,30,300
 Dark Elixir Drill,3,Dark Elixir,45,540
@@ -155,9 +163,10 @@ Dark Elixir Drill,8,Dark Elixir,140,3000
 Dark Elixir Drill,9,Dark Elixir,160,3600
 Dark Elixir Drill,10,Dark Elixir,180,4200
 Dark Elixir Drill,11,Dark Elixir,200,4600
-Dark Elixir Drill,12,Dark Elixir,209,4807
-Dark Elixir Drill,13,Dark Elixir,218,5014
-Dark Elixir Drill,14,Dark Elixir,218,5014
+Dark Elixir Drill,12,Dark Elixir,220,5060
+Dark Elixir Drill,13,Dark Elixir,230,5060
+Dark Elixir Drill,14,Dark Elixir,240,5060
+Dark Elixir Drill,15,Dark Elixir,240,5290
 Clan Castle,1,Elixir,0,900000
 Clan Castle,2,Elixir,0,1800000
 Clan Castle,3,Elixir,0,2400000
@@ -172,6 +181,7 @@ Clan Castle,11,Elixir,0,7200000
 Clan Castle,12,Elixir,0,7800000
 Clan Castle,13,Elixir,0,8400000
 Clan Castle,14,Elixir,0,9000000
+Clan Castle,15,Elixir,0,9600000
 Clan Castle,1,Gold,0,900000
 Clan Castle,2,Gold,0,1800000
 Clan Castle,3,Gold,0,2400000
@@ -186,6 +196,7 @@ Clan Castle,11,Gold,0,7200000
 Clan Castle,12,Gold,0,7800000
 Clan Castle,13,Gold,0,8400000
 Clan Castle,14,Gold,0,9000000
+Clan Castle,15,Gold,0,9600000
 Clan Castle,1,Dark Elixir,0,0
 Clan Castle,2,Dark Elixir,0,0
 Clan Castle,3,Dark Elixir,0,12000
@@ -200,6 +211,7 @@ Clan Castle,11,Dark Elixir,0,39000
 Clan Castle,12,Dark Elixir,0,42000
 Clan Castle,13,Dark Elixir,0,45000
 Clan Castle,14,Dark Elixir,0,48000
+Clan Castle,15,Dark Elixir,0,51000
 Town Hall,1,Shiny Ore,0,0
 Town Hall,2,Shiny Ore,0,0
 Town Hall,3,Shiny Ore,0,0
@@ -218,6 +230,7 @@ Town Hall,15,Shiny Ore,0,5000
 Town Hall,16,Shiny Ore,0,5000
 Town Hall,17,Shiny Ore,0,5000
 Town Hall,18,Shiny Ore,0,5000
+Town Hall,19,Shiny Ore,0,5000
 Town Hall,1,Glowy Ore,0,0
 Town Hall,2,Glowy Ore,0,0
 Town Hall,3,Glowy Ore,0,0
@@ -236,6 +249,7 @@ Town Hall,15,Glowy Ore,0,500
 Town Hall,16,Glowy Ore,0,500
 Town Hall,17,Glowy Ore,0,500
 Town Hall,18,Glowy Ore,0,500
+Town Hall,19,Glowy Ore,0,500
 Town Hall,1,Starry Ore,0,0
 Town Hall,2,Starry Ore,0,0
 Town Hall,3,Starry Ore,0,0
@@ -254,6 +268,7 @@ Town Hall,15,Starry Ore,0,100
 Town Hall,16,Starry Ore,0,100
 Town Hall,17,Starry Ore,0,100
 Town Hall,18,Starry Ore,0,100
+Town Hall,19,Starry Ore,0,100
 Blacksmith,1,Shiny Ore,25,5000
 Blacksmith,2,Shiny Ore,28,10000
 Blacksmith,3,Shiny Ore,32,15000
@@ -265,6 +280,7 @@ Blacksmith,8,Shiny Ore,67,40000
 Blacksmith,9,Shiny Ore,77,45000
 Blacksmith,10,Shiny Ore,88,50000
 Blacksmith,11,Shiny Ore,100,55000
+Blacksmith,12,Shiny Ore,113,60000
 Blacksmith,1,Glowy Ore,1.25,500
 Blacksmith,2,Glowy Ore,1.40,1000
 Blacksmith,3,Glowy Ore,1.60,1500
@@ -276,6 +292,7 @@ Blacksmith,8,Glowy Ore,3.35,4000
 Blacksmith,9,Glowy Ore,3.85,4500
 Blacksmith,10,Glowy Ore,4.40,5000
 Blacksmith,11,Glowy Ore,5.00,5500
+Blacksmith,12,Glowy Ore,5.65,6000
 Blacksmith,1,Starry Ore,0.100,100
 Blacksmith,2,Starry Ore,0.112,200
 Blacksmith,3,Starry Ore,0.128,300
@@ -287,3 +304,4 @@ Blacksmith,8,Starry Ore,0.268,800
 Blacksmith,9,Starry Ore,0.308,900
 Blacksmith,10,Starry Ore,0.352,1000
 Blacksmith,11,Starry Ore,0.400,1100
+Blacksmith,12,Starry Ore,0.458,1200
