@@ -816,6 +816,7 @@ Giant Gauntlet,Equipment Level,byte
 Spiky Ball,Equipment Level,byte
 Snake Bracelet,Equipment Level,byte
 Stick Horse,Equipment Level,byte
+Blizzard Axe,Equipment Level,byte
 Archer Puppet,Equipment Level,byte
 Invisibility Vial,Equipment Level,byte
 Giant Arrow,Equipment Level,byte
@@ -831,6 +832,7 @@ Noble Iron,Equipment Level,byte
 Dark Crown,Equipment Level,byte
 Meteor Staff,Equipment Level,byte
 Portal Pendant,Equipment Level,byte
+Detective's Glass,Equipment Level,byte
 Eternal Tome,Equipment Level,byte
 Life Gem,Equipment Level,byte
 Rage Gem,Equipment Level,byte
@@ -838,6 +840,7 @@ Healing Tome,Equipment Level,byte
 Fireball,Equipment Level,byte
 Lavaloon Puppet,Equipment Level,byte
 Heroic Torch,Equipment Level,byte
+Undead Staff,Equipment Level,byte
 Royal Gem,Equipment Level,byte
 Seeking Shield,Equipment Level,byte
 Hog Puppet,Equipment Level,byte
@@ -845,9 +848,12 @@ Haste Vial,Equipment Level,byte
 Rocket Spear,Equipment Level,byte
 Electro Boots,Equipment Level,byte
 Frost Flake,Equipment Level,byte
+Shield Brooch,Equipment Level,byte
 Fire Heart,Equipment Level,byte
 Flame Blower,Equipment Level,byte
 Stun Blaster,Equipment Level,byte
 Electro Fangs,Equipment Level,byte
 Rocket Backpack,Equipment Level,byte
 Revenge Deck,Equipment Level,byte
+Berserker Brew,Equipment Level,byte
+Golden Dragon,Equipment Level,byte
