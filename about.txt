@@ -1,4 +1,4 @@
-Version 1.1.0 updated 2026 November 18
+Version 1.1.1 updated 2026 November 23
 Source: https://github.com/Godly000/Chester
 Terms of Service: https://pastebin.com/0T6GMB5t
 Privacy Policy: https://pastebin.com/zhfg4af1
