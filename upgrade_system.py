@@ -1,5 +1,4 @@
 import csv
-import os
 import re
 import time
 from dataclasses import dataclass
@@ -339,58 +338,8 @@ class UpgradeSystem:
         return [(upgrade, finish) for _, upgrade, finish in sorted(slots)]
 
     def _load_serials(self) -> None:
-        path = self.progression_dir.parent / "upgrade_ids.csv"
-        rows: List[Tuple[int, str, str]] = []
-        if path.exists():
-            with path.open(newline="", encoding="utf-8-sig") as file:
-                reader = csv.DictReader(file)
-                required = {"Serial", "Name", "Category"}
-                if not reader.fieldnames or not required.issubset(reader.fieldnames):
-                    raise ValueError("upgrade_ids.csv has invalid columns")
-                for row in reader:
-                    rows.append((int(row["Serial"]), row["Name"], row["Category"]))
-
-        serial_by_name: Dict[str, int] = {}
-        name_by_serial: Dict[int, str] = {}
-        for serial, name, category in rows:
-            if serial < 0 or serial > 32767:
-                raise ValueError(f"Upgrade serial is out of range: {serial}")
-            if name in serial_by_name or serial in name_by_serial:
-                raise ValueError("upgrade_ids.csv contains duplicate mappings")
-            serial_by_name[name] = serial
-            name_by_serial[serial] = name
-
-        next_serial = max(name_by_serial, default=0) + 1
-        changed = not path.exists()
-        for field in self.level_fields:
-            if field.name in serial_by_name:
-                continue
-            if next_serial > 32767:
-                raise ValueError("No upgrade serials remain")
-            serial_by_name[field.name] = next_serial
-            name_by_serial[next_serial] = field.name
-            rows.append((next_serial, field.name, field.category))
-            next_serial += 1
-            changed = True
-
-        if changed:
-            temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-            try:
-                with temporary.open("w", newline="", encoding="utf-8") as file:
-                    writer = csv.writer(file)
-                    writer.writerow(["Serial", "Name", "Category"])
-                    for serial, name, category in sorted(rows):
-                        writer.writerow([serial, name, category])
-                    file.flush()
-                    os.fsync(file.fileno())
-                os.replace(temporary, path)
-            finally:
-                if temporary.exists():
-                    temporary.unlink()
-
-        self.serial_by_name = serial_by_name
-        self.name_by_serial = name_by_serial
-        self.save_store.load_serial_mapping()
+        self.serial_by_name = dict(self.save_store.serial_by_name)
+        self.name_by_serial = {serial: name for name, serial in self.serial_by_name.items()}
 
     def _validate_slots(self) -> None:
         if not self.builder_slots or not self.researcher_slots:
