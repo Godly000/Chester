@@ -169,15 +169,34 @@ class SaveStore:
                 serials.add(serial)
         if not mapping:
             raise SaveError(f"Empty upgrade serial mapping in {path.name}")
+        return mapping, SaveStore._serial_digest(mapping)
+
+    @staticmethod
+    def _serial_digest(mapping):
         canonical = json.dumps(sorted(mapping.items()), ensure_ascii=False, separators=(",", ":"))
-        return mapping, hashlib.sha256(canonical.encode("utf-8")).digest()
+        return hashlib.sha256(canonical.encode("utf-8")).digest()
+
+    @staticmethod
+    def _effective_serial_mapping(base, fields):
+        mapping = dict(base)
+        next_serial = max(mapping.values(), default=0) + 1
+        for field in fields:
+            if "level" not in field.category.casefold() and field.category != "Pet" and field.name != "Town Hall":
+                continue
+            if field.name not in mapping:
+                if next_serial > 32767:
+                    raise SaveError("No upgrade serials remain")
+                mapping[field.name] = next_serial
+                next_serial += 1
+        return mapping
 
     def load_serial_mapping(self):
         path = self.progression_dir.parent / "upgrade_ids.csv"
-        if path.is_file():
-            self.serial_by_name, self.serial_digest = self.read_serial_mapping(path)
-        else:
-            self.serial_by_name, self.serial_digest = {}, EMPTY_SERIAL_DIGEST
+        if not path.is_file():
+            raise SaveError("Missing upgrade_ids.csv")
+        self.base_serials, _ = self.read_serial_mapping(path)
+        self.serial_by_name = self._effective_serial_mapping(self.base_serials, self.fields)
+        self.serial_digest = self._serial_digest(self.serial_by_name)
 
     @staticmethod
     def _save_header(raw: bytes):
@@ -491,7 +510,7 @@ class SaveStore:
                     values[slot_field.index] = 0
         return values, len(old_values) - len(layout["fields"])
 
-    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = True) -> int:
+    def _remap_serials(self, raw: bytes, values: List[int], recover_unmappable: bool = True, *, old_fields=()) -> int:
         _, source_digest, _ = self._save_header(raw)
         if source_digest == self.serial_digest:
             return 0
@@ -517,24 +536,31 @@ class SaveStore:
                 raise SaveError("Cannot migrate serials without upgrade_ids.csv")
             return 0
         previous_path = self.progression_dir.parent / "upgrade_ids-old.csv"
-        if not previous_path.is_file():
+        previous = None
+        bases = []
+        if previous_path.is_file():
+            candidate, digest = self.read_serial_mapping(previous_path)
+            bases.append(candidate)
+            if source_digest is None or digest == source_digest:
+                previous = candidate
+        elif source_digest is None:
             raise SaveError("Provide the matching upgrade_ids-old.csv before migrating serials")
-        previous, previous_digest = self.read_serial_mapping(previous_path)
-        if source_digest is not None and source_digest != previous_digest:
-            names = (
-                field.name for field in self.fields
-                if "level" in field.category.casefold() or field.category == "Pet" or field.name == "Town Hall"
-            )
-            generated = {name: serial for serial, name in enumerate(names, 1)}
-            canonical = json.dumps(sorted(generated.items()), ensure_ascii=False, separators=(",", ":"))
-            if hashlib.sha256(canonical.encode("utf-8")).digest() != source_digest:
-                archive = previous_path.with_name(f"upgrade_ids-{source_digest.hex()}.csv")
-                if not archive.is_file():
-                    raise SaveSchemaMismatch(f"Missing matching historical serial mapping: {archive.name}")
-                generated, digest = self.read_serial_mapping(archive)
-                if digest != source_digest:
-                    raise SaveSchemaMismatch(f"Historical serial mapping fingerprint mismatch: {archive.name}")
-            previous = generated
+        if previous is None:
+            for base in (*bases, self.base_serials, {}):
+                for mapping in (base, self._effective_serial_mapping(base, old_fields),
+                                self._effective_serial_mapping(base, self.fields)):
+                    if self._serial_digest(mapping) == source_digest:
+                        previous = mapping
+                        break
+                if previous is not None:
+                    break
+        if previous is None:
+            archive = previous_path.with_name(f"upgrade_ids-{source_digest.hex()}.csv")
+            if not archive.is_file():
+                raise SaveSchemaMismatch(f"Missing matching historical serial mapping: {archive.name}")
+            previous, digest = self.read_serial_mapping(archive)
+            if digest != source_digest:
+                raise SaveSchemaMismatch(f"Historical serial mapping fingerprint mismatch: {archive.name}")
         old_names = {serial: name for name, serial in previous.items()}
         cancelled = 0
         for field, time_field in references:
@@ -630,7 +656,7 @@ class SaveStore:
                                 migrated_values[new_field.index] = self._bounded_value(
                                     old_values[old_field.index], new_field.data_type
                                 )
-                    cancelled_upgrades += self._remap_serials(raw, migrated_values, recover_unmappable)
+                    cancelled_upgrades += self._remap_serials(raw, migrated_values, recover_unmappable, old_fields=old_store.fields)
                 except (SaveError, ValueError) as error:
                     raise SaveError(f"Cannot migrate {source_path.name}: {error}. No player saves were changed.") from error
                 self._write_values(staging / source_path.name, migrated_values)
