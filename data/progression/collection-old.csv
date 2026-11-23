@@ -3,6 +3,7 @@ Hero Equipment,Giant Gauntlet,boolean
 Hero Equipment,Spiky Ball,boolean
 Hero Equipment,Snake Bracelet,boolean
 Hero Equipment,Stick Horse,boolean
+Hero Equipment,Blizzard Axe,boolean
 Hero Equipment,Frozen Arrow,boolean
 Hero Equipment,Magic Mirror,boolean
 Hero Equipment,Action Figure,boolean
@@ -10,14 +11,19 @@ Hero Equipment,Monolith Arrow,boolean
 Hero Equipment,Dark Crown,boolean
 Hero Equipment,Meteor Staff,boolean
 Hero Equipment,Portal Pendant,boolean
+Hero Equipment,Detective's Glass,boolean
 Hero Equipment,Fireball,boolean
 Hero Equipment,Lavaloon Puppet,boolean
 Hero Equipment,Heroic Torch,boolean
+Hero Equipment,Undead Staff,boolean
 Hero Equipment,Rocket Spear,boolean
 Hero Equipment,Electro Boots,boolean
 Hero Equipment,Frost Flake,boolean
+Hero Equipment,Shield Brooch,boolean
 Hero Equipment,Rocket Backpack,boolean
 Hero Equipment,Revenge Deck,boolean
+Hero Equipment,Berserker Brew,boolean
+Hero Equipment,Golden Dragon,boolean
 Clan Capital House Part,Orange Classic Roof,boolean
 Clan Capital House Part,Blue Classic Roof,boolean
 Clan Capital House Part,Red Classic Roof,boolean
