@@ -14,7 +14,7 @@ STRUCTURE_CATEGORIES = {
     "Structure Level", "Defense Level", "Wall Level", "Trap Level",
     "Resource Level", "Army Level",
 }
-MAX_TOWN_HALL_LEVEL = 18
+MAX_TOWN_HALL_LEVEL = 19
 BUILDER_CATEGORIES = STRUCTURE_CATEGORIES | {"Hero Level"}
 SECOND_BUILDER_COST = 250
 THIRD_BUILDER_COST = 500
@@ -79,6 +79,8 @@ class RemainingUpgrade:
     target_level: int
     slot: Optional[str] = None
     finish_time: Optional[int] = None
+
+    prerequisite: str = ""
 
     @property
     def count(self) -> int:
@@ -434,7 +436,7 @@ class UpgradeSystem:
             return 0
         numeric_columns = [int(key) for key in row if key.isdigit()]
         column = str(min(level, max(numeric_columns)))
-        return self._parse_number(row[column])
+        return self._parse_number(row[column] or "0")
 
     def _prerequisite_level(
         self,
@@ -448,7 +450,7 @@ class UpgradeSystem:
     def _equipment_template_row(self, epic: bool) -> Dict[str, str]:
         target_max = self.epic_equipment_max if epic else self.common_equipment_max
         for row in self.level_rows.values():
-            if row["Requirement"] == "Blacksmith" and self._parse_number(row["19"]) == target_max:
+            if row["Requirement"] == "Blacksmith" and self._column_value(row, 19) == target_max:
                 return row
         raise UpgradeRejected("Equipment maximum-level data is incomplete")
 
@@ -555,7 +557,7 @@ class UpgradeSystem:
             if field.name in self.save_store.collection_by_name:
                 return self.epic_equipment_max
             return self.common_equipment_max
-        return self._parse_number(row["19"])
+        return self._column_value(row, 19)
 
     def _price_for(self, field: SaveField, target_level: int) -> UpgradePrice:
         if field.name == "Town Hall" and target_level > MAX_TOWN_HALL_LEVEL:
@@ -730,10 +732,35 @@ class UpgradeSystem:
             for entry in self.remaining_upgrades(village, collection)
         ]
 
+    def _first_level_requirements(self, field, village, collection):
+        base = self._base_name(field.name)
+        requirements = {}
+        match = INSTANCE_PATTERN.match(field.name)
+        number = int(match.group(2)) if match else 1
+        for table, threshold in ((self.count_rows, number), (self.level_rows, 1)):
+            row = self._table_row(table, base)
+            if not row or row["Requirement"] == "Collection":
+                continue
+            name = row["Requirement"]
+            if self._column_value(row, village.get(name, 0)) < threshold:
+                minimum = min((int(k) for k in row if k.isdigit() and self._column_value(row, int(k)) >= threshold), default=None)
+                if minimum is not None:
+                    requirements[name] = max(requirements.get(name, 0), minimum)
+        reasons = [f"{name} level {level}" for name, level in requirements.items()]
+        epic = self.save_store.collection_by_name.get(field.name)
+        if epic and epic.category == "Hero Equipment" and not collection.get(field.name):
+            reasons.append(f"unlock {field.name} from a Chest or /buy")
+        return "; ".join(reasons)
+
     def remaining_upgrades(
-        self, village: Mapping[str, int], collection: Mapping[str, int]
+        self, village: Mapping[str, int], collection: Mapping[str, int], *, show_unlocks=False
     ) -> List[RemainingUpgrade]:
         projected = dict(village)
+        projected_collection = dict(collection)
+        if show_unlocks:
+            for field in self.save_store.collection_by_name.values():
+                if field.category == "Hero Equipment":
+                    projected_collection[field.name] = 1
         candidates = [
             field for field in self.level_fields
             if field.name != "Town Hall" and not (
@@ -744,7 +771,7 @@ class UpgradeSystem:
             changed = False
             for field in candidates:
                 try:
-                    maximum = self._availability(field, projected, collection, reject_at_maximum=False)
+                    maximum = self._availability(field, projected, projected_collection, reject_at_maximum=False)
                 except UpgradeLocked:
                     continue
                 target = self._supported_maximum(field, maximum)
@@ -766,7 +793,8 @@ class UpgradeSystem:
             active = pending.pop(field.name, None)
             if target > current or active is not None:
                 slot, finish = active if active else (None, None)
-                remaining.append(RemainingUpgrade(field.name, current, max(target, current + int(active is not None)), slot, finish))
+                remaining.append(RemainingUpgrade(field.name, current, max(target, current + int(active is not None)), slot, finish,
+                    self._first_level_requirements(field, village, collection) if show_unlocks and current == 0 and not active else ""))
         for name, (slot, finish) in pending.items():
             remaining.append(RemainingUpgrade(name, 0, 1, slot, finish))
         return remaining
