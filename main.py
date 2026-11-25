@@ -15,7 +15,8 @@ import os
 import random
 import re
 import time
-from dataclasses import dataclass
+import unicodedata
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from types import SimpleNamespace
@@ -30,7 +31,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
-from magic_system import MagicRejected, MagicSystem, format_duration
+from magic_system import MagicResult, MagicRejected, MagicSystem, format_duration
 from gembox_system import GemBoxSystem
 from obstacle_system import ObstacleRejected, ObstacleSystem
 from player_saves import FORMAT_DETAILS, MigrationReport, SaveError, SaveSchemaMismatch, SaveStore
@@ -902,12 +903,19 @@ def xp_to_level(xp: int) -> int:
     return level
 
 
+def _matches_chester_channel(channel, exact: bool) -> bool:
+    name = unicodedata.normalize("NFKC", getattr(channel, "name", "") or "").casefold()
+    before, match, after = name.partition(CHESTER_CHANNEL_NAME)
+    if not match:
+        return False
+    return not exact or not any(char.isalnum() or char == "-" for char in before + after)
+
+
 def _find_chester_channel(guild: Optional[discord.Guild], exact: bool = False):
     if guild is None:
         return None
     for channel in guild.channels:
-        name = getattr(channel, "name", "").casefold()
-        if name == CHESTER_CHANNEL_NAME or (not exact and CHESTER_CHANNEL_NAME in name):
+        if _matches_chester_channel(channel, exact):
             return channel
     return None
 
@@ -929,11 +937,8 @@ def _is_whitelisted_channel(guild, channel) -> bool:
 
 
 def _channel_gate_message(guild: Optional[discord.Guild], channel, command_name: str = "") -> Optional[str]:
-    if _is_whitelisted_channel(guild, channel):
-        return None
     exact = command_name in EXACT_CHESTER_COMMANDS
-    current_name = getattr(channel, "name", "").casefold()
-    if current_name == CHESTER_CHANNEL_NAME or (not exact and CHESTER_CHANNEL_NAME in current_name):
+    if _matches_chester_channel(channel, exact) or _is_whitelisted_channel(guild, channel):
         return None
     if exact:
         if _find_chester_channel(guild, exact=True) is not None:
@@ -2355,11 +2360,88 @@ class WallPaymentView(discord.ui.View):
         await interaction.response.edit_message(content="Wall upgrade cancelled. Nothing was spent.", embed=None, view=None)
 
 
-async def _open_wall_upgrades(interaction, rings_only=False):
-    await interaction.response.send_message(
-        "Use /upgrade with the Wall category, item Walls, target level, and quantity. Choose Wall Rings on the payment screen.",
-        ephemeral=True,
-    )
+def _ring_offers(village, collection, item, budget):
+    magic_system._owned(village, item, budget)
+    if item.cost <= 0:
+        raise MagicRejected("Wall Ring value is unavailable.")
+    pending = upgrade_system._pending_serials(village)
+    groups = {}
+    for field in upgrade_system.level_fields:
+        match = re.fullmatch(r"Wall #(\d+)", field.name)
+        if not match or upgrade_system.serial_for(field) in pending:
+            continue
+        level = village[field.name]
+        try:
+            upgrade_system._availability(field, village, collection)
+            price = upgrade_system._price_for(field, level + 1)
+        except UpgradeRejected:
+            continue
+        cost = sum(price.fixed_costs.values()) + price.choice_cost
+        rings = (cost + item.cost - 1) // item.cost
+        if price.duration or not 0 < rings <= budget:
+            continue
+        groups.setdefault((level, rings), []).append((int(match[1]), field.name))
+    return {level: (rings, tuple(name for _, name in sorted(walls)[:budget // rings]))
+            for (level, rings), walls in sorted(groups.items(), reverse=True)}
+
+
+class WallRingView(discord.ui.View):
+    def __init__(self, owner, item, budget, offers):
+        super().__init__(timeout=180)
+        self.owner, self.item, self.budget, self.offers = owner, item, budget, offers
+        self.level = next(iter(offers))
+        self.menu = discord.ui.Select(options=[
+            discord.SelectOption(label=f"Level {level} → {level + 1}", value=str(level), default=level == self.level)
+            for level in offers])
+        self.menu.callback = self.select_level
+        self.add_item(self.menu)
+
+    def details(self):
+        rings, walls = self.offers[self.level]
+        cost = rings * len(walls)
+        return f"{len(walls):,} Walls: level {self.level} → {self.level + 1}\n{rings:,} rings per Wall · Total: {cost:,} Wall Rings\nUnused from your selection: {self.budget - cost:,} Wall Rings"
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id == self.owner and not self.is_finished():
+            return True
+        await interaction.response.send_message("Only the player who opened this active selection can use it.", ephemeral=True)
+        return False
+
+    async def select_level(self, interaction):
+        self.level = int(self.menu.values[0])
+        for option in self.menu.options:
+            option.default = option.value == str(self.level)
+        await interaction.response.edit_message(embed=self.preview(), view=self)
+
+    def preview(self):
+        return discord.Embed(title="Use Wall Rings", description=self.details(), color=discord.Color.blue())
+
+    @discord.ui.button(label="Use Wall Rings", style=discord.ButtonStyle.success, row=1)
+    async def confirm(self, interaction, button):
+        level = self.level
+        try:
+            with save_store.transaction(self.owner) as (village, collection):
+                offer = _ring_offers(village, collection, self.item, self.budget).get(level)
+                if offer != self.offers[level]:
+                    raise MagicRejected("The available Walls changed. Run /use again.")
+                rings, walls = offer
+                spent = rings * len(walls)
+                village[self.item.name] -= spent
+                now = int(time.time())
+                for name in walls:
+                    village[name] += 1
+                    upgrade_system.record_upgrade(village, upgrade_system.serial_for(upgrade_system.fields_by_name[name]), now)
+                result = MagicResult(self.item.name, spent, [self.details()])
+        except (MagicRejected, UpgradeRejected) as error:
+            await interaction.response.send_message(_error_text(error), ephemeral=True)
+            return
+        self.stop()
+        await interaction.response.edit_message(embed=_magic_result_embed(result), view=None)
+
+    @discord.ui.button(label="Cancel", row=1)
+    async def cancel(self, interaction, button):
+        self.stop()
+        await interaction.response.edit_message(content="Cancelled. No Wall Rings were spent.", embed=None, view=None)
 
 
 def _upgrade_argument_options(interaction):
@@ -2802,7 +2884,7 @@ def _remaining_display_rows(entries):
     return rows
 
 
-def _remaining_level_rows(entries, now):
+def _remaining_level_rows(entries, now, split_levels=False):
     families = {}
     for entry in entries:
         base = re.sub(r" #\d+$", "", entry.item)
@@ -2815,6 +2897,8 @@ def _remaining_level_rows(entries, now):
         boundaries.update(entry.target_level for entry in members)
         boundaries.update(range(highest, max(entry.target_level for entry in members) + 1))
         boundaries.update(entry.current_level + 1 for entry in members if entry.slot)
+        if split_levels:
+            boundaries.update(range(min(boundaries), max(boundaries) + 1))
         for entry in members:
             field = upgrade_system.fields_by_name.get(entry.item)
             if field is None:
@@ -2858,9 +2942,9 @@ def _remaining_level_rows(entries, now):
     return list(grouped.values())
 
 
-def _remaining_pages(entries, town_hall, sort_order=None, category=None, unowned_levels=0):
+def _remaining_pages(entries, town_hall, sort_order=None, category=None, unowned_levels=0, exclude="None"):
     total = sum(entry.count for entry in entries)
-    rows = _remaining_level_rows(entries, int(time.time()))
+    rows = _remaining_level_rows(entries, int(time.time()), split_levels=bool(sort_order))
     if sort_order:
         metric = "start" if sort_order.startswith("Starting Level") else "cost" if sort_order.startswith("Cost") else "duration"
         rows.sort(key=lambda row: row[metric], reverse=sort_order.endswith("Descending"))
@@ -2868,6 +2952,8 @@ def _remaining_pages(entries, town_hall, sort_order=None, category=None, unowned
     if unowned_levels:
         heading = heading.replace(f"**{total:,} upgrades remaining**", f"**{total - unowned_levels:,} required upgrades remaining**")
         heading += f"Also listed: {unowned_levels:,} levels of unowned Epic Equipment. These become required when you unlock the equipment.\n"
+    if exclude != "None":
+        heading = f"**{total:,} matching upgrades** · Excluding **{exclude}**\nCosts and times are per unit.\n"
     if sort_order and sort_order.startswith("Cost"):
         heading += "Cost sorting weights Dark Elixir at 50 times other resources and counts the cheapest alternative currency once.\n"
     if category:
@@ -2900,6 +2986,8 @@ def _remaining_pages(entries, town_hall, sort_order=None, category=None, unowned
         description = heading + "\n\n".join(chunk) if total else "All required upgrades are complete. You can upgrade your Town Hall once you have the resources and a free Builder."
         if not total and category:
             description = f"No remaining upgrades in **{category}** for your current Town Hall. Other categories may still have upgrades remaining."
+        if not total and exclude != "None":
+            description = f"No upgrades match the current filters (exclude: {exclude})."
         embed = discord.Embed(title="Remaining Town Hall upgrades", description=description, color=discord.Color.blue())
         embed.set_footer(text=f"Page {number}/{len(chunks)} · Use /remaining again to refresh")
         pages.append(embed)
@@ -3091,6 +3179,40 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
         view.message = await interaction.edit_original_response(content=None, embed=pages[0], view=view)
 
 
+def _filter_remaining(entries, village, collection, exclude):
+    if exclude == "None":
+        return entries
+    result = []
+    dark_wall_payment = None
+    for entry in entries:
+        if entry.slot:
+            continue
+        field = upgrade_system.fields_by_name[entry.item]
+        target = entry.current_level + 1
+        try:
+            if target > upgrade_system._availability(field, village, collection):
+                continue
+            price = upgrade_system._price_for(field, target)
+            if exclude == "Unaffordable":
+                currencies = upgrade_system._affordable_currencies(price, village)
+                try:
+                    upgrade_system._deductions(price, village, next(iter(currencies), None))
+                except UpgradeRejected:
+                    if not field.name.startswith("Wall #"):
+                        continue
+                    gold = price.choice_cost or price.fixed_costs.get("Gold", 0)
+                    if village.get("Dark Elixir", 0) * WALL_DARK_ELIXIR_RATIO < gold:
+                        continue
+                    if dark_wall_payment is None:
+                        dark_wall_payment = _dark_elixir_upgrades_finished(village, collection)
+                    if not dark_wall_payment:
+                        continue
+        except UpgradeRejected:
+            continue
+        result.append(replace(entry, target_level=target))
+    return result
+
+
 @bot.tree.command(name="remaining", description="List the upgrades needed before the next Town Hall.")
 @app_commands.describe(category="Show remaining upgrades in this category", sorted="Sort upgrades by cost duration or starting level", user_id="Discord user ID for a player including someone outside this server")
 @app_commands.autocomplete(category=upgradeinfo_category_autocomplete)
@@ -3102,7 +3224,8 @@ async def loot_table_slash(interaction: discord.Interaction, town_hall: app_comm
     app_commands.Choice(name="Starting Level Ascending", value="Starting Level Ascending"),
     app_commands.Choice(name="Starting Level Descending", value="Starting Level Descending"),
 ])
-async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None, user_id: Optional[str] = None):
+@app_commands.choices(exclude=[app_commands.Choice(name=name, value=name) for name in ("None", "Locked", "Unaffordable")])
+async def remaining_slash(interaction: discord.Interaction, category: Optional[str] = None, sorted: Optional[str] = None, user_id: Optional[str] = None, exclude: str = "None"):
     if not await enforce_chester_channel(interaction):
         return
     target_id = interaction.user.id
@@ -3133,9 +3256,10 @@ async def remaining_slash(interaction: discord.Interaction, category: Optional[s
         entries = upgrade_system.remaining_upgrades(village, collection, show_unlocks=True)
         if category is not None:
             entries = [entry for entry in entries if upgrade_system.fields_by_name[entry.item].category == category]
+        entries = _filter_remaining(entries, village, collection, exclude)
         unowned_levels = sum(entry.count for entry in entries if entry.item in collection and not collection[entry.item]
                              and save_store.collection_by_name[entry.item].category == "Hero Equipment")
-        pages = _remaining_pages(entries, town_hall, sorted, category, unowned_levels)
+        pages = _remaining_pages(entries, town_hall, sorted, category, unowned_levels, exclude)
         if target_id != interaction.user.id:
             target = bot.get_user(target_id)
             for page in pages:
@@ -3333,23 +3457,28 @@ class MagicItemView(discord.ui.View):
 
 
 @bot.tree.command(name="use", description="Use a magic item from your inventory.")
-@app_commands.describe(item="The type of magic item to use", quantity="Number to use for items worth two Gems defaults to one")
+@app_commands.describe(item="The type of magic item to use", quantity="Ring budget (defaults to all owned), or number of two-Gem items to use")
 @app_commands.autocomplete(item=magic_item_autocomplete)
 async def use_slash(interaction: discord.Interaction, item: str, quantity: Optional[app_commands.Range[int, 1]] = None):
     if not await enforce_chester_channel(interaction):
         return
     try:
         definition = magic_system.resolve(item)
+        if definition.target == "Wall":
+            village, collection = save_store.player_values(interaction.user.id)
+            magic_system._owned(village, definition)
+            budget = village[definition.name] if quantity is None else quantity
+            offers = _ring_offers(village, collection, definition, budget)
+            if not offers:
+                raise MagicRejected("No eligible Wall can be upgraded with the selected Wall Rings.")
+            view = WallRingView(interaction.user.id, definition, budget, offers)
+            await interaction.response.send_message(embed=view.preview(), view=view, ephemeral=False)
+            return
         if quantity is not None and definition.sell != BULK_MAGIC_SELL_VALUE:
             raise MagicRejected("Quantity is only available for magic items that sell for 2 Gems")
         amount = quantity if quantity is not None else 1
         village, _ = save_store.player_values(interaction.user.id)
         magic_system._owned(village, definition, amount)
-        if definition.name.casefold() in {"wall ring", "wall rings"}:
-            village, _ = save_store.player_values(interaction.user.id)
-            magic_system._owned(village, magic_system.resolve(item))
-            await _open_wall_upgrades(interaction, rings_only=True)
-            return
         definition, options, status = magic_system.prepare(interaction.user.id, item)
         if options or definition.name.startswith("Book of "):
             pages = None
@@ -4418,12 +4547,13 @@ def _profile_category_embeds(target_id, target_name, category):
 
 def _profile_report(target_id, target_name):
     pages, labels = [], []
-    categories = _profile_categories()
-    categories.sort(key=lambda category: category != "Currency")
-    for category in categories:
-        section = _profile_category_embeds(target_id, target_name, category)
-        pages.extend(section)
-        labels.extend(category if len(section) == 1 else f"{category} ({number}/{len(section)})" for number in range(1, len(section) + 1))
+    sections = [(category, _profile_category_embeds(target_id, target_name, category))
+                for category in _profile_categories()]
+    sections.sort(key=lambda pair: (pair[0] != "Currency", len(pair[1]) == 1))
+    for category, section in sections:
+        for number, embed in enumerate(section, 1):
+            pages.append(embed)
+            labels.append(category if len(section) == 1 else f"{category} ({number}/{len(section)})")
     return pages, labels
 
 
@@ -4431,7 +4561,9 @@ class ProfilePageSelect(discord.ui.Select):
     def __init__(self, labels, start, selected, row):
         options = [discord.SelectOption(label=label[:100], value=str(index), default=index == selected)
                    for index, label in enumerate(labels[start:start + 25], start=start)]
-        super().__init__(placeholder="Choose a profile page", options=options, row=row)
+        end = start + len(options)
+        placeholder = f"Profile pages {start + 1}–{end}: {options[0].label} to {options[-1].label}"
+        super().__init__(placeholder=placeholder[:150], options=options, row=row)
 
     async def callback(self, interaction):
         await self.view._move(interaction, int(self.values[0]) - self.view.page)
